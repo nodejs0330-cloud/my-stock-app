@@ -534,6 +534,11 @@ def admin():
             flash("✅ 투자자 랭킹이 즉시 새로 계산되어 갱신되었습니다.")
     return render_template('admin.html', users=db.execute('SELECT * FROM USERS ORDER BY CREATED_AT DESC').fetchall(), notice=db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone())
 
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     if not os.path.exists(DATABASE): init_db()
     init_db() 
