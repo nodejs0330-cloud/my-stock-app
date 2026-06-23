@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24) 
 DATABASE = 'database.db'
 
-# --- 메모리 기반 보안 락 (따닥 방어 및 채팅 도배 방지) ---
+# --- 메모리 기반 보안 락 (따닥 방어 및 채팅 도배 방지 글로벌 변수) ---
 LAST_ORDER_TIME = {}  
 CHAT_HISTORY = {}     
 CHAT_BANS = {}        
@@ -38,13 +38,11 @@ def init_db():
         cursor.execute('''CREATE TABLE IF NOT EXISTS WATCHLIST (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS ANNOUNCEMENT (ID INTEGER PRIMARY KEY, MESSAGE TEXT, IS_ACTIVE INTEGER DEFAULT 0)''')
         cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (1, "", 0)')
-        
         cursor.execute('''CREATE TABLE IF NOT EXISTS COMMENTS (ID INTEGER PRIMARY KEY AUTOINCREMENT, STOCK_CODE TEXT NOT NULL, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS CHAT (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        
         db.commit()
 
-# --- 데이터 수집 및 캐싱 (3차 방어선 적용) ---
+# --- 데이터 수집 및 캐싱 (3차 방어선 및 출처 추적 로직) ---
 STOCK_CACHE = {'KOSPI': {'time': None, 'data': None, 'date': None, 'source': ''}, 'KOSDAQ': {'time': None, 'data': None, 'date': None, 'source': ''}}
 PRICE_CACHE = {'time': None, 'data': {}}
 RANKING_CACHE = {'time': None, 'data': []}
@@ -168,20 +166,15 @@ def init_tickers():
     if not TICKER_CACHE:
         try:
             import FinanceDataReader as fdr
-            # 1. 일반 상장 종목 로드
             df = fdr.StockListing('KRX')
-            for _, row in df.iterrows(): 
-                TICKER_CACHE[str(row['Code'])] = str(row['Name'])
-            
-            # 2. 신규: ETF 종목 로드 추가
+            for _, row in df.iterrows(): TICKER_CACHE[str(row['Code'])] = str(row['Name'])
             df_etf = fdr.StockListing('ETF/KR')
             for _, row in df_etf.iterrows(): 
-                # ETF는 버전에 따라 Symbol 또는 Code 컬럼을 사용함
                 etf_code = str(row.get('Symbol', row.get('Code')))
                 TICKER_CACHE[etf_code] = str(row['Name'])
         except: pass
 
-# --- API 라우팅 ---
+# --- API 비동기 백엔드 라우팅 서비스 ---
 @app.route('/api/search')
 def api_search():
     init_tickers()
@@ -250,55 +243,65 @@ def api_order():
     LAST_ORDER_TIME[user_id] = now_ts
 
     data = request.json
-    code, name, tx_type, qty, price = data.get('code'), data.get('name'), data.get('type'), int(data.get('qty', 0)), int(data.get('price', 0))
+    code, name, tx_type = data.get('code'), data.get('name'), data.get('type')
+    qty = int(data.get('qty', 0))
+    price = int(data.get('price', 0))
+    
     if qty <= 0 or price <= 0: return {"error": "올바른 수량과 가격이 아닙니다.", "success": False}
         
     now = datetime.datetime.now()
-    hour = now.getHours() if hasattr(now, 'getHours') else now.hour
-    day = now.getDay() if hasattr(now, 'getDay') else now.weekday()
-    is_regular_market = (day < 5 and 9 <= hour < 16) 
+    is_regular_market = (now.weekday() < 5 and 9 <= now.hour < 16) 
     
     if tx_type == 'SELL' and not is_regular_market:
         return {"error": "장 마감 이후에는 매도 주문이 불가능합니다.", "success": False}
 
     stock_amount = qty * price
     if tx_type == 'BUY':
-        fee_rate = 0.00015 if is_regular_market else 0.00030
-        fee = int(stock_amount * fee_rate)
+        fee = int(stock_amount * (0.00015 if is_regular_market else 0.00030))
         total_amount = stock_amount + fee
     else: 
-        fee_rate = 0.0020
-        fee = int(stock_amount * fee_rate)
+        fee = int(stock_amount * 0.0020)
         total_amount = stock_amount - fee 
 
     db = get_db()
     try:
-        user = db.execute('SELECT * FROM USERS WHERE ID = ?', (user_id,)).fetchone()
-        holding = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (user_id, code)).fetchone()
+        cursor = db.cursor()
+        user = cursor.execute('SELECT CASH_BALANCE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+        holding = cursor.execute('SELECT ID, AVG_PRICE, QUANTITY FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (user_id, code)).fetchone()
         
         if tx_type == 'BUY':
-            if user['CASH_BALANCE'] < total_amount: return {"error": f"자본금이 부족합니다. (수수료 {fee}원 포함 총 {total_amount}원 필요)", "success": False}
-            db.execute('UPDATE USERS SET CASH_BALANCE = CASH_BALANCE - ? WHERE ID = ?', (total_amount, user_id))
+            if user['CASH_BALANCE'] < total_amount: 
+                return {"error": f"자본금이 부족합니다. (필요: {total_amount:,}원)", "success": False}
+            
+            cursor.execute('UPDATE USERS SET CASH_BALANCE = CASH_BALANCE - ? WHERE ID = ?', (total_amount, user_id))
+            
             if holding:
                 new_qty = holding['QUANTITY'] + qty
-                new_avg = ((holding['AVG_PRICE'] * holding['QUANTITY']) + total_amount) / new_qty
-                db.execute('UPDATE HOLDINGS SET QUANTITY = ?, AVG_PRICE = ? WHERE ID = ?', (new_qty, new_avg, holding['ID']))
+                new_avg = int(((holding['AVG_PRICE'] * holding['QUANTITY']) + stock_amount) / new_qty)
+                cursor.execute('UPDATE HOLDINGS SET QUANTITY = ?, AVG_PRICE = ? WHERE ID = ?', (new_qty, new_avg, holding['ID']))
             else:
-                db.execute('INSERT INTO HOLDINGS (USER_ID, STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY) VALUES (?, ?, ?, ?, ?)', (user_id, code, name, total_amount/qty, qty))
+                cursor.execute('INSERT INTO HOLDINGS (USER_ID, STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY) VALUES (?, ?, ?, ?, ?)', (user_id, code, name, int(stock_amount/qty), qty))
+        
         elif tx_type == 'SELL':
-            if not holding or holding['QUANTITY'] < qty: return {"error": "보유 수량이 부족합니다.", "success": False}
-            db.execute('UPDATE USERS SET CASH_BALANCE = CASH_BALANCE + ? WHERE ID = ?', (total_amount, user_id))
-            if holding['QUANTITY'] == qty: db.execute('DELETE FROM HOLDINGS WHERE ID = ?', (holding['ID'],))
-            else: db.execute('UPDATE HOLDINGS SET QUANTITY = QUANTITY - ? WHERE ID = ?', (qty, holding['ID']))
+            if not holding or holding['QUANTITY'] < qty: 
+                return {"error": "보유 수량이 부족합니다.", "success": False}
             
-        db.execute('INSERT INTO TRANSACTIONS (USER_ID, STOCK_CODE, TX_TYPE, PRICE, QUANTITY, FEE) VALUES (?, ?, ?, ?, ?, ?)', (user_id, code, tx_type, price, qty, fee))
+            cursor.execute('UPDATE USERS SET CASH_BALANCE = CASH_BALANCE + ? WHERE ID = ?', (total_amount, user_id))
+            if holding['QUANTITY'] == qty: 
+                cursor.execute('DELETE FROM HOLDINGS WHERE ID = ?', (holding['ID'],))
+            else: 
+                cursor.execute('UPDATE HOLDINGS SET QUANTITY = QUANTITY - ? WHERE ID = ?', (qty, holding['ID']))
+            
+        cursor.execute('INSERT INTO TRANSACTIONS (USER_ID, STOCK_CODE, TX_TYPE, PRICE, QUANTITY, FEE) VALUES (?, ?, ?, ?, ?, ?)', (user_id, code, tx_type, price, qty, fee))
         db.commit()
+        
         new_balance = db.execute('SELECT CASH_BALANCE FROM USERS WHERE ID = ?', (user_id,)).fetchone()['CASH_BALANCE']
         msg_extra = "특례 적용 (수수료 2배)" if (tx_type == 'BUY' and not is_regular_market) else ""
-        return {"success": True, "message": f"{name} {qty}주 {tx_type} 완료\n(수수료 {fee}원) {msg_extra}", "new_balance": new_balance}
+        return {"success": True, "message": f"{name} {qty}주 {tx_type} 완료\n(수수료 {fee:,}원) {msg_extra}", "new_balance": new_balance}
     except Exception as e:
         db.rollback()
-        return {"error": "주문 처리 중 오류 발생.", "success": False}
+        print(f"DEBUG ERROR: {e}")
+        return {"error": f"주문 처리 중 오류 발생: {str(e)}", "success": False}
 
 @app.route('/api/market_trend/<market>')
 def api_market_trend(market):
@@ -327,7 +330,6 @@ def api_comments(code):
         result.append({"id": c['CID'], "name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5], "is_holder": is_holder, "return_rate": round(ret_rate, 1)})
     return {"comments": result}
 
-# --- 신규: 관리자 전용 종토방 댓글 관리 API ---
 @app.route('/api/admin/comment', methods=['POST'])
 def api_admin_comment():
     if session.get('username') != 'admin': return {"error": "권한이 없습니다."}, 403
@@ -341,7 +343,6 @@ def api_admin_comment():
     elif action == 'edit':
         new_msg = data.get('message', '').strip()[:200]
         db.execute('UPDATE COMMENTS SET MESSAGE = ? WHERE ID = ?', (new_msg, comment_id))
-    
     db.commit()
     return {"success": True}
 
@@ -375,17 +376,14 @@ def api_chat():
     seven_days_ago = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
     db.execute('DELETE FROM CHAT WHERE CREATED_AT < ?', (seven_days_ago,))
     db.commit()
-    
     chats = db.execute('SELECT C.MESSAGE, C.CREATED_AT, U.NAME FROM CHAT C JOIN USERS U ON C.USER_ID = U.ID ORDER BY C.CREATED_AT DESC LIMIT 30').fetchall()
     return {"chats": [{"name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5]} for c in chats][::-1]}
 
 @app.route('/api/simulation_run', methods=['POST'])
 def api_simulation_run():
-    """과거 주가와 공제회 이율을 비교하는 로직"""
     data = request.json
     code, amount, months = data.get('code'), int(data.get('amount')), int(data.get('months'))
     mode = data.get('mode') 
-    
     now = datetime.datetime.now()
     start_date = (now - datetime.timedelta(days=months*30)).strftime("%Y-%m-%d")
     
@@ -393,7 +391,6 @@ def api_simulation_run():
         import FinanceDataReader as fdr
         df = fdr.DataReader(code, start_date, now.strftime("%Y-%m-%d"))
         if df.empty: return {"error": "과거 주가 데이터가 없습니다."}, 404
-        
         past_price = int(df.iloc[0]['Close'])
         curr_price = int(df.iloc[-1]['Close'])
         
@@ -408,7 +405,6 @@ def api_simulation_run():
             
         stock_rate = ((stock_final - total_invested) / total_invested) * 100
         
-        # 공제회 적립형(5%) / 목돈급여(3%) 분리 계산
         if mode == 'lump':
             ksema_final = total_invested * ((1 + 0.05) ** (months / 12))
             ksema_lump_final = total_invested * ((1 + 0.03) ** (months / 12))
@@ -418,20 +414,11 @@ def api_simulation_run():
             r3 = 0.03 / 12
             ksema_lump_final = amount * (((1 + r3)**months - 1) / r3) * (1 + r3)
             
-        return {
-            "success": True,
-            "invested": total_invested,
-            "stock_name": TICKER_CACHE.get(code, code),
-            "stock_final": int(stock_final),
-            "stock_rate": round(stock_rate, 1),
-            "current_price": curr_price,
-            "ksema_final": int(ksema_final),
-            "ksema_lump_final": int(ksema_lump_final)
-        }
+        return {"success": True, "invested": total_invested, "stock_name": TICKER_CACHE.get(code, code), "stock_final": int(stock_final), "stock_rate": round(stock_rate, 1), "current_price": curr_price, "ksema_final": int(ksema_final), "ksema_lump_final": int(ksema_lump_final)}
     except Exception as e:
         return {"error": f"시뮬레이션 오류: {e}"}, 500
 
-# --- 웹 페이지 라우팅 ---
+# --- 웹 프론트엔드 라우팅 서비스 ---
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -454,13 +441,10 @@ def signup():
             flash('모든 항목을 입력해주세요.')
             return redirect(url_for('signup'))
             
-        # 신규: 아이디 및 닉네임 중복 명시적 검사
         existing_user = db.execute('SELECT * FROM USERS WHERE USERNAME = ? OR NAME = ?', (username, name)).fetchone()
         if existing_user:
-            if existing_user['USERNAME'] == username:
-                flash('❌ 이미 존재하는 아이디입니다.')
-            else:
-                flash('❌ 이미 사용 중인 닉네임(이름)입니다.')
+            if existing_user['USERNAME'] == username: flash('❌ 이미 존재하는 아이디입니다.')
+            else: flash('❌ 이미 사용 중인 닉네임(이름)입니다.')
             return redirect(url_for('signup'))
             
         try:
@@ -468,10 +452,9 @@ def signup():
             db.commit()
             flash('✅ 회원가입 완료! 5,000만 원 지급됨.')
             return redirect(url_for('index'))
-        except Exception as e: 
+        except: 
             flash('❌ 회원가입 중 오류가 발생했습니다.')
             return redirect(url_for('signup'))
-            
     return render_template('signup.html')
 
 @app.route('/dashboard')
@@ -479,15 +462,12 @@ def dashboard():
     if 'user_id' not in session: return redirect(url_for('index'))
     db = get_db()
     user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
-    
     holdings = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
     current_prices = get_all_prices()
     total_stock_value = sum([current_prices.get(h['STOCK_CODE'], h['AVG_PRICE']) * h['QUANTITY'] for h in holdings])
     total_asset = user['CASH_BALANCE'] + total_stock_value
-    
     top_stocks, target_date_str, data_source = get_top_stocks("KOSPI")
     notice = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone()
-    
     return render_template('dashboard.html', user=user, total_asset=total_asset, top_stocks=top_stocks, target_date=target_date_str, notice=notice, source=data_source)
 
 @app.route('/trade')
@@ -546,16 +526,13 @@ def admin():
             db.commit()
             CHAT_BANS.clear()
             CHAT_HISTORY.clear()
-            flash("✅ 미니 채팅방 내역 및 도배 밴 기록이 모두 초기화되었습니다.")
+            flash("✅ 미니 채팅방 내역 및 기록이 초기화되었습니다.")
         elif action == 'refresh_ranking':
             global RANKING_CACHE
-            RANKING_CACHE['time'] = None # 캐시 무효화로 다음 호출 시 강제 계산 유도
+            RANKING_CACHE['time'] = None 
             get_rankings()
             flash("✅ 투자자 랭킹이 즉시 새로 계산되어 갱신되었습니다.")
     return render_template('admin.html', users=db.execute('SELECT * FROM USERS ORDER BY CREATED_AT DESC').fetchall(), notice=db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone())
-
-@app.route('/logout')
-def logout(): session.clear(); return redirect(url_for('index'))
 
 if __name__ == '__main__':
     if not os.path.exists(DATABASE): init_db()
