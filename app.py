@@ -168,8 +168,17 @@ def init_tickers():
     if not TICKER_CACHE:
         try:
             import FinanceDataReader as fdr
+            # 1. 일반 상장 종목 로드
             df = fdr.StockListing('KRX')
-            for _, row in df.iterrows(): TICKER_CACHE[str(row['Code'])] = str(row['Name'])
+            for _, row in df.iterrows(): 
+                TICKER_CACHE[str(row['Code'])] = str(row['Name'])
+            
+            # 2. 신규: ETF 종목 로드 추가
+            df_etf = fdr.StockListing('ETF/KR')
+            for _, row in df_etf.iterrows(): 
+                # ETF는 버전에 따라 Symbol 또는 Code 컬럼을 사용함
+                etf_code = str(row.get('Symbol', row.get('Code')))
+                TICKER_CACHE[etf_code] = str(row['Name'])
         except: pass
 
 # --- API 라우팅 ---
@@ -437,12 +446,32 @@ def index():
 def signup():
     if request.method == 'POST':
         db = get_db()
+        username = request.form.get('username', '').strip()
+        name = request.form.get('name', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        if not username or not name or not password:
+            flash('모든 항목을 입력해주세요.')
+            return redirect(url_for('signup'))
+            
+        # 신규: 아이디 및 닉네임 중복 명시적 검사
+        existing_user = db.execute('SELECT * FROM USERS WHERE USERNAME = ? OR NAME = ?', (username, name)).fetchone()
+        if existing_user:
+            if existing_user['USERNAME'] == username:
+                flash('❌ 이미 존재하는 아이디입니다.')
+            else:
+                flash('❌ 이미 사용 중인 닉네임(이름)입니다.')
+            return redirect(url_for('signup'))
+            
         try:
-            db.execute('INSERT INTO USERS (USERNAME, PASSWORD_HASH, NAME) VALUES (?, ?, ?)', (request.form.get('username'), generate_password_hash(request.form.get('password')), request.form.get('name')))
+            db.execute('INSERT INTO USERS (USERNAME, PASSWORD_HASH, NAME) VALUES (?, ?, ?)', (username, generate_password_hash(password), name))
             db.commit()
-            flash('회원가입 완료! 5,000만 원 지급됨.')
+            flash('✅ 회원가입 완료! 5,000만 원 지급됨.')
             return redirect(url_for('index'))
-        except: flash('이미 존재하는 아이디입니다.')
+        except Exception as e: 
+            flash('❌ 회원가입 중 오류가 발생했습니다.')
+            return redirect(url_for('signup'))
+            
     return render_template('signup.html')
 
 @app.route('/dashboard')
