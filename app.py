@@ -309,14 +309,32 @@ def api_comments(code):
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
         
-    comments = db.execute('SELECT C.MESSAGE, C.CREATED_AT, U.NAME, U.ID as UID FROM COMMENTS C JOIN USERS U ON C.USER_ID = U.ID WHERE C.STOCK_CODE = ? ORDER BY C.CREATED_AT DESC LIMIT 50', (code,)).fetchall()
+    comments = db.execute('SELECT C.ID as CID, C.MESSAGE, C.CREATED_AT, U.NAME, U.ID as UID FROM COMMENTS C JOIN USERS U ON C.USER_ID = U.ID WHERE C.STOCK_CODE = ? ORDER BY C.CREATED_AT DESC LIMIT 50', (code,)).fetchall()
     result = []
     for c in comments:
         uid = c['UID']
         is_holder = db.execute('SELECT 1 FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (uid, code)).fetchone() is not None
         ret_rate = get_user_total_return(uid)
-        result.append({"name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5], "is_holder": is_holder, "return_rate": round(ret_rate, 1)})
+        result.append({"id": c['CID'], "name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5], "is_holder": is_holder, "return_rate": round(ret_rate, 1)})
     return {"comments": result}
+
+# --- 신규: 관리자 전용 종토방 댓글 관리 API ---
+@app.route('/api/admin/comment', methods=['POST'])
+def api_admin_comment():
+    if session.get('username') != 'admin': return {"error": "권한이 없습니다."}, 403
+    db = get_db()
+    data = request.json
+    action = data.get('action')
+    comment_id = data.get('id')
+    
+    if action == 'delete':
+        db.execute('DELETE FROM COMMENTS WHERE ID = ?', (comment_id,))
+    elif action == 'edit':
+        new_msg = data.get('message', '').strip()[:200]
+        db.execute('UPDATE COMMENTS SET MESSAGE = ? WHERE ID = ?', (new_msg, comment_id))
+    
+    db.commit()
+    return {"success": True}
 
 @app.route('/api/chat', methods=['GET', 'POST'])
 def api_chat():
@@ -494,6 +512,17 @@ def admin():
             db.execute('UPDATE ANNOUNCEMENT SET MESSAGE = ?, IS_ACTIVE = ? WHERE ID = 1', (request.form.get('message', '')[:100], 1 if request.form.get('is_active') == 'on' else 0))
             db.commit()
             flash("✅ 공지사항 업데이트 됨.")
+        elif action == 'reset_chat':
+            db.execute('DELETE FROM CHAT')
+            db.commit()
+            CHAT_BANS.clear()
+            CHAT_HISTORY.clear()
+            flash("✅ 미니 채팅방 내역 및 도배 밴 기록이 모두 초기화되었습니다.")
+        elif action == 'refresh_ranking':
+            global RANKING_CACHE
+            RANKING_CACHE['time'] = None # 캐시 무효화로 다음 호출 시 강제 계산 유도
+            get_rankings()
+            flash("✅ 투자자 랭킹이 즉시 새로 계산되어 갱신되었습니다.")
     return render_template('admin.html', users=db.execute('SELECT * FROM USERS ORDER BY CREATED_AT DESC').fetchall(), notice=db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone())
 
 @app.route('/logout')
