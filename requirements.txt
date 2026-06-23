@@ -4,4 +4,5 @@ pykrx==1.0.45
 pandas==2.1.1
 requests
 finance-datareader
-yfinance
+yfinance>=0.2.0
+curl_cffi>=0.7.0
