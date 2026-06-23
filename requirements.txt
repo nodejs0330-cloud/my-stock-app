@@ -2,6 +2,7 @@ Flask==3.0.0
 Werkzeug==3.0.0
 gunicorn
 pykrx==1.0.45
+numpy<2.0.0
 pandas==2.1.1
 requests
 finance-datareader
