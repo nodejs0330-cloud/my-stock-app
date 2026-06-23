@@ -1,5 +1,6 @@
 Flask==3.0.0
 Werkzeug==3.0.0
+gunicorn
 pykrx==1.0.45
 pandas==2.1.1
 requests
