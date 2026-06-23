@@ -51,6 +51,13 @@ def init_db():
         cursor.execute('''CREATE TABLE IF NOT EXISTS CHAT (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         db.commit()
 
+# --- Render.com 등 클라우드 배포 환경을 위한 강제 DB 초기화 ---
+# (gunicorn 등으로 실행 시 if __name__ == '__main__' 블록이 무시되므로 모듈 로드 시 무조건 1회 실행)
+try:
+    init_db()
+except Exception as e:
+    print(f"DB 초기화 중 에러 발생: {e}")
+
 # --- 데이터 수집 및 캐싱 (3차 방어선 및 출처 추적 로직) ---
 STOCK_CACHE = {'KOSPI': {'time': None, 'data': None, 'date': None, 'source': ''}, 'KOSDAQ': {'time': None, 'data': None, 'date': None, 'source': ''}}
 PRICE_CACHE = {'time': None, 'data': {}}
