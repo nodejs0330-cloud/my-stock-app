@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block body_class %}bg-[#0b101a]{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<style>
+    .marquee-container { display: flex; overflow: hidden; white-space: nowrap; width: 100%; }
+    .marquee-content { animation: scrollText 15s linear infinite; padding-left: 100%; }
+    @keyframes scrollText { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
+</style>
+
+<div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
+    <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
+                <span class="hidden md:inline-block text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">{{ user.NAME }}님 접속중</span>
+            </div>
+            <nav class="hidden md:flex space-x-2 items-center">
+                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg bg-gray-800 text-white font-medium text-sm">홈</a>
+                <a href="{{ url_for('trade') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">주문/차트</a>
+                <a href="{{ url_for('portfolio') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">내 주식</a>
+                <a href="{{ url_for('ranking') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">랭킹</a>
+                <a href="{{ url_for('simulation') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">만약에</a>
+                {% if session.get('username') == 'admin' %}
+                <a href="{{ url_for('admin') }}" class="px-4 py-2 rounded-lg bg-red-900/50 text-red-400 hover:text-white hover:bg-red-800 transition text-sm font-bold border border-red-800/50">관리자</a>
+                {% endif %}
+                <div class="w-px h-4 bg-gray-700 mx-2"></div>
+                <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-400 text-sm font-medium transition">로그아웃</a>
+            </nav>
+            <a href="{{ url_for('logout') }}" class="md:hidden text-gray-400 hover:text-red-400 text-xs font-medium bg-gray-800/50 px-3 py-1.5 rounded-full">로그아웃</a>
+        </div>
+    </header>
+
+    <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 space-y-6">
+        
+        {% if notice and notice.IS_ACTIVE and notice.MESSAGE %}
+        <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl p-3 shadow-[0_0_20px_rgba(234,179,8,0.3)] flex items-center overflow-hidden border border-yellow-400">
+            <span class="flex-shrink-0 bg-gray-900 text-yellow-400 text-xs font-black px-2 py-1 rounded mr-3 z-10 flex items-center">
+                <span class="mr-1 animate-pulse">📢</span> 긴급공지
+            </span>
+            <div class="marquee-container flex-grow">
+                <span class="marquee-content text-gray-900 font-bold text-sm tracking-wide">{{ notice.MESSAGE }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="bg-gradient-to-br from-[#1e2638] to-[#121824] rounded-2xl border border-gray-700/50 p-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-6 -right-6 text-8xl opacity-5 select-none">💰</div>
+            <p class="text-gray-400 text-sm mb-1 font-medium">{{ user.NAME }}님의 총 자산</p>
+            <h2 class="text-4xl font-bold text-white tracking-tight">{{ "{:,.0f}".format(total_asset) }}<span class="text-lg text-gray-400 font-normal ml-1">원</span></h2>
+            <div class="mt-6 flex space-x-6 border-t border-gray-700/50 pt-4">
+                <div>
+                    <p class="text-xs text-gray-500 mb-0.5">투자원금</p>
+                    <p class="text-sm text-gray-300 font-medium">50,000,000원</p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 mb-0.5">총 자산 수익률</p>
+                    {% set return_rate = ((total_asset - 50000000) / 50000000) * 100 %}
+                    <p class="text-sm font-bold {% if return_rate > 0 %}text-red-500{% elif return_rate < 0 %}text-blue-500{% else %}text-gray-300{% endif %}">
+                        {% if return_rate > 0 %}+{% endif %}{{ "{:.2f}".format(return_rate) }}%
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center px-1">
+            <div class="flex items-center space-x-2">
+                <button id="btn-KOSPI" class="text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" onclick="loadMarket('KOSPI')">KOSPI</button>
+                <button id="btn-KOSDAQ" class="text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 hover:text-white transition-colors border border-gray-700" onclick="loadMarket('KOSDAQ')">KOSDAQ</button>
+            </div>
+            <!-- 데이터 출처 명시 (3차 방어선 추적) -->
+            <p class="text-[10px] text-gray-500 text-right">데이터 출처: <span id="data-source-text" class="font-bold text-gray-400">{{ source }}</span> (지연 시세)</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 overflow-hidden shadow-lg">
+                <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+                    <h3 class="text-base font-bold text-white flex items-center">🔥 <span id="market-name-gainers" class="mr-1">KOSPI</span> 급등주</h3>
+                    <span id="trend-date-gainers" class="text-[10px] text-gray-500">{{ target_date }} 기준</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-300">
+                        <thead class="bg-[#0b101a] text-gray-500 text-[10px] font-semibold">
+                            <tr><th class="px-4 py-2">종목명</th><th class="px-4 py-2 text-right">현재가</th><th class="px-4 py-2 text-right">등락률</th></tr>
+                        </thead>
+                        <tbody id="gainers-tbody" class="divide-y divide-gray-800/50">
+                            {% if top_stocks and top_stocks.gainers %}
+                                {% for stock in top_stocks.gainers %}
+                                <tr class="hover:bg-gray-700/50 transition-colors cursor-pointer" onclick="location.href='{{ url_for('trade') }}?code={{ stock.code }}'">
+                                    <td class="px-4 py-2 flex items-center"><span class="text-gray-500 text-[10px] w-4">{{ loop.index }}</span>
+                                        <div class="flex flex-col ml-1"><span class="font-bold text-white text-xs">{{ stock.name }}</span><span class="text-[9px] text-gray-500">{{ stock.code }}</span></div></td>
+                                    <td class="px-4 py-2 text-right font-medium text-white text-xs">{{ "{:,.0f}".format(stock.price) }}</td>
+                                    <td class="px-4 py-2 text-right"><span class="text-red-500 font-bold text-xs">+{{ "{:.2f}".format(stock.change_rate) }}%</span></td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 overflow-hidden shadow-lg">
+                <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+                    <h3 class="text-base font-bold text-white flex items-center">❄️ <span id="market-name-losers" class="mr-1">KOSPI</span> 급락주</h3>
+                    <span id="trend-date-losers" class="text-[10px] text-gray-500">{{ target_date }} 기준</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-300">
+                        <thead class="bg-[#0b101a] text-gray-500 text-[10px] font-semibold">
+                            <tr><th class="px-4 py-2">종목명</th><th class="px-4 py-2 text-right">현재가</th><th class="px-4 py-2 text-right">등락률</th></tr>
+                        </thead>
+                        <tbody id="losers-tbody" class="divide-y divide-gray-800/50">
+                            {% if top_stocks and top_stocks.losers %}
+                                {% for stock in top_stocks.losers %}
+                                <tr class="hover:bg-gray-700/50 transition-colors cursor-pointer" onclick="location.href='{{ url_for('trade') }}?code={{ stock.code }}'">
+                                    <td class="px-4 py-2 flex items-center"><span class="text-gray-500 text-[10px] w-4">{{ loop.index }}</span>
+                                        <div class="flex flex-col ml-1"><span class="font-bold text-white text-xs">{{ stock.name }}</span><span class="text-[9px] text-gray-500">{{ stock.code }}</span></div></td>
+                                    <td class="px-4 py-2 text-right font-medium text-white text-xs">{{ "{:,.0f}".format(stock.price) }}</td>
+                                    <td class="px-4 py-2 text-right"><span class="text-blue-500 font-bold text-xs">{{ "{:.2f}".format(stock.change_rate) }}%</span></td>
+                                </tr>
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 모바일 메뉴 -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex justify-around items-center h-[68px] z-50 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe">
+        <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center w-1/5 text-white"><span class="text-2xl mb-1">🏠</span><span class="text-[9px] font-bold">홈</span></a>
+        <a href="{{ url_for('trade') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span></a>
+        <a href="{{ url_for('portfolio') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
+        <a href="{{ url_for('ranking') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
+        <a href="{{ url_for('simulation') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+    </nav>
+</div>
+
+<script>
+    function loadMarket(market) {
+        document.getElementById('btn-KOSPI').className = market==='KOSPI' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700";
+        document.getElementById('btn-KOSDAQ').className = market==='KOSDAQ' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700";
+        
+        fetch(`/api/market_trend/${market}`).then(r => r.json()).then(data => {
+            document.getElementById('trend-date-gainers').innerText = data.date + ' 기준';
+            document.getElementById('trend-date-losers').innerText = data.date + ' 기준';
+            document.getElementById('market-name-gainers').innerText = market;
+            document.getElementById('market-name-losers').innerText = market;
+            document.getElementById('data-source-text').innerText = data.source; 
+            renderTable('gainers-tbody', data.data.gainers, false);
+            renderTable('losers-tbody', data.data.losers, true);
+        });
+    }
+    
+    function renderTable(tbodyId, items, isLoser) {
+        const tbody = document.getElementById(tbodyId);
+        tbody.innerHTML = '';
+        items.forEach((stock, idx) => {
+            const color = isLoser ? 'blue' : 'red';
+            const sign = isLoser ? '▼' : '▲';
+            tbody.innerHTML += `<tr class="hover:bg-gray-700/50 cursor-pointer" onclick="location.href='/trade?code=${stock.code}'">
+                <td class="px-4 py-2 flex items-center"><span class="text-gray-500 text-[10px] w-4">${idx + 1}</span><div class="flex flex-col ml-1"><span class="font-bold text-white text-xs">${stock.name}</span><span class="text-[9px] text-gray-500">${stock.code}</span></div></td>
+                <td class="px-4 py-2 text-right font-medium text-white text-xs">${stock.price.toLocaleString()}</td>
+                <td class="px-4 py-2 text-right"><div class="flex flex-col items-end"><span class="text-${color}-500 font-bold text-xs">${isLoser?'':'+'}${stock.change_rate.toFixed(2)}%</span></div></td>
+            </tr>`;
+        });
+    }
+</script>
+{% endblock %}

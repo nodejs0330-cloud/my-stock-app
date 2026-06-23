@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCC STOCK - 모의 주식 투자</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body id="body-bg" class="{% block body_class %}bg-default{% endblock %} text-white min-h-screen flex flex-col transition-all duration-500 font-sans">
+    
+    <main class="flex-grow flex items-center justify-center relative z-10 w-full">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block footer %}
+    <footer class="w-full bg-gray-900/30 backdrop-blur-md text-gray-300 py-4 px-6 flex justify-between items-end relative z-10 border-t border-white/10">
+        <div class="text-sm space-y-1 drop-shadow-md">
+            <p>Producer: ROCK EIGHT 2</p>
+            <p>Email: joamoon7@ncc.re.kr</p>
+            <p>Address: KOREA ANYWHERE</p>
+            <p class="text-xs text-gray-400 mt-2">© 2026 NCC STOCK. All rights reserved.</p>
+        </div>
+        <div>
+            <img src="{{ url_for('static', filename='img/logo.png') }}" 
+                 alt="국립암센터 로고" 
+                 class="h-10 opacity-70 hover:opacity-100 transition-opacity drop-shadow-lg" 
+                 onerror="this.outerHTML='<span class=\'text-xs border border-white/20 p-2 rounded drop-shadow-md\'>Logo (logo.png)</span>'">
+        </div>
+    </footer>
+    {% endblock %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- 보안: 관리자가 아닐 경우 우클릭 및 개발자도구 차단 -->
+    {% if session.get('username') != 'admin' %}
+    <script>
+        document.addEventListener('contextmenu', event => event.preventDefault()); // 우클릭 방지
+        document.addEventListener('dragstart', event => event.preventDefault()); // 드래그 방지
+        document.addEventListener('selectstart', event => event.preventDefault()); // 텍스트 선택 방지
+        document.addEventListener('keydown', function(e) {
+            // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U 방지
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) || 
+                (e.ctrlKey && (e.key === 'U' || e.key === 'u'))) {
+                e.preventDefault();
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block body_class %}bg-[#0b101a]{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
+    
+    <!-- 상단 헤더 -->
+    <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
+                <span class="hidden md:inline-block text-xs font-bold text-green-400 bg-green-900/30 px-2 py-1 rounded">내 포트폴리오</span>
+            </div>
+            
+            <nav class="hidden md:flex space-x-2 items-center">
+                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">홈</a>
+                <a href="{{ url_for('trade') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">주문/차트</a>
+                <a href="{{ url_for('portfolio') }}" class="px-4 py-2 rounded-lg bg-gray-800 text-white font-medium text-sm">내 주식</a>
+                <a href="{{ url_for('ranking') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">랭킹</a>
+                <a href="{{ url_for('simulation') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">만약에</a>
+                <div class="w-px h-4 bg-gray-700 mx-2"></div>
+                <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-400 text-sm font-medium transition">로그아웃</a>
+            </nav>
+            <a href="{{ url_for('logout') }}" class="md:hidden text-gray-400 hover:text-red-400 text-xs font-medium bg-gray-800/50 px-3 py-1.5 rounded-full">로그아웃</a>
+        </div>
+    </header>
+
+    <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 space-y-6">
+        
+        <!-- 총 자산 현황 -->
+        <div class="bg-gradient-to-r from-[#121824] to-[#1e2638] rounded-2xl border border-gray-700 p-6 shadow-xl flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <p class="text-gray-400 text-sm mb-1">총 자산 (현금 + 주식평가금액)</p>
+                <h2 class="text-3xl font-bold text-white">{{ "{:,.0f}".format(total_asset) }}<span class="text-lg text-gray-400 font-normal ml-1">원</span></h2>
+            </div>
+            <div class="flex space-x-6 mt-4 md:mt-0 bg-[#0b101a] p-4 rounded-xl border border-gray-800">
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 mb-1">보유 현금</p>
+                    <p class="text-sm text-yellow-400 font-bold">{{ "{:,.0f}".format(user.CASH_BALANCE) }}원</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-gray-500 mb-1">주식 평가금액</p>
+                    <p class="text-sm text-white font-bold">{{ "{:,.0f}".format(stock_value) }}원</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 보유 주식 리스트 -->
+        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl overflow-hidden">
+            <div class="p-5 border-b border-gray-800">
+                <h3 class="text-lg font-bold text-white">보유 종목 상세</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-300 min-w-[600px]">
+                    <thead class="bg-[#0b101a] text-gray-500 text-xs uppercase font-semibold">
+                        <tr>
+                            <th scope="col" class="px-5 py-4">종목명</th>
+                            <th scope="col" class="px-5 py-4 text-right">보유수량</th>
+                            <th scope="col" class="px-5 py-4 text-right">매수평균가</th>
+                            <th scope="col" class="px-5 py-4 text-right">현재가</th>
+                            <th scope="col" class="px-5 py-4 text-right">평가손익</th>
+                            <th scope="col" class="px-5 py-4 text-right">수익률</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800/50">
+                        {% if portfolio_data %}
+                            {% for stock in portfolio_data %}
+                            <tr class="hover:bg-gray-800/30 transition-colors">
+                                <td class="px-5 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-white text-base">{{ stock.name }}</span>
+                                        <span class="text-[10px] text-gray-500">{{ stock.code }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-5 py-4 text-right font-medium text-gray-300">{{ stock.qty }}주</td>
+                                <td class="px-5 py-4 text-right font-medium text-gray-400">{{ "{:,.0f}".format(stock.avg_price) }}원</td>
+                                <td class="px-5 py-4 text-right font-bold text-white">{{ "{:,.0f}".format(stock.curr_price) }}원</td>
+                                <td class="px-5 py-4 text-right">
+                                    {% if stock.profit > 0 %}
+                                        <span class="text-red-500 font-bold">+{{ "{:,.0f}".format(stock.profit) }}</span>
+                                    {% elif stock.profit < 0 %}
+                                        <span class="text-blue-500 font-bold">{{ "{:,.0f}".format(stock.profit) }}</span>
+                                    {% else %}
+                                        <span class="text-gray-500">0</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-5 py-4 text-right">
+                                    {% if stock.profit_rate > 0 %}
+                                        <span class="text-red-500 font-bold bg-red-500/10 px-2 py-1 rounded">+{{ "{:.2f}".format(stock.profit_rate) }}%</span>
+                                    {% elif stock.profit_rate < 0 %}
+                                        <span class="text-blue-500 font-bold bg-blue-500/10 px-2 py-1 rounded">{{ "{:.2f}".format(stock.profit_rate) }}%</span>
+                                    {% else %}
+                                        <span class="text-gray-500 font-bold">0.00%</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="px-5 py-12 text-center text-gray-500">
+                                    보유 중인 주식이 없습니다. <a href="{{ url_for('trade') }}" class="text-blue-400 hover:underline ml-1">주문하러 가기</a>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모바일 메뉴 복원 -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex justify-around items-center h-[68px] z-50 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe">
+        <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors">
+            <span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span>
+        </a>
+        <a href="{{ url_for('trade') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors">
+            <span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span>
+        </a>
+        <a href="{{ url_for('portfolio') }}" class="flex flex-col items-center justify-center w-1/5 text-white">
+            <span class="text-2xl mb-1">💼</span><span class="text-[9px] font-bold">내주식</span>
+        </a>
+        <a href="{{ url_for('ranking') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors">
+            <span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span>
+        </a>
+        <a href="{{ url_for('simulation') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors">
+            <span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span>
+        </a>
+    </nav>
+</div>
+{% endblock %}

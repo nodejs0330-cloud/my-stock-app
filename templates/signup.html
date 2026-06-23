@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w-full max-w-md bg-gray-800 bg-opacity-90 rounded-2xl shadow-2xl p-8 backdrop-blur-md border border-gray-700 relative z-10 mx-4">
+    <div class="mb-8 text-center">
+        <h2 class="text-3xl font-bold text-white tracking-tight">회원가입</h2>
+        <p class="text-gray-400 mt-2 text-sm">가입 즉시 모의투자 자본금 <span class="text-yellow-400 font-bold">5,000만원</span>이 지급됩니다.</p>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="mb-4 bg-red-100/90 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm font-medium text-center shadow-lg">
+          {{ messages[0] }}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('signup') }}" method="POST" class="space-y-5">
+        <div>
+            <label for="username" class="block text-sm font-medium text-gray-400">아이디</label>
+            <input type="text" id="username" name="username" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        </div>
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-400">닉네임 (이름)</label>
+            <input type="text" id="name" name="name" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        </div>
+        <div>
+            <label for="password" class="block text-sm font-medium text-gray-400">비밀번호</label>
+            <input type="password" id="password" name="password" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+        </div>
+        
+        <div class="pt-4">
+            <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-bold py-3 px-4 rounded-lg focus:outline-none shadow-lg transform transition hover:-translate-y-0.5">
+                가입하고 지원금 받기
+            </button>
+        </div>
+    </form>
+    <div class="mt-6 text-center">
+        <a href="{{ url_for('index') }}" class="text-sm text-gray-400 hover:text-white transition-colors">← 로그인 화면으로 돌아가기</a>
+    </div>
+</div>
+{% endblock %}

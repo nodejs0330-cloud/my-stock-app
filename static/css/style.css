@@ -1,0 +1,25 @@
+/* 기본 배경: 준비하신 로컬 이미지 (new_ncc.jpg) */
+.bg-default {
+    background-image: url('../img/new_ncc.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-color: #0f2027; /* 이미지 로딩 전/실패 시 대체 색상 */
+}
+
+/* 외부 랜덤 배경 (JS에서 URL 주입) */
+.bg-external {
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-color: #0f2027;
+}
+
+/* 준비하신 이미지 배경 클래스 */
+.bg-kitsch {
+    /* static/css 폴더에서 img 폴더로 접근하므로 상대경로 사용 */
+    background-image: url('../img/new_ncc.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+}

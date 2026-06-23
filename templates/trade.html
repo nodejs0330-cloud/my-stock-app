@@ -1,0 +1,352 @@
+{% extends 'base.html' %}
+{% block body_class %}bg-[#0b101a]{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
+
+<div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
+    <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
+                <span class="hidden md:inline-block text-xs font-bold text-blue-400 bg-blue-900/30 px-2 py-1 rounded">거래소</span>
+            </div>
+            <nav class="hidden md:flex space-x-2 items-center">
+                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">홈</a>
+                <a href="{{ url_for('trade') }}" class="px-4 py-2 rounded-lg bg-gray-800 text-white font-medium text-sm">주문/차트</a>
+                <a href="{{ url_for('portfolio') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">내 주식</a>
+                <a href="{{ url_for('ranking') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">랭킹</a>
+                <a href="{{ url_for('simulation') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">만약에</a>
+                <div class="w-px h-4 bg-gray-700 mx-2"></div>
+                <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-400 text-sm font-medium transition">로그아웃</a>
+            </nav>
+            <a href="{{ url_for('logout') }}" class="md:hidden text-gray-400 hover:text-red-400 text-xs font-medium bg-gray-800/50 px-3 py-1.5 rounded-full">로그아웃</a>
+        </div>
+    </header>
+
+    <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- 왼쪽: 검색/차트 및 종토방 -->
+        <div class="md:col-span-2 space-y-4">
+            <div class="bg-[#121824] rounded-2xl border border-gray-800 p-4 relative shadow-lg z-30">
+                <div class="relative">
+                    <input type="text" id="search-input" placeholder="종목명 또는 코드를 검색하세요 (예: 삼성전자)" autocomplete="off" class="w-full bg-[#1e2638] border border-gray-700 text-white text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="search-btn" class="absolute right-2 top-2 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-lg">🔍</button>
+                </div>
+                <ul id="search-results" class="absolute w-full bg-[#1e2638] border border-gray-700 rounded-xl mt-1 hidden max-h-60 overflow-y-auto shadow-2xl"></ul>
+            </div>
+
+            <div class="bg-[#121824] rounded-2xl border border-gray-800 p-4 shadow-lg min-h-[400px] flex flex-col">
+                <div id="stock-header" class="mb-4 hidden justify-between items-end">
+                    <div>
+                        <h2 id="stock-name" class="text-2xl font-bold text-white leading-none"></h2>
+                        <span id="stock-code" class="text-gray-500 text-sm"></span>
+                        <span id="data-source-badge" class="ml-2 text-[9px] bg-gray-800 text-gray-400 px-1 py-0.5 rounded border border-gray-700"></span>
+                    </div>
+                    <div class="text-right">
+                        <div id="stock-price" class="text-3xl font-bold text-white"></div>
+                        <div id="stock-change" class="text-sm font-medium"></div>
+                    </div>
+                </div>
+                <div id="chart-container" class="flex-grow w-full relative">
+                    <div id="chart-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">위 검색창에서 종목을 검색해 주세요.</div>
+                </div>
+            </div>
+
+            <!-- 신규: 종목 토론방 -->
+            <div id="discussion-board" class="hidden bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg">
+                <h3 class="text-white font-bold mb-4 flex items-center">🔥 종목 토론방</h3>
+                <div class="flex space-x-2 mb-4">
+                    <input type="text" id="comment-input" class="flex-grow bg-[#1e2638] border border-gray-700 text-white text-sm rounded-lg py-2 px-3 focus:outline-none" placeholder="이 종목에 대한 의견을 남겨주세요.">
+                    <button id="comment-send" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 rounded-lg text-sm">등록</button>
+                </div>
+                <div id="comment-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    <!-- JS 로드 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 오른쪽: 주문 패널 -->
+        <div class="md:col-span-1 space-y-4">
+            <div class="bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg sticky top-20">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-white font-bold">주문하기</h3>
+                    <p class="text-xs text-gray-400">주문가능: <span id="user-cash" class="text-yellow-400 font-bold">{{ "{:,.0f}".format(user.CASH_BALANCE) }}원</span></p>
+                </div>
+                <div class="flex rounded-lg bg-gray-900 p-1 mb-6">
+                    <button id="tab-buy" class="flex-1 py-2 text-sm font-bold rounded-md bg-red-500 text-white transition-colors">매수</button>
+                    <button id="tab-sell" class="flex-1 py-2 text-sm font-bold rounded-md text-gray-400 hover:text-white transition-colors">매도</button>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">단가 (현재가 기준)</label>
+                        <input type="text" id="order-price" readonly value="0" class="w-full bg-[#0b101a] border border-gray-800 text-white text-right rounded-lg py-2 px-3 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 flex justify-between">
+                            <span>수량</span><span id="holding-qty-text" class="text-blue-400 hidden">보유: 0주</span>
+                        </label>
+                        <div class="flex">
+                            <button id="qty-minus" class="bg-gray-800 text-white px-3 rounded-l-lg border border-gray-700 hover:bg-gray-700">-</button>
+                            <input type="number" id="order-qty" value="1" min="1" class="w-full bg-[#1e2638] border-y border-gray-700 text-white text-center py-2 focus:outline-none">
+                            <button id="qty-plus" class="bg-gray-800 text-white px-3 rounded-r-lg border border-gray-700 hover:bg-gray-700">+</button>
+                        </div>
+                    </div>
+                    <div class="pt-4 border-t border-gray-800 flex justify-between items-center">
+                        <span class="text-gray-400 text-sm">주문금액</span><span id="order-total" class="text-xl font-bold text-white">0원</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-gray-500 text-xs" id="fee-label">예상 수수료 (0.015%)</span><span id="order-fee" class="text-sm text-gray-400">0원</span>
+                    </div>
+                    <button id="submit-order-btn" disabled class="w-full py-3 rounded-lg font-bold text-white bg-gray-700 cursor-not-allowed transition-all shadow-lg mt-4">종목을 검색해주세요</button>
+                </div>
+            </div>
+            
+            <div id="stock-data-container" class="hidden">
+                {% if my_stocks %}{% for stock in my_stocks %}<span class="my-stock-data" data-code="{{ stock.STOCK_CODE }}" data-qty="{{ stock.QUANTITY }}"></span>{% endfor %}{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 모바일 메뉴 -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex justify-around items-center h-[68px] z-50 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe">
+        <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span></a>
+        <a href="{{ url_for('trade') }}" class="flex flex-col items-center justify-center w-1/5 text-white"><span class="text-2xl mb-1">📈</span><span class="text-[9px] font-bold">주문</span></a>
+        <a href="{{ url_for('portfolio') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
+        <a href="{{ url_for('ranking') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
+        <a href="{{ url_for('simulation') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+    </nav>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.getElementById('search-btn');
+    const searchResults = document.getElementById('search-results');
+    
+    const chartContainer = document.getElementById('chart-container');
+    const chartPlaceholder = document.getElementById('chart-placeholder');
+    const stockHeader = document.getElementById('stock-header');
+    const nameEl = document.getElementById('stock-name');
+    const codeEl = document.getElementById('stock-code');
+    const priceEl = document.getElementById('stock-price');
+    const changeEl = document.getElementById('stock-change');
+    
+    const tabBuy = document.getElementById('tab-buy');
+    const tabSell = document.getElementById('tab-sell');
+    const orderPriceInput = document.getElementById('order-price');
+    const orderQtyInput = document.getElementById('order-qty');
+    const orderTotal = document.getElementById('order-total');
+    const submitBtn = document.getElementById('submit-order-btn');
+    const holdingQtyText = document.getElementById('holding-qty-text');
+    
+    const discussionBoard = document.getElementById('discussion-board');
+    const commentList = document.getElementById('comment-list');
+    
+    let chart = null;
+    let candlestickSeries = null;
+    let currentStock = null;
+    let currentTxType = 'BUY'; 
+    let commentInterval = null;
+    
+    const myStocksData = {};
+    document.querySelectorAll('.my-stock-data').forEach(item => {
+        myStocksData[item.dataset.code] = parseInt(item.dataset.qty) || 0;
+    });
+
+    function initChart() {
+        if (chart) return;
+        chart = LightweightCharts.createChart(chartContainer, {
+            layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#9ca3af' },
+            grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+            rightPriceScale: { borderColor: '#374151' }, timeScale: { borderColor: '#374151', timeVisible: true },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
+        });
+        candlestickSeries = chart.addCandlestickSeries({ upColor: '#ef4444', downColor: '#3b82f6', borderVisible: false, wickUpColor: '#ef4444', wickDownColor: '#3b82f6' });
+        new ResizeObserver(e => { if(e[0].target === chartContainer) chart.applyOptions({ height: e[0].contentRect.height, width: e[0].contentRect.width }); }).observe(chartContainer);
+    }
+
+    let searchTimeout;
+    searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        const query = e.target.value.trim();
+        if (query.length === 0) { searchResults.classList.add('hidden'); return; }
+        searchTimeout = setTimeout(() => {
+            fetch(`/api/search?q=${query}`).then(r => r.json()).then(data => {
+                searchResults.innerHTML = '';
+                if (data.results.length > 0) {
+                    data.results.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'px-4 py-3 hover:bg-gray-700 cursor-pointer text-white flex justify-between border-b border-gray-700 last:border-0';
+                        li.innerHTML = `<span>${item.name}</span><span class="text-xs text-gray-500">${item.code}</span>`;
+                        li.onclick = () => loadStockInfo(item.code);
+                        searchResults.appendChild(li);
+                    });
+                    searchResults.classList.remove('hidden');
+                } else searchResults.classList.add('hidden');
+            });
+        }, 300);
+    });
+
+    searchBtn.addEventListener('click', () => {
+        const query = searchInput.value.trim();
+        if(query) fetch(`/api/search?q=${query}`).then(r=>r.json()).then(data=>{ if(data.results.length > 0) loadStockInfo(data.results[0].code); });
+    });
+
+    function loadComments(code) {
+        fetch(`/api/comments/${code}`).then(r=>r.json()).then(data => {
+            if(!data.comments) return;
+            commentList.innerHTML = data.comments.map(c => {
+                let badge = c.is_holder ? '<span class="bg-yellow-600/30 text-yellow-500 border border-yellow-600 px-1 rounded text-[9px] ml-1">주주</span>' : '';
+                let icon = c.return_rate > 0 ? '💰' : (c.return_rate < -20 ? '💀' : '💩');
+                let color = c.return_rate > 0 ? 'text-red-400' : 'text-blue-400';
+                return `<div class="bg-gray-800/50 p-3 rounded-xl border border-gray-700">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center"><span class="font-bold text-gray-200 text-sm">${c.name}</span>${badge}
+                        <span class="ml-2 text-[10px] ${color}">${icon} ${c.return_rate > 0 ? '+' : ''}${c.return_rate}%</span></div>
+                        <span class="text-[10px] text-gray-500">${c.time}</span>
+                    </div>
+                    <p class="text-gray-300 text-xs">${c.message}</p>
+                </div>`;
+            }).join('') || '<p class="text-gray-500 text-xs text-center py-4">첫 의견을 남겨보세요!</p>';
+        });
+    }
+
+    document.getElementById('comment-send').addEventListener('click', () => {
+        const msg = document.getElementById('comment-input').value;
+        if(!msg || !currentStock) return;
+        fetch(`/api/comments/${currentStock.code}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg})})
+        .then(r=>r.json()).then(data => {
+            if(data.error) alert(data.error);
+            else { document.getElementById('comment-input').value = ''; loadComments(currentStock.code); }
+        });
+    });
+
+    function loadStockInfo(code) {
+        searchResults.classList.add('hidden');
+        searchInput.value = '';
+        chartPlaceholder.innerHTML = '데이터를 불러오는 중입니다...';
+        chartPlaceholder.classList.remove('hidden');
+        
+        fetch(`/api/stock_info/${code}`).then(r => r.json()).then(data => {
+            if (data.error) { alert(data.error); chartPlaceholder.innerHTML = '데이터 조회 실패'; return; }
+            currentStock = data;
+            nameEl.innerText = data.name; codeEl.innerText = data.code; priceEl.innerText = data.current_price.toLocaleString() + '원';
+            document.getElementById('data-source-badge').innerText = data.source; // 3차 방어선 출처 표기
+            
+            if (data.change_price > 0) {
+                changeEl.innerHTML = `<span class="text-red-500">▲${data.change_price.toLocaleString()} (+${data.change_rate}%)</span>`;
+                priceEl.className = 'text-3xl font-bold text-red-500';
+            } else if (data.change_price < 0) {
+                changeEl.innerHTML = `<span class="text-blue-500">▼${Math.abs(data.change_price).toLocaleString()} (${data.change_rate}%)</span>`;
+                priceEl.className = 'text-3xl font-bold text-blue-500';
+            } else {
+                changeEl.innerHTML = `<span class="text-gray-400">- 0 (0.00%)</span>`;
+                priceEl.className = 'text-3xl font-bold text-white';
+            }
+            
+            stockHeader.classList.remove('hidden');
+            chartPlaceholder.classList.add('hidden');
+            discussionBoard.classList.remove('hidden');
+            
+            initChart(); candlestickSeries.setData(data.chart_data); chart.timeScale().fitContent();
+            orderPriceInput.value = data.current_price.toLocaleString();
+            updateOrderPanelUI(); 
+            
+            loadComments(code);
+            if(commentInterval) clearInterval(commentInterval);
+            commentInterval = setInterval(() => loadComments(code), 5000);
+        });
+    }
+
+    function updateOrderTotal() {
+        if (!currentStock) return;
+        const qty = parseInt(orderQtyInput.value) || 0;
+        const stockValue = currentStock.current_price * qty;
+        
+        const now = new Date(); const hour = now.getHours(); const day = now.getDay();
+        const isRegularMarket = (day >= 1 && day <= 5 && hour >= 9 && hour < 16);
+        
+        let feeRate = currentTxType === 'BUY' ? (isRegularMarket ? 0.00015 : 0.00030) : 0.0020;
+        const fee = Math.floor(stockValue * feeRate);
+        const total = stockValue + (currentTxType === 'BUY' ? fee : -fee);
+        
+        orderTotal.innerText = total.toLocaleString() + '원';
+        document.getElementById('fee-label').innerText = `예상 수수료 (${(feeRate * 100).toFixed(3)}%)`;
+        document.getElementById('order-fee').innerText = fee.toLocaleString() + '원';
+        
+        if (qty > 0) {
+            if (currentTxType === 'SELL' && !isRegularMarket) {
+                submitBtn.disabled = true; submitBtn.className = 'w-full py-3 rounded-lg font-bold text-white bg-gray-600 cursor-not-allowed transition-all shadow-lg mt-4'; submitBtn.innerText = '야간/휴일 매도 불가';
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.className = currentTxType === 'BUY' ? 'w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-4 bg-red-600 hover:bg-red-500' : 'w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-4 bg-blue-600 hover:bg-blue-500';
+                submitBtn.innerText = currentTxType === 'BUY' ? '매수 주문' : '매도 주문';
+            }
+        } else {
+            submitBtn.disabled = true; submitBtn.className = 'w-full py-3 rounded-lg font-bold text-white bg-gray-700 cursor-not-allowed transition-all shadow-lg mt-4'; submitBtn.innerText = '수량을 입력하세요';
+        }
+    }
+
+    function updateOrderPanelUI() {
+        if (!currentStock) return;
+        if (currentTxType === 'BUY') {
+            tabBuy.className = 'flex-1 py-2 text-sm font-bold rounded-md bg-red-500 text-white transition-colors';
+            tabSell.className = 'flex-1 py-2 text-sm font-bold rounded-md text-gray-400 hover:text-white transition-colors';
+            holdingQtyText.classList.add('hidden');
+        } else {
+            tabBuy.className = 'flex-1 py-2 text-sm font-bold rounded-md text-gray-400 hover:text-white transition-colors';
+            tabSell.className = 'flex-1 py-2 text-sm font-bold rounded-md bg-blue-500 text-white transition-colors';
+            const myQty = myStocksData[currentStock.code] || 0;
+            holdingQtyText.innerText = `보유: ${myQty}주`;
+            holdingQtyText.classList.remove('hidden');
+            if (parseInt(orderQtyInput.value) > myQty) orderQtyInput.value = myQty;
+        }
+        updateOrderTotal(); 
+    }
+
+    tabBuy.addEventListener('click', () => { currentTxType = 'BUY'; updateOrderPanelUI(); });
+    tabSell.addEventListener('click', () => { currentTxType = 'SELL'; updateOrderPanelUI(); });
+    document.getElementById('qty-plus').addEventListener('click', () => {
+        let val = parseInt(orderQtyInput.value) || 0;
+        if (currentTxType === 'SELL' && currentStock && val >= (myStocksData[currentStock.code] || 0)) return; 
+        orderQtyInput.value = val + 1; updateOrderTotal();
+    });
+    document.getElementById('qty-minus').addEventListener('click', () => {
+        let val = parseInt(orderQtyInput.value) || 0;
+        if (val > 1) { orderQtyInput.value = val - 1; updateOrderTotal(); }
+    });
+    orderQtyInput.addEventListener('input', updateOrderTotal);
+
+    submitBtn.addEventListener('click', () => {
+        if (!currentStock) return;
+        const qty = parseInt(orderQtyInput.value);
+        if (qty <= 0) return;
+
+        const now = new Date(); const hour = now.getHours(); const day = now.getDay();
+        const isRegularMarket = (day >= 1 && day <= 5 && hour >= 9 && hour < 16);
+
+        if (!isRegularMarket) {
+            if (currentTxType === 'SELL') { alert("장 마감 이후에는 매도할 수 없습니다."); return; } 
+            else if (!confirm(`💡 모의투자 특례 규칙 발동!\n현재는 정규 거래시간이 아니지만, [매수]를 진행합니다.\n특례 거래는 수수료가 두 배(0.03%) 적용됩니다. 계속하시겠습니까?`)) return;
+        }
+
+        const payload = { code: currentStock.code, name: currentStock.name, type: currentTxType, qty: qty, price: currentStock.current_price };
+
+        fetch('/api/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(r => { if(r.status === 429) throw new Error("주문이 너무 빠릅니다. 1.5초 후 다시 시도해주세요."); return r.json(); })
+        .then(data => {
+            if (data.success) { alert('✅ ' + data.message); window.location.reload(); } 
+            else alert('❌ ' + data.error);
+        }).catch(e => alert('❌ ' + e.message));
+    });
+
+    document.addEventListener('click', (e) => { if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) searchResults.classList.add('hidden'); });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initCode = urlParams.get('code');
+    if (initCode) loadStockInfo(initCode);
+});
+</script>
+{% endblock %}
