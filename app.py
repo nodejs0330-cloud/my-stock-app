@@ -23,16 +23,12 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         if DATABASE_URL:
-            # 토큰이 있다면 URL 끝에 ?authToken=... 을 붙여서 연결합니다.
-            full_url = DATABASE_URL
-            if DATABASE_TOKEN:
-                # URL에 ? 가 없으면 ?를, 있으면 &를 붙입니다.
-                separator = "?" if "?" not in full_url else "&"
-                full_url = f"{full_url}{separator}authToken={DATABASE_TOKEN}"
-            
+            # 클라우드 배포 환경 (Render/Turso)
             import libsql_client
-            db = g._database = libsql_client.create_client_sync(url=full_url)
+            # URL과 auth_token을 각각 전달하는 것이 라이브러리 차원에서 가장 안전합니다.
+            db = g._database = libsql_client.create_client_sync(url=DATABASE_URL, auth_token=DATABASE_TOKEN)
         else:
+            # 내 컴퓨터 로컬 환경
             db = g._database = sqlite3.connect(DATABASE)
             db.row_factory = sqlite3.Row
     return db
