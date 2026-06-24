@@ -49,9 +49,18 @@
 
         <!-- 보유 주식 리스트 -->
         <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl overflow-hidden">
-            <div class="p-5 border-b border-gray-800">
+            <!-- 수정 부분: 업데이트 시간 표시 및 새로고침 버튼 추가 -->
+            <div class="p-5 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <h3 class="text-lg font-bold text-white">보유 종목 상세</h3>
+                <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <span class="text-xs text-gray-500 font-mono">{{ update_time }} 기준</span>
+                    <button onclick="window.location.reload()" class="bg-gray-800 border border-gray-700 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg transition-colors shadow flex items-center">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        새로고침
+                    </button>
+                </div>
             </div>
+            
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-gray-300 min-w-[600px]">
                     <thead class="bg-[#0b101a] text-gray-500 text-xs uppercase font-semibold">
@@ -67,10 +76,11 @@
                     <tbody class="divide-y divide-gray-800/50">
                         {% if portfolio_data %}
                             {% for stock in portfolio_data %}
-                            <tr class="hover:bg-gray-800/30 transition-colors">
+                            <!-- 수정 부분: 마우스를 올렸을 때 클릭 가능함을 알리고(cursor-pointer) 누르면 trade.html로 이동 -->
+                            <tr class="hover:bg-gray-800/50 transition-colors cursor-pointer group" onclick="location.href='{{ url_for('trade', code=stock.code) }}'">
                                 <td class="px-5 py-4">
                                     <div class="flex flex-col">
-                                        <span class="font-bold text-white text-base">{{ stock.name }}</span>
+                                        <span class="font-bold text-white text-base group-hover:text-blue-400 transition-colors">{{ stock.name }}</span>
                                         <span class="text-[10px] text-gray-500">{{ stock.code }}</span>
                                     </div>
                                 </td>
@@ -110,13 +120,6 @@
         </div>
     </div>
 
-    <!-- 모바일 메뉴 복원 -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex justify-around items-center h-[68px] z-50 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe">
-        <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors">
-            <span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span>
-        </a>
-        <a href="{{ url_for('trade') }}" class="flex flex-col items-center justify-center w-1/5 text-gray-500 hover:text-white transition-colors">
-            <span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span>
     <!-- 모바일 메뉴 -->
     <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex justify-around items-center h-[68px] z-50 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe">
         <a href="{{ url_for('dashboard') }}" class="flex-1 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span></a>
