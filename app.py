@@ -25,16 +25,14 @@ KST = pytz.timezone('Asia/Seoul')
 def is_market_open():
     """한국 거래소 장중 여부 확인 (평일 09:00 ~ 15:30)"""
     now_kst = datetime.now(KST)
-    # 1. 주말(토=5, 일=6) 필터링
     if now_kst.weekday() >= 5:
         return False
-    # 2. 시간을 분(minute) 단위로 치환하여 직관적으로 비교 (09:00=540분, 15:30=930분)
     current_minutes = now_kst.hour * 60 + now_kst.minute
     return 540 <= current_minutes < 930
 
 def get_single_stock_price(code):
     """trade.html과 동일한 실시간 우선순위로 개별 종목 최신 종가를 조회합니다."""
-    now = datetime.now()
+    now = datetime.now(KST)
     start_date = (now - timedelta(days=15)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
     
@@ -144,7 +142,7 @@ if not DATABASE_URL:
     init_db()
 
 def get_latest_business_day():
-    now = datetime.now()
+    now = datetime.now(KST)
     if now.hour < 16: now = now - timedelta(days=1)
     for i in range(10):
         target = (now - timedelta(days=i)).strftime("%Y%m%d")
@@ -154,7 +152,7 @@ def get_latest_business_day():
                 df = stock.get_market_price_change_by_ticker(target, target)
                 if not df.empty: return target
         except: continue
-    return datetime.now().strftime("%Y%m%d")
+    return datetime.now(KST).strftime("%Y%m%d")
 
 def get_all_prices():
     global PRICE_CACHE
@@ -173,9 +171,9 @@ def get_all_prices():
 
 def get_top_stocks(market="KOSPI"):
     global STOCK_CACHE
-    now = datetime.now()
+    now = datetime.now(KST)
     cache = STOCK_CACHE.get(market, {'time': None, 'data': None, 'date': None, 'source': ''})
-    if cache['time'] and (now - cache['time']).seconds < 600: return cache['data'], cache['date'], cache['source']
+    if cache['time'] and (now.replace(tzinfo=None) - cache['time']).seconds < 600: return cache['data'], cache['date'], cache['source']
     
     result = {'gainers': [], 'losers': []}
     target_date_str = ""
@@ -205,7 +203,7 @@ def get_top_stocks(market="KOSPI"):
         except Exception as fallback_e:
             data_source = "데이터 불러오기 실패"
 
-    STOCK_CACHE[market] = {'time': now, 'data': result, 'date': target_date_str, 'source': data_source}
+    STOCK_CACHE[market] = {'time': now.replace(tzinfo=None), 'data': result, 'date': target_date_str, 'source': data_source}
     return result, target_date_str, data_source
 
 def get_user_total_return(user_id):
@@ -280,7 +278,7 @@ def api_search():
 
 @app.route('/api/stock_info/<code>')
 def api_stock_info(code):
-    now = datetime.now()
+    now = datetime.now(KST)
     start_date = (now - timedelta(days=45)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
     
@@ -410,7 +408,9 @@ def api_comments(code):
         if 'user_id' not in session: return {"error": "로그인이 필요합니다."}, 401
         msg = request.json.get('message', '').strip()[:200]
         if msg:
-            db.execute('INSERT INTO COMMENTS (STOCK_CODE, USER_ID, MESSAGE) VALUES (?, ?, ?)', (code, session['user_id'], msg))
+            # 명시적으로 KST 시간을 삽입
+            now_kst_str = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
+            db.execute('INSERT INTO COMMENTS (STOCK_CODE, USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?, ?)', (code, session['user_id'], msg, now_kst_str))
             db.commit()
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
@@ -462,12 +462,14 @@ def api_chat():
         
         msg = request.json.get('message', '').strip()[:100]
         if msg:
-            db.execute('INSERT INTO CHAT (USER_ID, MESSAGE) VALUES (?, ?)', (user_id, msg))
+            # 명시적으로 KST 시간을 삽입
+            now_kst_str = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
+            db.execute('INSERT INTO CHAT (USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?)', (user_id, msg, now_kst_str))
             db.commit()
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
 
-    seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+    seven_days_ago = (datetime.now(KST) - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
     db.execute('DELETE FROM CHAT WHERE CREATED_AT < ?', (seven_days_ago,))
     db.commit()
     chats = db.execute('SELECT C.MESSAGE, C.CREATED_AT, U.NAME FROM CHAT C JOIN USERS U ON C.USER_ID = U.ID ORDER BY C.CREATED_AT DESC LIMIT 30').fetchall()
@@ -590,7 +592,10 @@ def portfolio():
         portfolio_data.append({'code': h['STOCK_CODE'], 'name': h['STOCK_NAME'], 'qty': h['QUANTITY'], 'avg_price': h['AVG_PRICE'], 'curr_price': curr_price, 'profit': profit, 'profit_rate': profit_rate, 'value': value})
         
     total_asset = user['CASH_BALANCE'] + total_stock_value
-    return render_template('portfolio.html', user=user, portfolio_data=portfolio_data, total_asset=total_asset, stock_value=total_stock_value)
+    
+    # 템플릿에 현재 업데이트 시각(KST) 전달
+    update_time = datetime.now(KST).strftime('%Y.%m.%d %H:%M:%S')
+    return render_template('portfolio.html', user=user, portfolio_data=portfolio_data, total_asset=total_asset, stock_value=total_stock_value, update_time=update_time)
 
 @app.route('/ranking')
 def ranking():
