@@ -15,18 +15,10 @@
     </main>
 
     {% block footer %}
-    <footer class="w-full bg-gray-900/30 backdrop-blur-md text-gray-300 py-4 px-6 flex justify-between items-end relative z-10 border-t border-white/10">
-        <div class="text-sm space-y-1 drop-shadow-md">
-            <p>Producer: ROCK EIGHT 2</p>
+    <!-- 배경 투명도를 bg-gray-900/10으로 낮추고 블러 효과를 줄여 배경이 더 잘 보이게 설정했습니다. -->
+    <footer class="w-full bg-gray-900/10 backdrop-blur-sm text-gray-400 py-4 px-6 flex justify-center items-center relative z-10 border-t border-white/5">
+        <div class="text-xs sm:text-sm drop-shadow-md">
             <p>Email: joamoon7@ncc.re.kr</p>
-            <p>Address: KOREA ANYWHERE</p>
-            <p class="text-xs text-gray-400 mt-2">© 2026 NCC STOCK. All rights reserved.</p>
-        </div>
-        <div>
-            <img src="{{ url_for('static', filename='img/logo.png') }}" 
-                 alt="국립암센터 로고" 
-                 class="h-10 opacity-70 hover:opacity-100 transition-opacity drop-shadow-lg" 
-                 onerror="this.outerHTML='<span class=\'text-xs border border-white/20 p-2 rounded drop-shadow-md\'>Logo (logo.png)</span>'">
         </div>
     </footer>
     {% endblock %}
