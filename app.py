@@ -627,7 +627,12 @@ def admin():
             db.commit()
             flash(f"✅ [{request.form.get('target_user')}] 비밀번호 초기화됨.")
         elif action == 'update_notice':
-            db.execute('UPDATE ANNOUNCEMENT SET MESSAGE = ?, IS_ACTIVE = ? WHERE ID = 1', (request.form.get('message', '')[:100], 1 if request.form.get('is_active') == 'on' else 0))
+            msg = request.form.get('message', '')[:100]
+            is_active = 1 if request.form.get('is_active') == 'on' else 0
+            
+            # UPDATE 대신 INSERT OR REPLACE를 사용하여 행이 없더라도 즉시 생성되도록 수정
+            db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (1, ?, ?)', (msg, is_active))
+            
             db.commit()
             flash("✅ 공지사항 업데이트 됨.")
         elif action == 'reset_chat':
