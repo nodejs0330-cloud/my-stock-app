@@ -19,19 +19,29 @@ LAST_ORDER_TIME = {}
 CHAT_HISTORY = {}     
 CHAT_BANS = {}        
 
+# --- 호환성 패치: libsql_client 결과를 sqlite3처럼 쓰게 함 ---
+def patch_libsql_result(result):
+    if not hasattr(result, 'fetchone'):
+        result.fetchone = lambda: result.rows[0] if result.rows else None
+    if not hasattr(result, 'fetchall'):
+        result.fetchall = lambda: result.rows
+    return result
+
+# --- 수정된 get_db() ---
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         if DATABASE_URL:
-            # 프로토콜을 libsql://에서 https://로 변경
-            http_url = DATABASE_URL.replace("libsql://", "https://")
-            
             import libsql_client
-            # URL과 토큰을 별도로 전달
-            db = g._database = libsql_client.create_client_sync(
-                url=http_url, 
-                auth_token=DATABASE_TOKEN
-            )
+            client = libsql_client.create_client_sync(url=DATABASE_URL, auth_token=DATABASE_TOKEN)
+            # 래퍼 클래스 생성: execute 결과에 패치를 적용
+            class DBWrapper:
+                def __init__(self, client): self.client = client
+                def execute(self, query, args=()):
+                    return patch_libsql_result(self.client.execute(query, args))
+                def commit(self): pass # libsql-client는 자동 커밋
+                def cursor(self): return self # cursor() 호환성 유지
+            db = g._database = DBWrapper(client)
         else:
             db = g._database = sqlite3.connect(DATABASE)
             db.row_factory = sqlite3.Row
