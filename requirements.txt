@@ -9,3 +9,5 @@ finance-datareader
 yfinance>=0.2.0
 curl_cffi>=0.7.0
 libsql-client
+aiohttp==3.9.1
+typing-extensions>=4.0.0
