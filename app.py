@@ -2,6 +2,8 @@ import os
 import sqlite3
 import datetime
 import time
+from datetime import datetime, timedelta
+import pytz # 시간대 처리를 위해 추가
 from flask import Flask, render_template, request, session, redirect, url_for, g, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from pykrx import stock
@@ -17,7 +19,14 @@ DATABASE_TOKEN = os.environ.get("TURSO_AUTH_TOKEN", "")
 # --- 메모리 기반 보안 락 ---
 LAST_ORDER_TIME = {}  
 CHAT_HISTORY = {}     
-CHAT_BANS = {}        
+CHAT_BANS = {}   
+
+KST = pytz.timezone('Asia/Seoul')
+
+def is_market_open():
+    now_kst = datetime.now(KST)
+    # 평일(월~금), 09:00 ~ 15:30 (장 마감 시간 고려)
+    return now_kst.weekday() < 5 and (now_kst.hour == 9 and now_kst.minute >= 0 or 9 <
 
 # --- 호환성 패치: libsql_client 결과를 sqlite3처럼 쓰게 함 ---
 def patch_libsql_result(result):
@@ -314,7 +323,7 @@ def api_order():
     if qty <= 0 or price <= 0: return {"error": "올바른 수량과 가격이 아닙니다.", "success": False}
     
     now = datetime.datetime.now()
-    is_regular_market = (now.weekday() < 5 and 9 <= now.hour < 16) 
+    is_regular_market = is_market_open()
     
     if tx_type == 'SELL' and not is_regular_market:
         return {"error": "장 마감 이후에는 매도 주문이 불가능합니다.", "success": False}
