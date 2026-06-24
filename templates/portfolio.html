@@ -49,12 +49,12 @@
 
         <!-- 보유 주식 리스트 -->
         <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl overflow-hidden">
-            <!-- 수정 부분: 업데이트 시간 표시 및 새로고침 버튼 추가 -->
+            <!-- 업데이트 시간 표시 및 쿨타임 적용 새로고침 버튼 -->
             <div class="p-5 border-b border-gray-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <h3 class="text-lg font-bold text-white">보유 종목 상세</h3>
                 <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end">
                     <span class="text-xs text-gray-500 font-mono">{{ update_time }} 기준</span>
-                    <button onclick="window.location.reload()" class="bg-gray-800 border border-gray-700 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg transition-colors shadow flex items-center">
+                    <button onclick="checkRefreshCooldown()" class="bg-gray-800 border border-gray-700 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded-lg transition-colors shadow flex items-center">
                         <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         새로고침
                     </button>
@@ -76,7 +76,6 @@
                     <tbody class="divide-y divide-gray-800/50">
                         {% if portfolio_data %}
                             {% for stock in portfolio_data %}
-                            <!-- 수정 부분: 마우스를 올렸을 때 클릭 가능함을 알리고(cursor-pointer) 누르면 trade.html로 이동 -->
                             <tr class="hover:bg-gray-800/50 transition-colors cursor-pointer group" onclick="location.href='{{ url_for('trade', code=stock.code) }}'">
                                 <td class="px-5 py-4">
                                     <div class="flex flex-col">
@@ -132,4 +131,21 @@
         {% endif %}
     </nav>
 </div>
+
+<!-- 3. 새로고침 쿨타임 로직 추가 -->
+<script>
+    function checkRefreshCooldown() {
+        const cooldownTime = 10000; // 10초 쿨타임
+        const lastRefresh = sessionStorage.getItem('lastPortfolioRefresh');
+        const now = new Date().getTime();
+
+        if (lastRefresh && (now - lastRefresh < cooldownTime)) {
+            const remainSeconds = Math.ceil((cooldownTime - (now - lastRefresh)) / 1000);
+            alert(`과도한 새로고침을 방지 중입니다.\\n${remainSeconds}초 후에 다시 시도해주세요.`);
+        } else {
+            sessionStorage.setItem('lastPortfolioRefresh', now);
+            window.location.reload();
+        }
+    }
+</script>
 {% endblock %}

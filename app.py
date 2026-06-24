@@ -278,6 +278,7 @@ def api_search():
 
 @app.route('/api/stock_info/<code>')
 def api_stock_info(code):
+    init_tickers() # 이름 누락 방지를 위해 호출 시 TICKER_CACHE 최신화 보장
     now = datetime.now(KST)
     start_date = (now - timedelta(days=45)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
@@ -408,7 +409,6 @@ def api_comments(code):
         if 'user_id' not in session: return {"error": "로그인이 필요합니다."}, 401
         msg = request.json.get('message', '').strip()[:200]
         if msg:
-            # 명시적으로 KST 시간을 삽입
             now_kst_str = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
             db.execute('INSERT INTO COMMENTS (STOCK_CODE, USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?, ?)', (code, session['user_id'], msg, now_kst_str))
             db.commit()
@@ -416,11 +416,22 @@ def api_comments(code):
         return {"error": "내용을 입력하세요."}, 400
         
     comments = db.execute('SELECT C.ID as CID, C.MESSAGE, C.CREATED_AT, U.NAME, U.ID as UID FROM COMMENTS C JOIN USERS U ON C.USER_ID = U.ID WHERE C.STOCK_CODE = ? ORDER BY C.CREATED_AT DESC LIMIT 50', (code,)).fetchall()
+    
+    # 2번 수정사항: 계좌수익률이 아닌 "해당 종목의 보유 수익률" 계산을 위해 현재가를 1번만 가져옴
+    curr_price = get_single_stock_price(code)
+    
     result = []
     for c in comments:
         uid = c['UID']
-        is_holder = db.execute('SELECT 1 FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (uid, code)).fetchone() is not None
-        ret_rate = get_user_total_return(uid)
+        holding = db.execute('SELECT AVG_PRICE FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (uid, code)).fetchone()
+        is_holder = holding is not None
+        
+        ret_rate = 0
+        if is_holder:
+            cp = curr_price if curr_price else holding['AVG_PRICE']
+            if holding['AVG_PRICE'] > 0:
+                ret_rate = ((cp - holding['AVG_PRICE']) / holding['AVG_PRICE']) * 100
+                
         result.append({"id": c['CID'], "name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5], "is_holder": is_holder, "return_rate": round(ret_rate, 1)})
     return {"comments": result}
 
@@ -462,7 +473,6 @@ def api_chat():
         
         msg = request.json.get('message', '').strip()[:100]
         if msg:
-            # 명시적으로 KST 시간을 삽입
             now_kst_str = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
             db.execute('INSERT INTO CHAT (USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?)', (user_id, msg, now_kst_str))
             db.commit()
@@ -593,7 +603,6 @@ def portfolio():
         
     total_asset = user['CASH_BALANCE'] + total_stock_value
     
-    # 템플릿에 현재 업데이트 시각(KST) 전달
     update_time = datetime.now(KST).strftime('%Y.%m.%d %H:%M:%S')
     return render_template('portfolio.html', user=user, portfolio_data=portfolio_data, total_asset=total_asset, stock_value=total_stock_value, update_time=update_time)
 

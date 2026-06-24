@@ -1,41 +1,43 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- 키치한 배경 텍스트 (초기 상태: 가운데 정렬 및 크게) -->
+
+<!-- 4. 로그인 스피너 (초기에는 숨김) -->
+<div id="loading-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] hidden flex-col items-center justify-center transition-opacity">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+    <h2 class="text-white text-xl font-bold tracking-widest animate-pulse">시스템 접속 중...</h2>
+    <p class="text-gray-400 text-sm mt-2">안전한 통신망을 연결하고 있습니다.</p>
+</div>
+
+<!-- 키치한 배경 텍스트 -->
 <div id="kitsch-text" class="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none transition-all duration-500">
     <h1 class="text-4xl md:text-6xl font-black text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] tracking-tighter text-center animate-bounce" style="font-family: 'Comic Sans MS', cursive, sans-serif;">
-        암센터의 새로운 도전<br>
+        암센터의 새로운 도전!<br>
         <span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>
     </h1>
     
-    <!-- 중앙 로그인 진입 버튼 (초기 화면에 표시됨) -->
     <button id="show-login-btn" class="mt-12 pointer-events-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xl py-4 px-8 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.8)] transform transition hover:scale-105 animate-pulse">
-        로그인 하고 투자 시작하기 🚀
+        로그인 
     </button>
 </div>
 
-<!-- 로그인 폼 영역 (초기에는 숨김, 버튼 클릭 시 등장) -->
-<!-- opacity-0, scale-95, pointer-events-none 속성으로 숨겨둡니다 -->
+<!-- 로그인 폼 영역 -->
 <div id="login-form-container" class="w-full max-w-md bg-gray-900/60 rounded-3xl shadow-[0_0_40px_rgba(0,0,0,0.7)] p-8 backdrop-blur-xl border border-white/20 relative z-20 mx-4 opacity-0 scale-95 pointer-events-none transition-all duration-500">
     
-    <!-- 폼 닫기 버튼 -->
     <button id="close-login-btn" class="absolute top-4 right-5 text-gray-400 hover:text-white font-bold text-2xl transition-colors">&times;</button>
 
     <div class="flex justify-between items-center mb-8 pr-6">
         <h2 class="text-3xl font-bold text-white tracking-tight drop-shadow-md">로그인</h2>
         <div class="flex flex-col space-y-2">
-            <!-- 배경 변경 버튼 -->
             <button id="bg-toggle-btn" class="text-[10px] bg-indigo-600/80 hover:bg-indigo-500 text-white py-1 px-2 rounded-full transition-colors shadow-lg backdrop-blur-sm border border-indigo-400/30">
                 🌌 외부 배경
             </button>
-            <!-- QR 보기 버튼 -->
             <button id="qr-toggle-btn" class="text-[10px] bg-blue-600/80 hover:bg-blue-500 text-white py-1 px-2 rounded-full transition-colors shadow-lg backdrop-blur-sm border border-blue-400/30">
                 📱 QR 접속
             </button>
         </div>
     </div>
 
-    <!-- 플래시 메시지 -->
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="mb-4 bg-red-500/80 backdrop-blur-sm border border-red-400 text-white px-4 py-3 rounded-lg text-sm font-medium text-center shadow-lg">
@@ -44,8 +46,8 @@
       {% endif %}
     {% endwith %}
 
-    <!-- 로그인 폼 -->
-    <form action="{{ url_for('index') }}" method="POST" class="space-y-6">
+    <!-- 폼에 id 추가 및 onsubmit 이벤트 연결 -->
+    <form id="login-form" action="{{ url_for('index') }}" method="POST" class="space-y-6">
         <div>
             <label for="username" class="block text-sm font-medium text-gray-300 drop-shadow-md">아이디</label>
             <input type="text" id="username" name="username" required class="mt-1 block w-full bg-gray-800/80 border border-gray-600/50 rounded-xl shadow-inner py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm" placeholder="아이디를 입력하세요">
@@ -55,7 +57,7 @@
             <input type="password" id="password" name="password" required class="mt-1 block w-full bg-gray-800/80 border border-gray-600/50 rounded-xl shadow-inner py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all backdrop-blur-sm" placeholder="••••••••">
         </div>
         <div class="pt-4">
-            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl focus:outline-none shadow-[0_4px_15px_rgba(59,130,246,0.5)] transform transition hover:-translate-y-1">
+            <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl focus:outline-none shadow-[0_4px_15px_rgba(59,130,246,0.5)] transform transition hover:-translate-y-1">
                 투자로 증명하기
             </button>
         </div>
@@ -81,4 +83,32 @@
         </div>
     </div>
 </div>
+
+<!-- 스피너 제어 스크립트 -->
+<script>
+    document.getElementById('login-form').addEventListener('submit', function(e) {
+        // 이미 제출 중이면 중복 제출 방지
+        if (this.classList.contains('submitting')) {
+            e.preventDefault();
+            return;
+        }
+        
+        // 폼 상태를 전송 중으로 변경
+        this.classList.add('submitting');
+        
+        // 버튼 비활성화 및 텍스트 변경
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerText = "접속 중...";
+        btn.classList.add('opacity-70', 'cursor-not-allowed');
+
+        // 입력창 읽기 전용으로 변경하여 엔터 및 입력 방지
+        document.getElementById('username').readOnly = true;
+        document.getElementById('password').readOnly = true;
+
+        // 전체화면 로딩 스피너 표시
+        document.getElementById('loading-overlay').classList.remove('hidden');
+        document.getElementById('loading-overlay').classList.add('flex');
+    });
+</script>
 {% endblock %}
