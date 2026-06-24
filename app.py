@@ -10,7 +10,11 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24) 
 DATABASE = 'database.db'
 
-# --- 메모리 기반 보안 락 (따닥 방어 및 채팅 도배 방지 글로벌 변수) ---
+# --- 환경 변수 정의 (Render에서 설정) ---
+DATABASE_URL = os.environ.get("TURSO_DATABASE_URL")
+DATABASE_TOKEN = os.environ.get("TURSO_AUTH_TOKEN", "")
+
+# --- 메모리 기반 보안 락 ---
 LAST_ORDER_TIME = {}  
 CHAT_HISTORY = {}     
 CHAT_BANS = {}        
@@ -18,17 +22,33 @@ CHAT_BANS = {}
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row 
+        if DATABASE_URL:
+            # 클라우드 배포 환경 (Render/Turso)
+            import libsql_client
+            db = g._database = libsql_client.create_client_sync(url=DATABASE_URL, auth_token=DATABASE_TOKEN)
+        else:
+            # 내 컴퓨터 로컬 환경
+            db = g._database = sqlite3.connect(DATABASE)
+            db.row_factory = sqlite3.Row
     return db
 
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
+    if db is not None and not isinstance(db, type(None)):
+        try:
+            # sqlite3 객체일 때만 close() 호출
+            if isinstance(db, sqlite3.Connection):
+                db.close()
+        except:
+            pass
 
 def init_db():
+    # 클라우드 환경이면 스키마 자동 생성을 건너뜁니다.
+    if DATABASE_URL:
+        print("☁️ 클라우드 환경 감지: init_db를 건너뜁니다.")
+        return
+
     with app.app_context():
         db = get_db()
         cursor = db.cursor()
@@ -36,13 +56,12 @@ def init_db():
         cursor.execute('''CREATE TABLE IF NOT EXISTS HOLDINGS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, STOCK_NAME TEXT NOT NULL, AVG_PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS TRANSACTIONS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, TX_TYPE TEXT NOT NULL, PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FEE INTEGER DEFAULT 0, TX_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         
-        # --- 신규: 기존 TRANSACTIONS 테이블에 FEE 컬럼이 없다면 안전하게 추가하는 자동 마이그레이션 로직 ---
+        # 마이그레이션: FEE 컬럼 확인
         cursor.execute("PRAGMA table_info(TRANSACTIONS)")
-        columns = [col['name'] for col in cursor.fetchall()]
+        columns = [col[1] for col in cursor.fetchall()]
         if 'FEE' not in columns:
             cursor.execute("ALTER TABLE TRANSACTIONS ADD COLUMN FEE INTEGER DEFAULT 0")
             print("✅ 기존 TRANSACTIONS 테이블에 FEE 컬럼을 성공적으로 추가했습니다.")
-        # -------------------------------------------------------------------------
             
         cursor.execute('''CREATE TABLE IF NOT EXISTS WATCHLIST (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS ANNOUNCEMENT (ID INTEGER PRIMARY KEY, MESSAGE TEXT, IS_ACTIVE INTEGER DEFAULT 0)''')
@@ -51,18 +70,16 @@ def init_db():
         cursor.execute('''CREATE TABLE IF NOT EXISTS CHAT (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         db.commit()
 
-# --- Render.com 등 클라우드 배포 환경을 위한 강제 DB 초기화 ---
-# (gunicorn 등으로 실행 시 if __name__ == '__main__' 블록이 무시되므로 모듈 로드 시 무조건 1회 실행)
-try:
-    init_db()
-except Exception as e:
-    print(f"DB 초기화 중 에러 발생: {e}")
-
-# --- 데이터 수집 및 캐싱 (3차 방어선 및 출처 추적 로직) ---
+# --- 데이터 수집 및 캐싱 ---
 STOCK_CACHE = {'KOSPI': {'time': None, 'data': None, 'date': None, 'source': ''}, 'KOSDAQ': {'time': None, 'data': None, 'date': None, 'source': ''}}
 PRICE_CACHE = {'time': None, 'data': {}}
 RANKING_CACHE = {'time': None, 'data': []}
 
+# --- 로컬 환경에서만 앱 시작 시 DB 초기화 ---
+if not DATABASE_URL:
+    init_db()
+
+# --- 이하 기존 로직 그대로 유지 ---
 def get_latest_business_day():
     now = datetime.datetime.now()
     if now.hour < 16: now = now - datetime.timedelta(days=1)
@@ -190,7 +207,6 @@ def init_tickers():
                 TICKER_CACHE[etf_code] = str(row['Name'])
         except: pass
 
-# --- API 비동기 백엔드 라우팅 서비스 ---
 @app.route('/api/search')
 def api_search():
     init_tickers()
@@ -264,7 +280,7 @@ def api_order():
     price = int(data.get('price', 0))
     
     if qty <= 0 or price <= 0: return {"error": "올바른 수량과 가격이 아닙니다.", "success": False}
-        
+    
     now = datetime.datetime.now()
     is_regular_market = (now.weekday() < 5 and 9 <= now.hour < 16) 
     
@@ -434,7 +450,6 @@ def api_simulation_run():
     except Exception as e:
         return {"error": f"시뮬레이션 오류: {e}"}, 500
 
-# --- 웹 프론트엔드 라우팅 서비스 ---
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -556,6 +571,7 @@ def logout():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    if not os.path.exists(DATABASE): init_db()
-    init_db() 
+    if not DATABASE_URL:
+        if not os.path.exists(DATABASE): init_db()
+        init_db() 
     app.run(host='0.0.0.0', port=5000, debug=True)
