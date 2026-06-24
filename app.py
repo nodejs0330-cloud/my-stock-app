@@ -23,12 +23,16 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         if DATABASE_URL:
-            # 클라우드 배포 환경 (Render/Turso)
+            # 프로토콜을 libsql://에서 https://로 변경
+            http_url = DATABASE_URL.replace("libsql://", "https://")
+            
             import libsql_client
-            # URL과 auth_token을 각각 전달하는 것이 라이브러리 차원에서 가장 안전합니다.
-            db = g._database = libsql_client.create_client_sync(url=DATABASE_URL, auth_token=DATABASE_TOKEN)
+            # URL과 토큰을 별도로 전달
+            db = g._database = libsql_client.create_client_sync(
+                url=http_url, 
+                auth_token=DATABASE_TOKEN
+            )
         else:
-            # 내 컴퓨터 로컬 환경
             db = g._database = sqlite3.connect(DATABASE)
             db.row_factory = sqlite3.Row
     return db
