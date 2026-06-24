@@ -27,24 +27,36 @@ def patch_libsql_result(result):
         result.fetchall = lambda: result.rows
     return result
 
+# --- 수정된 DBWrapper 및 get_db ---
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         if DATABASE_URL:
             import libsql_client
-            # 웹소켓(wss) 대신 HTTPS를 강제하여 핸드셰이크 에러 방지
-            # URL에서 libsql:// 부분을 제거하고 https://로 접속
+            # URL 확인 및 https 강제
             target_url = DATABASE_URL.replace("libsql://", "https://")
             client = libsql_client.create_client_sync(url=target_url, auth_token=DATABASE_TOKEN)
             
-            # DBWrapper 내부 execute에 scheme 적용
             class DBWrapper:
-                def __init__(self, client): self.client = client
+                def __init__(self, client): 
+                    self.client = client
+                
                 def execute(self, query, args=()):
-                    return patch_libsql_result(self.client.execute(query, args))
+                    # 실행 결과를 받아서 바로 rows가 담긴 객체로 반환
+                    result = self.client.execute(query, args)
+                    # fetchone/fetchall을 직접 구현한 객체를 반환하도록 래핑
+                    return FetchWrapper(result)
+                
                 def commit(self): pass
                 def cursor(self): return self
-                def fetchone(self): return None # 에러 방지용
+
+            class FetchWrapper:
+                def __init__(self, result): 
+                    self.rows = result.rows
+                def fetchone(self): 
+                    return self.rows[0] if self.rows else None
+                def fetchall(self): 
+                    return self.rows
             
             db = g._database = DBWrapper(client)
         else:
