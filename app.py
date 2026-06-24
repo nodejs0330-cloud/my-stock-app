@@ -1,6 +1,5 @@
 import os
 import sqlite3
-import datetime
 import time
 from datetime import datetime, timedelta
 import pytz # 시간대 처리를 위해 추가
@@ -24,9 +23,43 @@ CHAT_BANS = {}
 KST = pytz.timezone('Asia/Seoul')
 
 def is_market_open():
+    """한국 거래소 장중 여부 확인 (평일 09:00 ~ 15:30)"""
     now_kst = datetime.now(KST)
-    # 평일(월~금), 09:00 ~ 15:30 (장 마감 시간 고려)
-    return now_kst.weekday() < 5 and (now_kst.hour == 9 and now_kst.minute >= 0 or 9 <
+    # 1. 주말(토=5, 일=6) 필터링
+    if now_kst.weekday() >= 5:
+        return False
+    # 2. 시간을 분(minute) 단위로 치환하여 직관적으로 비교 (09:00=540분, 15:30=930분)
+    current_minutes = now_kst.hour * 60 + now_kst.minute
+    return 540 <= current_minutes < 930
+
+def get_single_stock_price(code):
+    """trade.html과 동일한 실시간 우선순위로 개별 종목 최신 종가를 조회합니다."""
+    now = datetime.now()
+    start_date = (now - timedelta(days=15)).strftime("%Y-%m-%d")
+    end_date = now.strftime("%Y-%m-%d")
+    
+    # 1순위: pykrx
+    try:
+        df = stock.get_market_ohlcv(start_date.replace('-', ''), end_date.replace('-', ''), code)
+        if not df.empty: return int(df.iloc[-1]['종가'])
+    except: pass
+
+    # 2순위: FinanceDataReader
+    try:
+        import FinanceDataReader as fdr
+        df = fdr.DataReader(code, start_date, end_date)
+        if not df.empty: return int(df.iloc[-1]['Close'])
+    except: pass
+
+    # 3순위: Yahoo Finance
+    try:
+        import yfinance as yf
+        yf_code = f"{code}.KS" if not str(code).startswith('0') else f"{code}.KQ"
+        df = yf.download(yf_code, start=start_date, end=end_date, progress=False)
+        if not df.empty: return int(df.iloc[-1]['Close'])
+    except: pass
+        
+    return None
 
 # --- 호환성 패치: libsql_client 결과를 sqlite3처럼 쓰게 함 ---
 def patch_libsql_result(result):
@@ -42,20 +75,15 @@ def get_db():
     if db is None:
         if DATABASE_URL:
             import libsql_client
-            # URL 확인 및 https 강제
             target_url = DATABASE_URL.replace("libsql://", "https://")
             client = libsql_client.create_client_sync(url=target_url, auth_token=DATABASE_TOKEN)
             
             class DBWrapper:
                 def __init__(self, client): 
                     self.client = client
-                
                 def execute(self, query, args=()):
-                    # 실행 결과를 받아서 바로 rows가 담긴 객체로 반환
                     result = self.client.execute(query, args)
-                    # fetchone/fetchall을 직접 구현한 객체를 반환하도록 래핑
                     return FetchWrapper(result)
-                
                 def commit(self): pass
                 def cursor(self): return self
 
@@ -78,14 +106,11 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None and not isinstance(db, type(None)):
         try:
-            # sqlite3 객체일 때만 close() 호출
             if isinstance(db, sqlite3.Connection):
                 db.close()
-        except:
-            pass
+        except: pass
 
 def init_db():
-    # 클라우드 환경이면 스키마 자동 생성을 건너뜁니다.
     if DATABASE_URL:
         print("☁️ 클라우드 환경 감지: init_db를 건너뜁니다.")
         return
@@ -97,7 +122,6 @@ def init_db():
         cursor.execute('''CREATE TABLE IF NOT EXISTS HOLDINGS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, STOCK_NAME TEXT NOT NULL, AVG_PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS TRANSACTIONS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, TX_TYPE TEXT NOT NULL, PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FEE INTEGER DEFAULT 0, TX_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         
-        # 마이그레이션: FEE 컬럼 확인
         cursor.execute("PRAGMA table_info(TRANSACTIONS)")
         columns = [col[1] for col in cursor.fetchall()]
         if 'FEE' not in columns:
@@ -116,27 +140,25 @@ STOCK_CACHE = {'KOSPI': {'time': None, 'data': None, 'date': None, 'source': ''}
 PRICE_CACHE = {'time': None, 'data': {}}
 RANKING_CACHE = {'time': None, 'data': []}
 
-# --- 로컬 환경에서만 앱 시작 시 DB 초기화 ---
 if not DATABASE_URL:
     init_db()
 
-# --- 이하 기존 로직 그대로 유지 ---
 def get_latest_business_day():
-    now = datetime.datetime.now()
-    if now.hour < 16: now = now - datetime.timedelta(days=1)
+    now = datetime.now()
+    if now.hour < 16: now = now - timedelta(days=1)
     for i in range(10):
-        target = (now - datetime.timedelta(days=i)).strftime("%Y%m%d")
+        target = (now - timedelta(days=i)).strftime("%Y%m%d")
         try:
             tickers = stock.get_market_ticker_list(target, market="KOSPI")
             if tickers:
                 df = stock.get_market_price_change_by_ticker(target, target)
                 if not df.empty: return target
         except: continue
-    return datetime.datetime.now().strftime("%Y%m%d")
+    return datetime.now().strftime("%Y%m%d")
 
 def get_all_prices():
     global PRICE_CACHE
-    now = datetime.datetime.now()
+    now = datetime.now()
     if PRICE_CACHE['time'] and (now - PRICE_CACHE['time']).seconds < 1800: return PRICE_CACHE['data']
     try:
         import FinanceDataReader as fdr
@@ -151,7 +173,7 @@ def get_all_prices():
 
 def get_top_stocks(market="KOSPI"):
     global STOCK_CACHE
-    now = datetime.datetime.now()
+    now = datetime.now()
     cache = STOCK_CACHE.get(market, {'time': None, 'data': None, 'date': None, 'source': ''})
     if cache['time'] and (now - cache['time']).seconds < 600: return cache['data'], cache['date'], cache['source']
     
@@ -198,7 +220,7 @@ def get_user_total_return(user_id):
 
 def get_rankings():
     global RANKING_CACHE
-    now = datetime.datetime.now()
+    now = datetime.now()
     if RANKING_CACHE['time'] and (now - RANKING_CACHE['time']).seconds < 1800: return RANKING_CACHE['data']
     db = get_db()
     users = db.execute('SELECT ID, NAME, CASH_BALANCE, CREATED_AT FROM USERS').fetchall()
@@ -225,7 +247,7 @@ def get_rankings():
                     profit_rate = ((current_price - h['AVG_PRICE']) / h['AVG_PRICE']) * 100 if h['AVG_PRICE'] > 0 else 0
                     best_stock_name = f"{h['STOCK_NAME']} ({profit_rate:+.1f}%)"
         return_rate = ((total_asset - 50000000) / 50000000) * 100
-        created_date = datetime.datetime.strptime(u['CREATED_AT'], '%Y-%m-%d %H:%M:%S').strftime('%Y.%m.%d') if isinstance(u['CREATED_AT'], str) else u['CREATED_AT'].strftime('%Y.%m.%d')
+        created_date = datetime.strptime(u['CREATED_AT'], '%Y-%m-%d %H:%M:%S').strftime('%Y.%m.%d') if isinstance(u['CREATED_AT'], str) else u['CREATED_AT'].strftime('%Y.%m.%d')
         ranking_list.append({'name': u['NAME'], 'total_asset': total_asset, 'return_rate': return_rate, 'best_stock': best_stock_name, 'created_date': created_date})
         
     ranking_list.sort(key=lambda x: x['total_asset'], reverse=True)
@@ -258,8 +280,8 @@ def api_search():
 
 @app.route('/api/stock_info/<code>')
 def api_stock_info(code):
-    now = datetime.datetime.now()
-    start_date = (now - datetime.timedelta(days=45)).strftime("%Y-%m-%d")
+    now = datetime.now()
+    start_date = (now - timedelta(days=45)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
     
     chart_data = []
@@ -322,7 +344,6 @@ def api_order():
     
     if qty <= 0 or price <= 0: return {"error": "올바른 수량과 가격이 아닙니다.", "success": False}
     
-    now = datetime.datetime.now()
     is_regular_market = is_market_open()
     
     if tx_type == 'SELL' and not is_regular_market:
@@ -446,7 +467,7 @@ def api_chat():
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
 
-    seven_days_ago = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+    seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
     db.execute('DELETE FROM CHAT WHERE CREATED_AT < ?', (seven_days_ago,))
     db.commit()
     chats = db.execute('SELECT C.MESSAGE, C.CREATED_AT, U.NAME FROM CHAT C JOIN USERS U ON C.USER_ID = U.ID ORDER BY C.CREATED_AT DESC LIMIT 30').fetchall()
@@ -457,8 +478,8 @@ def api_simulation_run():
     data = request.json
     code, amount, months = data.get('code'), int(data.get('amount')), int(data.get('months'))
     mode = data.get('mode') 
-    now = datetime.datetime.now()
-    start_date = (now - datetime.timedelta(days=months*30)).strftime("%Y-%m-%d")
+    now = datetime.now()
+    start_date = (now - timedelta(days=months*30)).strftime("%Y-%m-%d")
     
     try:
         import FinanceDataReader as fdr
@@ -555,11 +576,13 @@ def portfolio():
     user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
     holdings = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
     
-    current_prices = get_all_prices()
     portfolio_data = []
     total_stock_value = 0
     for h in holdings:
-        curr_price = current_prices.get(h['STOCK_CODE'], h['AVG_PRICE'])
+        curr_price = get_single_stock_price(h['STOCK_CODE'])
+        if curr_price is None:
+            curr_price = h['AVG_PRICE'] 
+            
         profit = (curr_price - h['AVG_PRICE']) * h['QUANTITY']
         profit_rate = ((curr_price - h['AVG_PRICE']) / h['AVG_PRICE']) * 100 if h['AVG_PRICE'] > 0 else 0
         value = curr_price * h['QUANTITY']
