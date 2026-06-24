@@ -27,20 +27,25 @@ def patch_libsql_result(result):
         result.fetchall = lambda: result.rows
     return result
 
-# --- 수정된 get_db() ---
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         if DATABASE_URL:
             import libsql_client
-            client = libsql_client.create_client_sync(url=DATABASE_URL, auth_token=DATABASE_TOKEN)
-            # 래퍼 클래스 생성: execute 결과에 패치를 적용
+            # 웹소켓(wss) 대신 HTTPS를 강제하여 핸드셰이크 에러 방지
+            # URL에서 libsql:// 부분을 제거하고 https://로 접속
+            target_url = DATABASE_URL.replace("libsql://", "https://")
+            client = libsql_client.create_client_sync(url=target_url, auth_token=DATABASE_TOKEN)
+            
+            # DBWrapper 내부 execute에 scheme 적용
             class DBWrapper:
                 def __init__(self, client): self.client = client
                 def execute(self, query, args=()):
                     return patch_libsql_result(self.client.execute(query, args))
-                def commit(self): pass # libsql-client는 자동 커밋
-                def cursor(self): return self # cursor() 호환성 유지
+                def commit(self): pass
+                def cursor(self): return self
+                def fetchone(self): return None # 에러 방지용
+            
             db = g._database = DBWrapper(client)
         else:
             db = g._database = sqlite3.connect(DATABASE)
