@@ -2,8 +2,8 @@ name: Keep Render Awake
 
 on:
   schedule:
-    # 14분마다 실행 (UTC 기준)
-    - cron: '*/14 * * * *'
+    # 5분마다 실행 (UTC 기준)
+    - cron: '*/5 * * * *'
   # GitHub 페이지에서 수동으로 버튼을 눌러 테스트할 수 있게 해주는 옵션
   workflow_dispatch: 
 
