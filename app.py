@@ -2,7 +2,7 @@ import os
 import sqlite3
 import time
 from datetime import datetime, timedelta
-import pytz # 시간대 처리를 위해 추가
+import pytz
 from flask import Flask, render_template, request, session, redirect, url_for, g, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from pykrx import stock
@@ -206,16 +206,6 @@ def get_top_stocks(market="KOSPI"):
     STOCK_CACHE[market] = {'time': now.replace(tzinfo=None), 'data': result, 'date': target_date_str, 'source': data_source}
     return result, target_date_str, data_source
 
-def get_user_total_return(user_id):
-    db = get_db()
-    user = db.execute('SELECT CASH_BALANCE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
-    if not user: return 0
-    holdings = db.execute('SELECT STOCK_CODE, QUANTITY FROM HOLDINGS WHERE USER_ID = ?', (user_id,)).fetchall()
-    current_prices = get_all_prices()
-    total_stock_value = sum([current_prices.get(h['STOCK_CODE'], 0) * h['QUANTITY'] for h in holdings])
-    total_asset = user['CASH_BALANCE'] + total_stock_value
-    return ((total_asset - 50000000) / 50000000) * 100
-
 def get_rankings():
     global RANKING_CACHE
     now = datetime.now()
@@ -278,7 +268,7 @@ def api_search():
 
 @app.route('/api/stock_info/<code>')
 def api_stock_info(code):
-    init_tickers() # 이름 누락 방지를 위해 호출 시 TICKER_CACHE 최신화 보장
+    init_tickers() 
     now = datetime.now(KST)
     start_date = (now - timedelta(days=45)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
@@ -416,8 +406,6 @@ def api_comments(code):
         return {"error": "내용을 입력하세요."}, 400
         
     comments = db.execute('SELECT C.ID as CID, C.MESSAGE, C.CREATED_AT, U.NAME, U.ID as UID FROM COMMENTS C JOIN USERS U ON C.USER_ID = U.ID WHERE C.STOCK_CODE = ? ORDER BY C.CREATED_AT DESC LIMIT 50', (code,)).fetchall()
-    
-    # 2번 수정사항: 계좌수익률이 아닌 "해당 종목의 보유 수익률" 계산을 위해 현재가를 1번만 가져옴
     curr_price = get_single_stock_price(code)
     
     result = []
@@ -526,13 +514,18 @@ def api_simulation_run():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    db = get_db()
     if request.method == 'POST':
-        user = get_db().execute('SELECT * FROM USERS WHERE USERNAME = ?', (request.form.get('username'),)).fetchone()
+        user = db.execute('SELECT * FROM USERS WHERE USERNAME = ?', (request.form.get('username'),)).fetchone()
         if user and check_password_hash(user['PASSWORD_HASH'], request.form.get('password')):
             session['user_id'], session['name'], session['username'] = user['ID'], user['NAME'], user['USERNAME']
             return redirect(url_for('dashboard'))
         flash('아이디 또는 비밀번호 오류입니다.')
-    return render_template('index.html')
+        
+    main_text_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
+    main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>'
+    
+    return render_template('index.html', main_text=main_text)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -571,7 +564,6 @@ def dashboard():
     
     total_stock_value = 0
     for h in holdings:
-        # 대시보드에서도 과거 캐시가 아닌 실시간 종가 조회 함수를 사용하여 가격 불일치 버그 해결
         curr_price = get_single_stock_price(h['STOCK_CODE'])
         if curr_price is None: curr_price = h['AVG_PRICE']
         total_stock_value += curr_price * h['QUANTITY']
@@ -663,20 +655,6 @@ def admin():
 def logout():
     session.clear()
     return redirect(url_for('index'))
-
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    db = get_db()
-    if request.method == 'POST':
-        user = db.execute('SELECT * FROM USERS WHERE USERNAME = ?', (request.form.get('username'),)).fetchone()
-        if user and check_password_hash(user['PASSWORD_HASH'], request.form.get('password')):
-            session['user_id'], session['name'], session['username'] = user['ID'], user['NAME'], user['USERNAME']
-            return redirect(url_for('dashboard'))
-        flash('아이디 또는 비밀번호 오류입니다.')
-        
-    main_text_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
-    main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>'
-    return render_template('index.html', main_text=main_text)
 
 if __name__ == '__main__':
     if not DATABASE_URL:
