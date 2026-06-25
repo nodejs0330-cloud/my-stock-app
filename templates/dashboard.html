@@ -47,7 +47,6 @@
         {% endif %}
 
         <div class="bg-gradient-to-br from-[#1e2638] to-[#121824] rounded-2xl border border-gray-700/50 p-6 shadow-2xl relative overflow-hidden">
-
             <div class="absolute -top-6 -right-6 text-8xl opacity-5 select-none">💰</div>
             <p class="text-gray-400 text-sm mb-1 font-medium">{{ user.NAME }}님의 총 자산</p>
             <h2 class="text-4xl font-bold text-white tracking-tight">{{ "{:,.0f}".format(total_asset) }}<span class="text-lg text-gray-400 font-normal ml-1">원</span></h2>
@@ -71,7 +70,6 @@
                 <button id="btn-KOSPI" class="text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" onclick="loadMarket('KOSPI')">KOSPI</button>
                 <button id="btn-KOSDAQ" class="text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 hover:text-white transition-colors border border-gray-700" onclick="loadMarket('KOSDAQ')">KOSDAQ</button>
             </div>
-            <!-- 데이터 출처 명시 (3차 방어선 추적) -->
             <p class="text-[10px] text-gray-500 text-right">데이터 출처: <span id="data-source-text" class="font-bold text-gray-400">{{ source }}</span> (지연 시세)</p>
         </div>
 
@@ -130,45 +128,64 @@
         </div>
     </div>
     
-    <!-- 모바일 메뉴 -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex justify-around items-center h-[68px] z-50 px-1 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe">
-        <a href="{{ url_for('dashboard') }}" class="flex-1 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">🏠</span><span class="text-[9px] font-bold">홈</span></a>
-        <a href="{{ url_for('trade') }}" class="flex-1 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span></a>
-        <a href="{{ url_for('portfolio') }}" class="flex-1 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
-        <a href="{{ url_for('ranking') }}" class="flex-1 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
-        <a href="{{ url_for('simulation') }}" class="flex-1 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+    <!-- 모바일 스와이프 지원 하단 메뉴 (스크롤바 숨김 처리 포함) -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] space-x-2">
+        <a href="{{ url_for('dashboard') }}" class="flex-none w-16 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">🏠</span><span class="text-[9px] font-bold">홈</span></a>
+        <a href="{{ url_for('trade') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span></a>
+        <a href="{{ url_for('portfolio') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
+        <a href="{{ url_for('ranking') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
+        <a href="{{ url_for('simulation') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
         {% if session.get('username') == 'admin' %}
-        <a href="{{ url_for('admin') }}" class="flex-1 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
+        <a href="{{ url_for('admin') }}" class="flex-none w-16 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
         {% endif %}
     </nav>
 </div>
 
+<!-- 완성된 전체 자바스크립트 블록 (터짐 방지용 100% 통합 코드) -->
 <script>
     function loadMarket(market) {
         document.getElementById('btn-KOSPI').className = market==='KOSPI' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700";
         document.getElementById('btn-KOSDAQ').className = market==='KOSDAQ' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700";
         
-        fetch(`/api/market_trend/${market}`).then(r => r.json()).then(data => {
-            document.getElementById('trend-date-gainers').innerText = data.date + ' 기준';
-            document.getElementById('trend-date-losers').innerText = data.date + ' 기준';
-            document.getElementById('market-name-gainers').innerText = market;
-            document.getElementById('market-name-losers').innerText = market;
-            document.getElementById('data-source-text').innerText = data.source; 
-            renderTable('gainers-tbody', data.data.gainers, false);
-            renderTable('losers-tbody', data.data.losers, true);
-        });
+        fetch(`/api/market_trend/${market}`)
+            .then(r => r.json())
+            .then(data => {
+                if (!data || !data.data) return; // 오류 시 방어 코드
+                
+                document.getElementById('trend-date-gainers').innerText = data.date + ' 기준';
+                document.getElementById('trend-date-losers').innerText = data.date + ' 기준';
+                document.getElementById('market-name-gainers').innerText = market;
+                document.getElementById('market-name-losers').innerText = market;
+                document.getElementById('data-source-text').innerText = data.source; 
+                
+                renderTable('gainers-tbody', data.data.gainers, false);
+                renderTable('losers-tbody', data.data.losers, true);
+            })
+            .catch(err => console.error('Market Trend Fetch Error:', err));
     }
     
     function renderTable(tbodyId, items, isLoser) {
         const tbody = document.getElementById(tbodyId);
+        if (!tbody || !items) return; // 요소나 데이터가 없으면 중단 (방어 코드)
+        
         tbody.innerHTML = '';
         items.forEach((stock, idx) => {
             const color = isLoser ? 'blue' : 'red';
-            const sign = isLoser ? '▼' : '▲';
+            const sign = isLoser ? '' : '+';
             tbody.innerHTML += `<tr class="hover:bg-gray-700/50 cursor-pointer" onclick="location.href='/trade?code=${stock.code}'">
-                <td class="px-4 py-2 flex items-center"><span class="text-gray-500 text-[10px] w-4">${idx + 1}</span><div class="flex flex-col ml-1"><span class="font-bold text-white text-xs">${stock.name}</span><span class="text-[9px] text-gray-500">${stock.code}</span></div></td>
+                <td class="px-4 py-2 flex items-center">
+                    <span class="text-gray-500 text-[10px] w-4">${idx + 1}</span>
+                    <div class="flex flex-col ml-1">
+                        <span class="font-bold text-white text-xs">${stock.name}</span>
+                        <span class="text-[9px] text-gray-500">${stock.code}</span>
+                    </div>
+                </td>
                 <td class="px-4 py-2 text-right font-medium text-white text-xs">${stock.price.toLocaleString()}</td>
-                <td class="px-4 py-2 text-right"><div class="flex flex-col items-end"><span class="text-${color}-500 font-bold text-xs">${isLoser?'':'+'}${stock.change_rate.toFixed(2)}%</span></div></td>
+                <td class="px-4 py-2 text-right">
+                    <div class="flex flex-col items-end">
+                        <span class="text-${color}-500 font-bold text-xs">${sign}${stock.change_rate.toFixed(2)}%</span>
+                    </div>
+                </td>
             </tr>`;
         });
     }

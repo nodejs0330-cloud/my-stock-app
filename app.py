@@ -568,8 +568,14 @@ def dashboard():
     db = get_db()
     user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
     holdings = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
-    current_prices = get_all_prices()
-    total_stock_value = sum([current_prices.get(h['STOCK_CODE'], h['AVG_PRICE']) * h['QUANTITY'] for h in holdings])
+    
+    total_stock_value = 0
+    for h in holdings:
+        # 대시보드에서도 과거 캐시가 아닌 실시간 종가 조회 함수를 사용하여 가격 불일치 버그 해결
+        curr_price = get_single_stock_price(h['STOCK_CODE'])
+        if curr_price is None: curr_price = h['AVG_PRICE']
+        total_stock_value += curr_price * h['QUANTITY']
+        
     total_asset = user['CASH_BALANCE'] + total_stock_value
     top_stocks, target_date_str, data_source = get_top_stocks("KOSPI")
     notice = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone()
@@ -629,12 +635,14 @@ def admin():
         elif action == 'update_notice':
             msg = request.form.get('message', '')[:100]
             is_active = 1 if request.form.get('is_active') == 'on' else 0
-            
-            # UPDATE 대신 INSERT OR REPLACE를 사용하여 행이 없더라도 즉시 생성되도록 수정
             db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (1, ?, ?)', (msg, is_active))
-            
             db.commit()
             flash("✅ 공지사항 업데이트 됨.")
+        elif action == 'update_main_text':
+            msg = request.form.get('main_text', '')
+            db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (2, ?, 1)', (msg,))
+            db.commit()
+            flash("✅ 메인 화면 문구가 업데이트 되었습니다.")
         elif action == 'reset_chat':
             db.execute('DELETE FROM CHAT')
             db.commit()
@@ -646,12 +654,29 @@ def admin():
             RANKING_CACHE['time'] = None 
             get_rankings()
             flash("✅ 투자자 랭킹이 즉시 새로 계산되어 갱신되었습니다.")
-    return render_template('admin.html', users=db.execute('SELECT * FROM USERS ORDER BY CREATED_AT DESC').fetchall(), notice=db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone())
+            
+    notice = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone()
+    main_text_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
+    return render_template('admin.html', users=db.execute('SELECT * FROM USERS ORDER BY CREATED_AT DESC').fetchall(), notice=notice, main_text=main_text_row)
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    db = get_db()
+    if request.method == 'POST':
+        user = db.execute('SELECT * FROM USERS WHERE USERNAME = ?', (request.form.get('username'),)).fetchone()
+        if user and check_password_hash(user['PASSWORD_HASH'], request.form.get('password')):
+            session['user_id'], session['name'], session['username'] = user['ID'], user['NAME'], user['USERNAME']
+            return redirect(url_for('dashboard'))
+        flash('아이디 또는 비밀번호 오류입니다.')
+        
+    main_text_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
+    main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>'
+    return render_template('index.html', main_text=main_text)
 
 if __name__ == '__main__':
     if not DATABASE_URL:

@@ -49,12 +49,28 @@
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-2">
                     <label class="flex items-center space-x-3 cursor-pointer mb-4 sm:mb-0">
-                        <!-- notice.IS_ACTIVE 상태값 확인 로직 보강 -->
                         <input type="checkbox" name="is_active" {% if notice and notice.IS_ACTIVE in [1, '1', True] %}checked{% endif %} class="w-5 h-5 text-blue-600 bg-gray-900 border-gray-600 rounded focus:ring-blue-500 focus:ring-2">
                         <span class="text-sm font-medium text-gray-300">대시보드에 공지 전광판 노출 활성화</span>
                     </label>
                     <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">
                         공지사항 저장 및 적용
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 신규: 메인화면 텍스트 관리 패널 -->
+        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden mt-8">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">📝</span> 메인 화면(로그인) 문구 설정</h3>
+            <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
+                <input type="hidden" name="action" value="update_main_text">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">HTML 태그를 포함하여 자유롭게 작성하세요.</label>
+                    <textarea name="main_text" rows="3" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="기본 문구">{{ main_text.MESSAGE if main_text else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>' }}</textarea>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">
+                        메인 문구 저장
                     </button>
                 </div>
             </form>
