@@ -13,4 +13,4 @@ jobs:
     steps:
       - name: Ping Render Server
         # 아래 주소를 본인의 Render 서비스 URL로 반드시 변경하세요!
-        run: curl -s https://[본인의-서비스-주소].onrender.com > /dev/null
+        run: curl -s https://my-stock-app-p9ja.onrender.com > /dev/null
