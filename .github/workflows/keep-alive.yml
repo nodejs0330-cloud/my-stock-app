@@ -1,0 +1,16 @@
+name: Keep Render Awake
+
+on:
+  schedule:
+    # 14분마다 실행 (UTC 기준)
+    - cron: '*/14 * * * *'
+  # GitHub 페이지에서 수동으로 버튼을 눌러 테스트할 수 있게 해주는 옵션
+  workflow_dispatch: 
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Server
+        # 아래 주소를 본인의 Render 서비스 URL로 반드시 변경하세요!
+        run: curl -s https://[본인의-서비스-주소].onrender.com > /dev/null
