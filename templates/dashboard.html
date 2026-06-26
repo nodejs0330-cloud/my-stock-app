@@ -34,7 +34,6 @@
 
     <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 space-y-6">
         
-        <!-- notice.IS_ACTIVE 값이 안전하게 평가되도록 조건을 [1, '1', True] 로 보강 -->
         {% if notice and notice.IS_ACTIVE in [1, '1', True] and notice.MESSAGE %}
         <div class="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl p-3 shadow-[0_0_20px_rgba(234,179,8,0.3)] flex items-center overflow-hidden border border-yellow-400">
             <span class="flex-shrink-0 bg-gray-900 text-yellow-400 text-xs font-black px-2 py-1 rounded mr-3 z-10 flex items-center">
@@ -66,9 +65,11 @@
         </div>
 
         <div class="flex justify-between items-center px-1">
-            <div class="flex items-center space-x-2">
-                <button id="btn-KOSPI" class="text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" onclick="loadMarket('KOSPI')">KOSPI</button>
-                <button id="btn-KOSDAQ" class="text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 hover:text-white transition-colors border border-gray-700" onclick="loadMarket('KOSDAQ')">KOSDAQ</button>
+            <div class="flex items-center space-x-2 relative">
+                <button id="btn-KOSPI" class="text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" onclick="loadMarket('KOSPI')">KOSPI</button>
+                <button id="btn-KOSDAQ" class="text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 hover:text-white transition-colors border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" onclick="loadMarket('KOSDAQ')">KOSDAQ</button>
+                <!-- 마켓 로딩 스피너 -->
+                <div id="market-spinner" class="hidden absolute -right-6 top-1.5 h-4 w-4 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
             </div>
             <p class="text-[10px] text-gray-500 text-right">데이터 출처: <span id="data-source-text" class="font-bold text-gray-400">{{ source }}</span> (지연 시세)</p>
         </div>
@@ -79,12 +80,12 @@
                     <h3 class="text-base font-bold text-white flex items-center">🔥 <span id="market-name-gainers" class="mr-1">KOSPI</span> 급등주</h3>
                     <span id="trend-date-gainers" class="text-[10px] text-gray-500">{{ target_date }} 기준</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto relative min-h-[200px]">
                     <table class="w-full text-left text-sm text-gray-300">
                         <thead class="bg-[#0b101a] text-gray-500 text-[10px] font-semibold">
                             <tr><th class="px-4 py-2">종목명</th><th class="px-4 py-2 text-right">현재가</th><th class="px-4 py-2 text-right">등락률</th></tr>
                         </thead>
-                        <tbody id="gainers-tbody" class="divide-y divide-gray-800/50">
+                        <tbody id="gainers-tbody" class="divide-y divide-gray-800/50 transition-opacity">
                             {% if top_stocks and top_stocks.gainers %}
                                 {% for stock in top_stocks.gainers %}
                                 <tr class="hover:bg-gray-700/50 transition-colors cursor-pointer" onclick="location.href='{{ url_for('trade') }}?code={{ stock.code }}'">
@@ -105,12 +106,12 @@
                     <h3 class="text-base font-bold text-white flex items-center">❄️ <span id="market-name-losers" class="mr-1">KOSPI</span> 급락주</h3>
                     <span id="trend-date-losers" class="text-[10px] text-gray-500">{{ target_date }} 기준</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto relative min-h-[200px]">
                     <table class="w-full text-left text-sm text-gray-300">
                         <thead class="bg-[#0b101a] text-gray-500 text-[10px] font-semibold">
                             <tr><th class="px-4 py-2">종목명</th><th class="px-4 py-2 text-right">현재가</th><th class="px-4 py-2 text-right">등락률</th></tr>
                         </thead>
-                        <tbody id="losers-tbody" class="divide-y divide-gray-800/50">
+                        <tbody id="losers-tbody" class="divide-y divide-gray-800/50 transition-opacity">
                             {% if top_stocks and top_stocks.losers %}
                                 {% for stock in top_stocks.losers %}
                                 <tr class="hover:bg-gray-700/50 transition-colors cursor-pointer" onclick="location.href='{{ url_for('trade') }}?code={{ stock.code }}'">
@@ -128,7 +129,6 @@
         </div>
     </div>
     
-    <!-- 모바일 스와이프 지원 하단 메뉴 (스크롤바 숨김 처리 포함) -->
     <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] space-x-2">
         <a href="{{ url_for('dashboard') }}" class="flex-none w-16 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">🏠</span><span class="text-[9px] font-bold">홈</span></a>
         <a href="{{ url_for('trade') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span></a>
@@ -141,16 +141,28 @@
     </nav>
 </div>
 
-<!-- 완성된 전체 자바스크립트 블록 (터짐 방지용 100% 통합 코드) -->
 <script>
     function loadMarket(market) {
-        document.getElementById('btn-KOSPI').className = market==='KOSPI' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700";
-        document.getElementById('btn-KOSDAQ').className = market==='KOSDAQ' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700";
+        const btnKOSPI = document.getElementById('btn-KOSPI');
+        const btnKOSDAQ = document.getElementById('btn-KOSDAQ');
+        const spinner = document.getElementById('market-spinner');
+        const gainersBody = document.getElementById('gainers-tbody');
+        const losersBody = document.getElementById('losers-tbody');
+
+        // 버튼 비활성화 및 스피너/투명도 조절
+        btnKOSPI.disabled = true;
+        btnKOSDAQ.disabled = true;
+        spinner.classList.remove('hidden');
+        gainersBody.style.opacity = '0.3';
+        losersBody.style.opacity = '0.3';
+
+        btnKOSPI.className = market === 'KOSPI' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed";
+        btnKOSDAQ.className = market === 'KOSDAQ' ? "text-xs font-bold px-4 py-1.5 rounded bg-blue-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed" : "text-xs font-bold px-4 py-1.5 rounded bg-gray-800 text-gray-400 border border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed";
         
         fetch(`/api/market_trend/${market}`)
             .then(r => r.json())
             .then(data => {
-                if (!data || !data.data) return; // 오류 시 방어 코드
+                if (!data || !data.data) return; 
                 
                 document.getElementById('trend-date-gainers').innerText = data.date + ' 기준';
                 document.getElementById('trend-date-losers').innerText = data.date + ' 기준';
@@ -161,12 +173,20 @@
                 renderTable('gainers-tbody', data.data.gainers, false);
                 renderTable('losers-tbody', data.data.losers, true);
             })
-            .catch(err => console.error('Market Trend Fetch Error:', err));
+            .catch(err => console.error('Market Trend Fetch Error:', err))
+            .finally(() => {
+                // 패치 완료 후 원상복구
+                btnKOSPI.disabled = false;
+                btnKOSDAQ.disabled = false;
+                spinner.classList.add('hidden');
+                gainersBody.style.opacity = '1';
+                losersBody.style.opacity = '1';
+            });
     }
     
     function renderTable(tbodyId, items, isLoser) {
         const tbody = document.getElementById(tbodyId);
-        if (!tbody || !items) return; // 요소나 데이터가 없으면 중단 (방어 코드)
+        if (!tbody || !items) return; 
         
         tbody.innerHTML = '';
         items.forEach((stock, idx) => {
