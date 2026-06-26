@@ -9,7 +9,7 @@
     #chat-messages::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
 </style>
 
-<div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
+<div class="w-full min-h-screen flex flex-col relative z-10 pb-36 md:pb-10">
     <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
         <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
@@ -130,7 +130,7 @@
     </div>
 
     <!-- 미니 채팅 위젯 -->
-    <div id="chat-widget" class="fixed bottom-24 md:bottom-6 right-4 z-50 w-72 md:w-80 transition-all duration-300 transform translate-y-0">
+    <div id="chat-widget" class="fixed bottom-[84px] md:bottom-6 right-4 z-50 w-72 md:w-80 transition-all duration-300 transform translate-y-0">
         <!-- 헤더 -->
         <div id="chat-header" class="bg-gradient-to-r from-pink-600 to-purple-600 p-3 rounded-xl cursor-pointer flex justify-between items-center shadow-lg hover:shadow-pink-500/20 transition-all border border-pink-500/50">
             <div class="flex items-center space-x-2">
@@ -357,8 +357,20 @@
         if(!isChatOpen) return;
         fetch('/api/chat').then(r=>r.json()).then(data => {
             if(data.chats) {
+                // 현재 사용자가 스크롤의 맨 밑을 보고 있는지 판단
+                const isAtBottom = chatMsgs.scrollHeight - chatMsgs.scrollTop <= chatMsgs.clientHeight + 50;
+                // 기존의 스크롤 위치 기억
+                const currentScroll = chatMsgs.scrollTop;
+                
                 chatMsgs.innerHTML = data.chats.map(c => `<div class="bg-gray-700/50 p-2 rounded-lg"><span class="font-bold text-pink-400 mr-1">${c.name}</span><span class="text-gray-300 break-words">${c.message}</span><div class="text-[9px] text-gray-500 text-right mt-1">${c.time}</div></div>`).join('');
-                chatMsgs.scrollTop = chatMsgs.scrollHeight;
+                
+                // 만약 사용자가 맨 아래를 보고 있었다면 새로 온 메시지 위치로 자동 스크롤
+                // 위쪽의 이전 대화를 읽고 있었다면 기존 스크롤 위치를 그대로 유지
+                if (isAtBottom) {
+                    chatMsgs.scrollTop = chatMsgs.scrollHeight;
+                } else {
+                    chatMsgs.scrollTop = currentScroll;
+                }
             }
         });
     }

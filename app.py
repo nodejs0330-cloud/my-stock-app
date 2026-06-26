@@ -213,7 +213,8 @@ def get_rankings():
     db = get_db()
     users = db.execute('SELECT ID, NAME, CASH_BALANCE, CREATED_AT FROM USERS').fetchall()
     holdings = db.execute('SELECT USER_ID, STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY FROM HOLDINGS').fetchall()
-    current_prices = get_all_prices()
+    
+    real_time_prices = {}
     
     user_holdings = {}
     for h in holdings:
@@ -223,20 +224,47 @@ def get_rankings():
     ranking_list = []
     for u in users:
         total_asset = u['CASH_BALANCE']
-        best_stock_name = "보유종목 없음"
-        best_stock_profit = -float('inf')
+        top_stocks = []
+        
         if u['ID'] in user_holdings:
             for h in user_holdings[u['ID']]:
-                current_price = current_prices.get(h['STOCK_CODE'], h['AVG_PRICE'])
+                code = h['STOCK_CODE']
+                if code not in real_time_prices:
+                    # 랭킹 계산 시에도 실시간 현재가를 긁어오도록 변경 (포트폴리오와 일치)
+                    price = get_single_stock_price(code)
+                    real_time_prices[code] = price if price is not None else h['AVG_PRICE']
+                
+                current_price = real_time_prices[code]
                 total_asset += current_price * h['QUANTITY']
+                
                 profit = (current_price - h['AVG_PRICE']) * h['QUANTITY']
-                if profit > best_stock_profit:
-                    best_stock_profit = profit
-                    profit_rate = ((current_price - h['AVG_PRICE']) / h['AVG_PRICE']) * 100 if h['AVG_PRICE'] > 0 else 0
-                    best_stock_name = f"{h['STOCK_NAME']} ({profit_rate:+.1f}%)"
+                profit_rate = ((current_price - h['AVG_PRICE']) / h['AVG_PRICE']) * 100 if h['AVG_PRICE'] > 0 else 0
+                
+                top_stocks.append({
+                    'name': h['STOCK_NAME'],
+                    'profit_rate': profit_rate,
+                    'profit': profit
+                })
+                
+        # 수익률 순으로 정렬 후 상위 5개 추출 (모달 팝업용)
+        top_stocks.sort(key=lambda x: x['profit_rate'], reverse=True)
+        top_5_stocks = top_stocks[:5]
+        
+        best_stock_name = "보유종목 없음"
+        if top_5_stocks:
+            best_stock_name = f"{top_5_stocks[0]['name']} ({top_5_stocks[0]['profit_rate']:+.1f}%)"
+            
         return_rate = ((total_asset - 50000000) / 50000000) * 100
         created_date = datetime.strptime(u['CREATED_AT'], '%Y-%m-%d %H:%M:%S').strftime('%Y.%m.%d') if isinstance(u['CREATED_AT'], str) else u['CREATED_AT'].strftime('%Y.%m.%d')
-        ranking_list.append({'name': u['NAME'], 'total_asset': total_asset, 'return_rate': return_rate, 'best_stock': best_stock_name, 'created_date': created_date})
+        
+        ranking_list.append({
+            'name': u['NAME'], 
+            'total_asset': total_asset, 
+            'return_rate': return_rate, 
+            'best_stock': best_stock_name, 
+            'created_date': created_date,
+            'top_5_stocks': top_5_stocks
+        })
         
     ranking_list.sort(key=lambda x: x['total_asset'], reverse=True)
     top_10 = ranking_list[:10]
