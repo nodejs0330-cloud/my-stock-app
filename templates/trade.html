@@ -25,9 +25,10 @@
         </div>
     </header>
 
-    <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- 💡 핵심 원리: PC(3열 그리드)에서는 최근 이슈가 종토방 아래인 2행 1~2열에 자동으로 배치되고, 모바일(1열)에서는 문서 순서대로 최하단에 표출됨 -->
+    <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         
-        <!-- 왼쪽: 검색/차트 및 종토방 -->
+        <!-- 왼쪽 컨텐츠 (md:col-span-2) -->
         <div class="md:col-span-2 space-y-4">
             <div class="bg-[#121824] rounded-2xl border border-gray-800 p-4 relative shadow-lg z-30">
                 <div class="relative">
@@ -54,22 +55,19 @@
                 </div>
             </div>
 
-            <!-- 신규: 종목 토론방 -->
             <div id="discussion-board" class="hidden bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg">
                 <h3 class="text-white font-bold mb-4 flex items-center">🔥 종목 토론방</h3>
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="comment-input" class="flex-grow bg-[#1e2638] border border-gray-700 text-white text-sm rounded-lg py-2 px-3 focus:outline-none" placeholder="이 종목에 대한 의견을 남겨주세요.">
                     <button id="comment-send" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 rounded-lg text-sm">등록</button>
                 </div>
-                <div id="comment-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    <!-- JS 로드 -->
-                </div>
+                <div id="comment-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"></div>
             </div>
         </div>
 
-        <!-- 오른쪽: 주문 패널 -->
-        <div class="md:col-span-1 space-y-4">
-            <div class="bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg sticky top-20">
+        <!-- 오른쪽 주문 패널 (md:col-span-1) -->
+        <div class="md:col-span-1 space-y-4 md:sticky md:top-20">
+            <div class="bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-white font-bold">주문하기</h3>
                     <p class="text-xs text-gray-400">주문가능: <span id="user-cash" class="text-yellow-400 font-bold">{{ "{:,.0f}".format(user.CASH_BALANCE) }}원</span></p>
@@ -102,14 +100,35 @@
                     <button id="submit-order-btn" disabled class="w-full py-3 rounded-lg font-bold text-white bg-gray-700 cursor-not-allowed transition-all shadow-lg mt-4">종목을 검색해주세요</button>
                 </div>
             </div>
-            
             <div id="stock-data-container" class="hidden">
                 {% if my_stocks %}{% for stock in my_stocks %}<span class="my-stock-data" data-code="{{ stock.STOCK_CODE }}" data-qty="{{ stock.QUANTITY }}"></span>{% endfor %}{% endif %}
             </div>
         </div>
+
+        <!-- 📰 최근 이슈 전용 섹션 (md:col-span-2) -->
+        <div id="recent-issues-section" class="hidden md:col-span-2 bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3.5 mb-3 border-b border-gray-800 gap-2">
+                <h3 class="text-white font-bold flex items-center"><span class="mr-2">📰</span> 최근 이슈</h3>
+                <div class="flex items-center justify-between w-full sm:w-auto space-x-3 text-[11px] text-gray-400">
+                    <span>데이터 출처: <b id="news-source-text" class="text-gray-300">네이버 금융 실시간 뉴스</b></span>
+                    <span id="news-updated-time" class="font-mono text-gray-500"></span>
+                </div>
+            </div>
+            
+            <!-- 뉴스 카드 출력 영역 (한 페이지당 3건씩 표출) -->
+            <div id="news-list" class="space-y-3 min-h-[160px]"></div>
+            
+            <!-- 미니 페이징 컨트롤 -->
+            <div id="news-pagination" class="hidden flex justify-between items-center pt-4 mt-2 border-t border-gray-800/80 text-xs text-gray-400 font-mono">
+                <button id="news-prev" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition">◀ 이전</button>
+                <span id="news-page-info" class="font-bold text-blue-400">1 / 1</span>
+                <button id="news-next" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition">다음 ▶</button>
+            </div>
+        </div>
+
     </div>
 
-    <!-- 모바일 메뉴 (관리자 유무에 따라 flex-1 로 자동 크기 조절) -->
+    <!-- 모바일 메뉴 -->
     <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] space-x-2">
         <a href="{{ url_for('dashboard') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span></a>
         <a href="{{ url_for('trade') }}" class="flex-none w-16 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">📈</span><span class="text-[9px] font-bold">주문</span></a>
@@ -153,6 +172,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentStock = null;
     let currentTxType = 'BUY'; 
     let commentInterval = null;
+    
+    // 뉴스 크롤링 상태 변수
+    let allNewsData = [];
+    let currentNewsPage = 1;
+    const NEWS_PER_PAGE = 3;
     
     const myStocksData = {};
     document.querySelectorAll('.my-stock-data').forEach(item => {
@@ -198,7 +222,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(query) fetch(`/api/search?q=${query}`).then(r=>r.json()).then(data=>{ if(data.results.length > 0) loadStockInfo(data.results[0].code); });
     });
 
-    // 신규: 관리자용 댓글 수정/삭제 전역 함수
     window.deleteComment = function(id) {
         if(!confirm("이 댓글을 정말 삭제하시겠습니까?")) return;
         fetch('/api/admin/comment', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'delete', id: id}) })
@@ -252,6 +275,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // --- 뉴스 조회 및 페이징 함수 ---
+    function loadNews(code) {
+        const section = document.getElementById('recent-issues-section');
+        const listEl = document.getElementById('news-list');
+        listEl.innerHTML = '<div class="text-center py-8 text-gray-500 text-xs animate-pulse">실시간 이슈 데이터를 불러오는 중...</div>';
+        section.classList.remove('hidden');
+
+        fetch(`/api/news/${code}`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('news-updated-time').innerText = data.updated_at + ' 기준';
+                document.getElementById('news-source-text').innerText = data.source;
+
+                allNewsData = data.news || [];
+                currentNewsPage = 1;
+
+                if (allNewsData.length === 0) {
+                    listEl.innerHTML = '<div class="text-center py-8 text-gray-500 text-xs">등록된 최근 이슈가 없습니다.</div>';
+                    document.getElementById('news-pagination').classList.add('hidden');
+                } else {
+                    document.getElementById('news-pagination').classList.remove('hidden');
+                    renderNewsPage();
+                }
+            })
+            .catch(() => {
+                listEl.innerHTML = '<div class="text-center py-8 text-red-400 text-xs">이슈를 불러오지 못했습니다.</div>';
+            });
+    }
+
+    function renderNewsPage() {
+        const listEl = document.getElementById('news-list');
+        const startIdx = (currentNewsPage - 1) * NEWS_PER_PAGE;
+        const pageItems = allNewsData.slice(startIdx, startIdx + NEWS_PER_PAGE);
+        const totalPages = Math.ceil(allNewsData.length / NEWS_PER_PAGE) || 1;
+
+        listEl.innerHTML = pageItems.map(item => `
+            <a href="${item.link}" target="_blank" class="block bg-[#1e2638]/50 hover:bg-[#1e2638] p-3.5 rounded-xl border border-gray-700/60 transition group">
+                <div class="flex justify-between items-start gap-2">
+                    <h4 class="text-sm font-bold text-gray-200 group-hover:text-blue-400 line-clamp-2 leading-snug">${item.title}</h4>
+                    <span class="text-[10px] text-gray-500 shrink-0 font-mono">${item.date}</span>
+                </div>
+                <div class="mt-2 flex justify-between items-center text-[11px]">
+                    <span class="bg-gray-800 border border-gray-700 px-2 py-0.5 rounded text-blue-400 font-semibold text-[10px]">${item.provider}</span>
+                    <span class="text-gray-500 text-[10px] group-hover:translate-x-0.5 transition-transform">뉴스 원문 ↗</span>
+                </div>
+            </a>
+        `).join('');
+
+        document.getElementById('news-page-info').innerText = `${currentNewsPage} / ${totalPages}`;
+        document.getElementById('news-prev').disabled = currentNewsPage === 1;
+        document.getElementById('news-next').disabled = currentNewsPage >= totalPages;
+    }
+
+    document.getElementById('news-prev').addEventListener('click', () => {
+        if (currentNewsPage > 1) { currentNewsPage--; renderNewsPage(); }
+    });
+    document.getElementById('news-next').addEventListener('click', () => {
+        const totalPages = Math.ceil(allNewsData.length / NEWS_PER_PAGE);
+        if (currentNewsPage < totalPages) { currentNewsPage++; renderNewsPage(); }
+    });
+
     function loadStockInfo(code) {
         searchResults.classList.add('hidden');
         searchInput.value = '';
@@ -262,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.error) { alert(data.error); chartPlaceholder.innerHTML = '데이터 조회 실패'; return; }
             currentStock = data;
             nameEl.innerText = data.name; codeEl.innerText = data.code; priceEl.innerText = data.current_price.toLocaleString() + '원';
-            document.getElementById('data-source-badge').innerText = data.source; // 3차 방어선 출처 표기
+            document.getElementById('data-source-badge').innerText = data.source; 
             
             if (data.change_price > 0) {
                 changeEl.innerHTML = `<span class="text-red-500">▲${data.change_price.toLocaleString()} (+${data.change_rate}%)</span>`;
@@ -284,6 +368,8 @@ document.addEventListener('DOMContentLoaded', () => {
             updateOrderPanelUI(); 
             
             loadComments(code);
+            loadNews(code); # 종목 조회 시 최근 이슈 뉴스 자동 호출
+            
             if(commentInterval) clearInterval(commentInterval);
             commentInterval = setInterval(() => loadComments(code), 5000);
         });

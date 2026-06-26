@@ -1,8 +1,10 @@
 import os
 import sqlite3
 import time
+import urllib.request
 from datetime import datetime, timedelta
 import pytz
+from bs4 import BeautifulSoup
 from flask import Flask, render_template, request, session, redirect, url_for, g, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from pykrx import stock
@@ -58,6 +60,44 @@ def get_single_stock_price(code):
     except: pass
         
     return None
+
+def get_stock_news_scraped(code):
+    """네이버 금융 실시간 종목 뉴스 웹 크롤링 (별도 API 키 불필요)"""
+    url = f"https://finance.naver.com/item/news_news.naver?code={code}&page=1"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    }
+    news_list = []
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=4) as response:
+            # 네이버 금융 레거시 페이지 전용 EUC-KR(CP949) 디코딩
+            html = response.read().decode('cp949', errors='ignore')
+            
+        soup = BeautifulSoup(html, 'html.parser')
+        rows = soup.select('.type5 tbody tr')
+        
+        for row in rows:
+            title_el = row.select_one('.title a')
+            info_el = row.select_one('.info')
+            date_el = row.select_one('.date')
+            
+            if title_el:
+                title = title_el.get_text(strip=True)
+                link = "https://finance.naver.com" + title_el['href']
+                provider = info_el.get_text(strip=True) if info_el else "언론사"
+                date_str = date_el.get_text(strip=True) if date_el else ""
+                
+                news_list.append({
+                    'title': title,
+                    'link': link,
+                    'provider': provider,
+                    'date': date_str
+                })
+    except Exception as e:
+        print(f"News Crawling Error: {e}")
+        
+    return news_list[:15] # 클라이언트 3건씩 5페이지 페이징 분량 수집
 
 # --- 호환성 패치: libsql_client 결과를 sqlite3처럼 쓰게 함 ---
 def patch_libsql_result(result):
@@ -215,7 +255,6 @@ def get_rankings():
     holdings = db.execute('SELECT USER_ID, STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY FROM HOLDINGS').fetchall()
     
     real_time_prices = {}
-    
     user_holdings = {}
     for h in holdings:
         if h['USER_ID'] not in user_holdings: user_holdings[h['USER_ID']] = []
@@ -230,23 +269,16 @@ def get_rankings():
             for h in user_holdings[u['ID']]:
                 code = h['STOCK_CODE']
                 if code not in real_time_prices:
-                    # 랭킹 계산 시에도 실시간 현재가를 긁어오도록 변경 (포트폴리오와 일치)
                     price = get_single_stock_price(code)
                     real_time_prices[code] = price if price is not None else h['AVG_PRICE']
                 
                 current_price = real_time_prices[code]
                 total_asset += current_price * h['QUANTITY']
-                
                 profit = (current_price - h['AVG_PRICE']) * h['QUANTITY']
                 profit_rate = ((current_price - h['AVG_PRICE']) / h['AVG_PRICE']) * 100 if h['AVG_PRICE'] > 0 else 0
                 
-                top_stocks.append({
-                    'name': h['STOCK_NAME'],
-                    'profit_rate': profit_rate,
-                    'profit': profit
-                })
+                top_stocks.append({'name': h['STOCK_NAME'], 'profit_rate': profit_rate, 'profit': profit})
                 
-        # 수익률 순으로 정렬 후 상위 5개 추출 (모달 팝업용)
         top_stocks.sort(key=lambda x: x['profit_rate'], reverse=True)
         top_5_stocks = top_stocks[:5]
         
@@ -257,14 +289,7 @@ def get_rankings():
         return_rate = ((total_asset - 50000000) / 50000000) * 100
         created_date = datetime.strptime(u['CREATED_AT'], '%Y-%m-%d %H:%M:%S').strftime('%Y.%m.%d') if isinstance(u['CREATED_AT'], str) else u['CREATED_AT'].strftime('%Y.%m.%d')
         
-        ranking_list.append({
-            'name': u['NAME'], 
-            'total_asset': total_asset, 
-            'return_rate': return_rate, 
-            'best_stock': best_stock_name, 
-            'created_date': created_date,
-            'top_5_stocks': top_5_stocks
-        })
+        ranking_list.append({'name': u['NAME'], 'total_asset': total_asset, 'return_rate': return_rate, 'best_stock': best_stock_name, 'created_date': created_date, 'top_5_stocks': top_5_stocks})
         
     ranking_list.sort(key=lambda x: x['total_asset'], reverse=True)
     top_10 = ranking_list[:10]
@@ -342,6 +367,12 @@ def api_stock_info(code):
     change_price = cp - pp
     change_rate = (change_price / pp) * 100 if pp > 0 else 0
     return {"code": code, "name": TICKER_CACHE.get(code, code), "current_price": cp, "change_price": change_price, "change_rate": round(change_rate, 2), "chart_data": chart_data, "source": data_source}
+
+@app.route('/api/news/<code>')
+def api_news(code):
+    news = get_stock_news_scraped(code)
+    now_str = datetime.now(KST).strftime("%Y.%m.%d %H:%M")
+    return {"news": news, "updated_at": now_str, "source": "네이버 금융 실시간 뉴스"}
 
 @app.route('/api/order', methods=['POST'])
 def api_order():
@@ -552,7 +583,6 @@ def index():
         
     main_text_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
     main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>'
-    
     return render_template('index.html', main_text=main_text)
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -618,9 +648,7 @@ def portfolio():
     total_stock_value = 0
     for h in holdings:
         curr_price = get_single_stock_price(h['STOCK_CODE'])
-        if curr_price is None:
-            curr_price = h['AVG_PRICE'] 
-            
+        if curr_price is None: curr_price = h['AVG_PRICE'] 
         profit = (curr_price - h['AVG_PRICE']) * h['QUANTITY']
         profit_rate = ((curr_price - h['AVG_PRICE']) / h['AVG_PRICE']) * 100 if h['AVG_PRICE'] > 0 else 0
         value = curr_price * h['QUANTITY']
@@ -628,7 +656,6 @@ def portfolio():
         portfolio_data.append({'code': h['STOCK_CODE'], 'name': h['STOCK_NAME'], 'qty': h['QUANTITY'], 'avg_price': h['AVG_PRICE'], 'curr_price': curr_price, 'profit': profit, 'profit_rate': profit_rate, 'value': value})
         
     total_asset = user['CASH_BALANCE'] + total_stock_value
-    
     update_time = datetime.now(KST).strftime('%Y.%m.%d %H:%M:%S')
     return render_template('portfolio.html', user=user, portfolio_data=portfolio_data, total_asset=total_asset, stock_value=total_stock_value, update_time=update_time)
 
