@@ -29,15 +29,15 @@
         
         <!-- 왼쪽 컨텐츠 (md:col-span-2) -->
         <div class="md:col-span-2 space-y-4">
-            
             <div class="bg-[#121824] rounded-2xl border border-gray-800 p-4 relative shadow-lg z-30">
                 <div class="relative">
                     <input type="text" id="search-input" placeholder="종목명 또는 코드를 검색하세요 (예: 삼성전자)" autocomplete="off" class="w-full bg-[#1e2638] border border-gray-700 text-white text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="search-btn" class="absolute right-2 top-2 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-lg flex items-center justify-center">🔍</button>
+                    <button id="search-btn" class="absolute right-2 top-2 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-lg">🔍</button>
                 </div>
                 <ul id="search-results" class="absolute w-full bg-[#1e2638] border border-gray-700 rounded-xl mt-1 hidden max-h-60 overflow-y-auto shadow-2xl"></ul>
             </div>
 
+            <!-- 차트 패널 영역 (로딩 스피너 포함) -->
             <div class="bg-[#121824] rounded-2xl border border-gray-800 p-4 shadow-lg min-h-[400px] flex flex-col relative overflow-hidden">
                 <div id="stock-loading-spinner" class="absolute inset-0 bg-[#121824]/90 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
                     <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-3"></div>
@@ -64,7 +64,7 @@
                 <h3 class="text-white font-bold mb-4 flex items-center">🔥 종목 토론방</h3>
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="comment-input" class="flex-grow bg-[#1e2638] border border-gray-700 text-white text-sm rounded-lg py-2 px-3 focus:outline-none" placeholder="이 종목에 대한 의견을 남겨주세요.">
-                    <button id="comment-send" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 rounded-lg text-sm transition-colors">등록</button>
+                    <button id="comment-send" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 rounded-lg text-sm">등록</button>
                 </div>
                 <div id="comment-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"></div>
             </div>
@@ -91,9 +91,9 @@
                             <span>수량</span><span id="holding-qty-text" class="text-blue-400 hidden">보유: 0주</span>
                         </label>
                         <div class="flex">
-                            <button id="qty-minus" class="bg-gray-800 text-white px-3 rounded-l-lg border border-gray-700 hover:bg-gray-700 transition-colors">-</button>
+                            <button id="qty-minus" class="bg-gray-800 text-white px-3 rounded-l-lg border border-gray-700 hover:bg-gray-700">-</button>
                             <input type="number" id="order-qty" value="1" min="1" class="w-full bg-[#1e2638] border-y border-gray-700 text-white text-center py-2 focus:outline-none">
-                            <button id="qty-plus" class="bg-gray-800 text-white px-3 rounded-r-lg border border-gray-700 hover:bg-gray-700 transition-colors">+</button>
+                            <button id="qty-plus" class="bg-gray-800 text-white px-3 rounded-r-lg border border-gray-700 hover:bg-gray-700">+</button>
                         </div>
                     </div>
                     <div class="pt-4 border-t border-gray-800 flex justify-between items-center">
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const chartContainer = document.getElementById('chart-container');
     const chartPlaceholder = document.getElementById('chart-placeholder');
-    const stockLoadingSpinner = document.getElementById('stock-loading-spinner'); 
+    const stockLoadingSpinner = document.getElementById('stock-loading-spinner');
     const stockHeader = document.getElementById('stock-header');
     const nameEl = document.getElementById('stock-name');
     const codeEl = document.getElementById('stock-code');

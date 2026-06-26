@@ -62,20 +62,22 @@ def get_single_stock_price(code):
     return None
 
 def get_stock_news_scraped(code):
-    """네이버 금융 실시간 종목 뉴스 웹 크롤링 (별도 API 키 불필요)"""
+    """네이버 금융 실시간 종목 뉴스 웹 크롤링 (버그 수정)"""
     url = f"https://finance.naver.com/item/news_news.naver?code={code}&page=1"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': f'https://finance.naver.com/item/news.naver?code={code}' # 보안 강화용 리퍼러 추가
     }
     news_list = []
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=4) as response:
-            # 네이버 금융 레거시 페이지 전용 EUC-KR(CP949) 디코딩
             html = response.read().decode('cp949', errors='ignore')
             
         soup = BeautifulSoup(html, 'html.parser')
-        rows = soup.select('.type5 tbody tr')
+        
+        # [수정됨] html.parser 특성상 tbody가 없으면 못 찾으므로 바로 tr을 검색
+        rows = soup.select('.type5 tr')
         
         for row in rows:
             title_el = row.select_one('.title a')
@@ -97,7 +99,7 @@ def get_stock_news_scraped(code):
     except Exception as e:
         print(f"News Crawling Error: {e}")
         
-    return news_list[:15] # 클라이언트 3건씩 5페이지 페이징 분량 수집
+    return news_list[:15]
 
 # --- 호환성 패치: libsql_client 결과를 sqlite3처럼 쓰게 함 ---
 def patch_libsql_result(result):
