@@ -78,7 +78,7 @@
     <div class="fixed bottom-16 md:bottom-0 left-0 w-full bg-gradient-to-t from-[#050810] via-[#050810] to-transparent pt-10 pb-4 md:pb-8 z-50">
         <div class="max-w-3xl mx-auto px-4 relative">
             <div id="nvidia-warning" class="hidden text-[11px] text-yellow-500 font-bold bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-2 mb-2 text-center animate-pulse">
-                ⚠️ 현재 NVIDIA 무료 서버 트래픽 혼잡으로 응답이 크게 지연되거나 타임아웃이 발생할 수 있습니다. 가급적 Gemini 2.5 사용을 권장합니다.
+                ⚠️ 현재 NVIDIA 무료 서버 트래픽 혼잡으로 응답이 지연될 수 있습니다. 70초 이상 지연 시 빠른 모델(Gemini)로의 자동 전환을 안내합니다.
             </div>
             <div class="relative flex items-center bg-gray-800/50 backdrop-blur-2xl border border-gray-600/50 rounded-full shadow-[0_0_30px_rgba(0,0,0,0.5)] glow-effect p-1.5 focus-within:bg-gray-800/80 transition-colors">
                 <input type="text" id="ai-input" class="w-full bg-transparent text-white placeholder-gray-400 px-5 py-3.5 focus:outline-none text-base" placeholder="무엇이든 물어보세요..." autocomplete="off">
@@ -101,7 +101,7 @@
 </div>
 
 <script>
-    let currentMode = 'gemini'; // 'gemini', 'text', 'image'
+    let currentMode = 'gemini'; 
     const chatHistory = [];
     const chatContainer = document.getElementById('chat-container');
     const messagesDiv = document.getElementById('chat-messages');
@@ -110,6 +110,10 @@
     const sendBtn = document.getElementById('send-btn');
     const suggestedQueries = document.getElementById('suggested-queries');
     const nvidiaWarning = document.getElementById('nvidia-warning');
+    
+    // --- 기능 1: 요청 취소 컨트롤러 선언 ---
+    let abortController = null;
+    let timeoutTimer = null;
 
     function switchModel(mode) {
         currentMode = mode;
@@ -150,6 +154,13 @@
         inputEl.value = text;
         sendMessage();
     }
+    
+    // --- 기능 2: 중지 버튼 호출 함수 ---
+    window.cancelAIRequest = function() {
+        if (abortController) {
+            abortController.abort();
+        }
+    }
 
     function appendMessage(role, content, type = 'text') {
         welcomeDiv.classList.add('hidden');
@@ -170,10 +181,25 @@
             if (type === 'text') {
                 let formatted = content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
                 contentHtml = `<div class="prose prose-invert max-w-none">${formatted}</div>`;
+            } else if (type === 'typing') {
+                // 타이핑 효과를 위한 빈 컨테이너 반환
+                contentHtml = `<div class="prose prose-invert max-w-none text-content"></div>`;
             } else if (type === 'image') {
                 contentHtml = `<img src="data:image/jpeg;base64,${content}" class="rounded-xl shadow-2xl max-w-full h-auto mt-2 border border-white/10" alt="Generated Image">`;
             } else if (type === 'loading') {
-                contentHtml = `<div class="flex items-center space-x-2 text-indigo-400 font-medium animate-pulse mt-1"><div class="w-2 h-2 bg-indigo-400 rounded-full"></div><div class="w-2 h-2 bg-indigo-400 rounded-full animation-delay-200"></div><div class="w-2 h-2 bg-indigo-400 rounded-full animation-delay-400"></div><span class="ml-2 text-sm">생각 중...</span></div>`;
+                // 로딩 중 UI에 [중지] 버튼 추가
+                contentHtml = `
+                <div class="flex items-center justify-between w-full max-w-sm">
+                    <div class="flex items-center space-x-2 text-indigo-400 font-medium animate-pulse mt-1">
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full"></div>
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full" style="animation-delay: 0.2s"></div>
+                        <div class="w-2 h-2 bg-indigo-400 rounded-full" style="animation-delay: 0.4s"></div>
+                        <span class="ml-2 text-sm">생각 중...</span>
+                    </div>
+                    <button onclick="cancelAIRequest()" class="ml-4 text-xs font-bold bg-red-900/50 hover:bg-red-800 text-red-300 border border-red-700/50 px-3 py-1.5 rounded transition">
+                        ■ 대화 중지
+                    </button>
+                </div>`;
             }
 
             bubble.innerHTML = `${iconHtml}${contentHtml}`;
@@ -189,25 +215,73 @@
         chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
     }
 
-    async function sendMessage() {
-        const text = inputEl.value.trim();
+    // --- 기능 3: 타이핑 애니메이션 함수 ---
+    function typeWriter(element, text, speed = 15) {
+        return new Promise(resolve => {
+            let i = 0;
+            element.innerHTML = '';
+            const interval = setInterval(() => {
+                let currentText = text.substring(0, i);
+                // HTML 마크다운 파싱을 유지하며 렌더링
+                element.innerHTML = currentText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                scrollToBottom();
+                i++;
+                if (i > text.length) {
+                    clearInterval(interval);
+                    resolve();
+                }
+            }, speed);
+        });
+    }
+
+    async function sendMessage(retryText = null, skipHistory = false) {
+        const text = retryText || inputEl.value.trim();
         if (!text) return;
         
-        appendMessage('user', text);
+        // 재시도가 아닐 때만 사용자의 질문을 화면과 히스토리에 기록
+        if (!retryText && !skipHistory) {
+            appendMessage('user', text);
+            chatHistory.push({ role: "user", content: text });
+        }
+
         inputEl.value = '';
         inputEl.disabled = true;
         sendBtn.disabled = true;
 
         const loadingNode = appendMessage('assistant', '', 'loading');
 
+        // 요청 취소 객체 초기화
+        abortController = new AbortController();
+        let isSwitched = false; // 제안 승낙 여부 플래그
+
+        // --- 기능 4: 70초 지연 시 자동 제안 로직 ---
+        clearTimeout(timeoutTimer);
+        timeoutTimer = setTimeout(() => {
+            if (currentMode === 'text' && !abortController.signal.aborted) {
+                if (confirm("서버가 혼잡하여 로딩이 길어지고 있습니다. 속도가 빠른 Gemini로 변경하여 답변을 받으시겠습니까?")) {
+                    isSwitched = true;
+                    abortController.abort(); // 기존 Llama 요청 취소
+                    switchModel('gemini');   // 모드 변경
+                    
+                    messagesDiv.removeChild(loadingNode);
+                    chatHistory.pop(); // Llama용으로 넣었던 User prompt 빼기 (다시 넣을 것이므로)
+                    
+                    // Gemini로 재검색 트리거
+                    sendMessage(text);
+                }
+            }
+        }, 70000); // 70초
+
         try {
             if (currentMode === 'gemini' || currentMode === 'text') {
-                chatHistory.push({ role: "user", content: text });
                 const res = await fetch('/api/ai/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: chatHistory, vendor: currentMode })
+                    body: JSON.stringify({ messages: chatHistory, vendor: currentMode }),
+                    signal: abortController.signal // fetch에 signal 연결
                 });
+                
+                clearTimeout(timeoutTimer); // 완료 시 타이머 해제
                 const data = await res.json();
                 
                 messagesDiv.removeChild(loadingNode);
@@ -216,16 +290,23 @@
                     appendMessage('assistant', "오류: " + data.error);
                     chatHistory.pop(); 
                 } else {
-                    appendMessage('assistant', data.reply);
+                    // 타이핑 컨테이너 생성 및 애니메이션 호출
+                    const msgNode = appendMessage('assistant', '', 'typing');
+                    const textContainer = msgNode.querySelector('.text-content');
                     chatHistory.push({ role: "assistant", content: data.reply });
+                    
+                    await typeWriter(textContainer, data.reply);
                 }
 
             } else if (currentMode === 'image') {
                 const res = await fetch('/api/ai/image', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ prompt: text })
+                    body: JSON.stringify({ prompt: text }),
+                    signal: abortController.signal
                 });
+                
+                clearTimeout(timeoutTimer);
                 const data = await res.json();
                 
                 messagesDiv.removeChild(loadingNode);
@@ -237,8 +318,20 @@
                 }
             }
         } catch (e) {
-            messagesDiv.removeChild(loadingNode);
-            appendMessage('assistant', "네트워크 오류가 발생했습니다.");
+            clearTimeout(timeoutTimer);
+            if(messagesDiv.contains(loadingNode)) messagesDiv.removeChild(loadingNode);
+            
+            // AbortController로 취소된 경우
+            if (e.name === 'AbortError') {
+                // 모델 전환 수락에 의한 취소가 아닐 때만 '중지됨' 표시
+                if (!isSwitched) {
+                    appendMessage('assistant', "🚫 대화가 중지되었습니다.");
+                    chatHistory.pop();
+                }
+            } else {
+                appendMessage('assistant', "서버 타임아웃 또는 네트워크 오류가 발생했습니다.");
+                chatHistory.pop();
+            }
         } finally {
             inputEl.disabled = false;
             sendBtn.disabled = false;
