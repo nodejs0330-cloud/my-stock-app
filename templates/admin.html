@@ -7,12 +7,14 @@
 <div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
     
     <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
-        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+       <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
                 <span class="hidden md:inline-block text-xs font-bold text-red-400 bg-red-900/30 px-2 py-1 rounded border border-red-800/50">시스템 관리자</span>
             </div>
             <nav class="hidden md:flex space-x-2 items-center">
+                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">홈</a>
+                <a href="{{ url_for('ai_page') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">NCS AI</a>
                 <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">대시보드로 돌아가기</a>
             </nav>
             <a href="{{ url_for('dashboard') }}" class="md:hidden text-gray-400 hover:text-white text-xs font-medium bg-gray-800/50 px-3 py-1.5 rounded-full">뒤로가기</a>
@@ -108,8 +110,9 @@
                             <th scope="col" class="px-5 py-4">아이디</th>
                             <th scope="col" class="px-5 py-4">이름/닉네임</th>
                             <th scope="col" class="px-5 py-4 text-right">보유 현금</th>
+                            <th scope="col" class="px-5 py-4 text-center">AI사용량</th>
                             <th scope="col" class="px-5 py-4 text-center">가입일</th>
-                            <th scope="col" class="px-5 py-4 text-center">비밀번호 작업</th>
+                            <th scope="col" class="px-5 py-4 text-center">작업</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-800/50">
@@ -119,13 +122,21 @@
                             <td class="px-5 py-4 font-mono font-bold text-blue-400">{{ u.USERNAME }}</td>
                             <td class="px-5 py-4 font-bold text-white">{{ u.NAME }}</td>
                             <td class="px-5 py-4 text-right font-medium text-yellow-400">{{ "{:,.0f}".format(u.CASH_BALANCE) }}원</td>
+                            <td class="px-5 py-4 text-center font-bold text-indigo-400">{{ u.DAILY_AI_COUNT if u.DAILY_AI_COUNT is not none else 0 }}회</td>
                             <td class="px-5 py-4 text-center text-xs text-gray-500">{{ u.CREATED_AT.split(' ')[0] if u.CREATED_AT else '-' }}</td>
-                            <td class="px-5 py-4 text-center">
+                            <td class="px-5 py-4 text-center flex justify-center space-x-2">
                                 <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('[{{ u.USERNAME }}] 계정의 비밀번호를 0000으로 초기화 하시겠습니까?');">
                                     <input type="hidden" name="action" value="reset_pw">
                                     <input type="hidden" name="target_user" value="{{ u.USERNAME }}">
-                                    <button type="submit" class="bg-red-600/80 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded transition shadow">
+                                    <button type="submit" class="bg-red-600/80 hover:bg-red-500 text-white text-[10px] px-2 py-1 rounded transition shadow">
                                         비번 초기화
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('[{{ u.USERNAME }}] 사용자의 오늘 AI 사용 횟수를 0으로 리셋하시겠습니까?');">
+                                    <input type="hidden" name="action" value="reset_ai_limit">
+                                    <input type="hidden" name="target_user" value="{{ u.USERNAME }}">
+                                    <button type="submit" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-[10px] px-2 py-1 rounded transition shadow">
+                                        AI 리셋
                                     </button>
                                 </form>
                             </td>

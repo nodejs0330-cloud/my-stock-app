@@ -22,6 +22,7 @@
                 <a href="{{ url_for('portfolio') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">내 주식</a>
                 <a href="{{ url_for('ranking') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">랭킹</a>
                 <a href="{{ url_for('simulation') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">만약에</a>
+                <a href="{{ url_for('ai_page') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">NCS AI</a>
                 {% if session.get('username') == 'admin' %}
                 <a href="{{ url_for('admin') }}" class="px-4 py-2 rounded-lg bg-red-900/50 text-red-400 hover:text-white hover:bg-red-800 transition text-sm font-bold border border-red-800/50">관리자</a>
                 {% endif %}
@@ -129,14 +130,15 @@
         </div>
     </div>
     
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] space-x-2">
-        <a href="{{ url_for('dashboard') }}" class="flex-none w-16 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">🏠</span><span class="text-[9px] font-bold">홈</span></a>
-        <a href="{{ url_for('trade') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span></a>
-        <a href="{{ url_for('portfolio') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
-        <a href="{{ url_for('ranking') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
-        <a href="{{ url_for('simulation') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe no-scrollbar space-x-2">
+        <a href="{{ url_for('dashboard') }}" class="flex-none w-14 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">🏠</span><span class="text-[9px] font-bold">홈</span></a>
+        <a href="{{ url_for('trade') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span></a>
+        <a href="{{ url_for('portfolio') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
+        <a href="{{ url_for('ranking') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
+        <a href="{{ url_for('simulation') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+        <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400 hover:text-indigo-300 transition-colors"><span class="text-2xl mb-1 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]">🤖</span><span class="text-[9px] font-bold">NCS AI</span></a>
         {% if session.get('username') == 'admin' %}
-        <a href="{{ url_for('admin') }}" class="flex-none w-16 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
+        <a href="{{ url_for('admin') }}" class="flex-none w-14 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
         {% endif %}
     </nav>
 </div>

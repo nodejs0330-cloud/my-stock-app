@@ -6,6 +6,7 @@
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 
 <div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
+    <!-- 헤더 -->
     <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
         <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
@@ -18,6 +19,7 @@
                 <a href="{{ url_for('portfolio') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">내 주식</a>
                 <a href="{{ url_for('ranking') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">랭킹</a>
                 <a href="{{ url_for('simulation') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">만약에</a>
+                <a href="{{ url_for('ai_page') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">NCS AI</a>
                 <div class="w-px h-4 bg-gray-700 mx-2"></div>
                 <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-400 text-sm font-medium transition">로그아웃</a>
             </nav>
@@ -27,21 +29,23 @@
 
     <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
         
-        <!-- 왼쪽 컨텐츠 (md:col-span-2) -->
+        <!-- 왼쪽 컨텐츠 (차트 및 토론방) -->
         <div class="md:col-span-2 space-y-4">
+            
+            <!-- 종목 검색창 -->
             <div class="bg-[#121824] rounded-2xl border border-gray-800 p-4 relative shadow-lg z-30">
                 <div class="relative">
-                    <input type="text" id="search-input" placeholder="종목명 또는 코드를 검색하세요 (예: 삼성전자)" autocomplete="off" class="w-full bg-[#1e2638] border border-gray-700 text-white text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="search-btn" class="absolute right-2 top-2 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-lg">🔍</button>
+                    <input type="text" id="search-input" placeholder="종목명 또는 코드 검색 (예: 삼성전자)" autocomplete="off" class="w-full bg-[#1e2638] border border-gray-700 text-white text-sm rounded-xl py-3 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="search-btn" class="absolute right-3 top-2 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-lg z-10">🔍</button>
                 </div>
                 <ul id="search-results" class="absolute w-full bg-[#1e2638] border border-gray-700 rounded-xl mt-1 hidden max-h-60 overflow-y-auto shadow-2xl"></ul>
             </div>
 
-            <!-- 차트 패널 영역 (로딩 스피너 포함) -->
+            <!-- 차트 패널 영역 -->
             <div class="bg-[#121824] rounded-2xl border border-gray-800 p-4 shadow-lg min-h-[400px] flex flex-col relative overflow-hidden">
                 <div id="stock-loading-spinner" class="absolute inset-0 bg-[#121824]/90 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
                     <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-blue-500 mb-3"></div>
-                    <p class="text-blue-400 font-bold animate-pulse text-sm">데이터 분석 중...</p>
+                    <p class="text-blue-400 font-bold animate-pulse text-sm">데이터 조회 중...</p>
                 </div>
 
                 <div id="stock-header" class="mb-4 hidden justify-between items-end">
@@ -55,22 +59,24 @@
                         <div id="stock-change" class="text-sm font-medium"></div>
                     </div>
                 </div>
+                
                 <div id="chart-container" class="flex-grow w-full relative">
                     <div id="chart-placeholder" class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">위 검색창에서 종목을 검색해 주세요.</div>
                 </div>
             </div>
 
+            <!-- 토론방 영역 -->
             <div id="discussion-board" class="hidden bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg">
                 <h3 class="text-white font-bold mb-4 flex items-center">🔥 종목 토론방</h3>
                 <div class="flex space-x-2 mb-4">
                     <input type="text" id="comment-input" class="flex-grow bg-[#1e2638] border border-gray-700 text-white text-sm rounded-lg py-2 px-3 focus:outline-none" placeholder="이 종목에 대한 의견을 남겨주세요.">
-                    <button id="comment-send" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 rounded-lg text-sm">등록</button>
+                    <button id="comment-send" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 rounded-lg text-sm transition-colors">등록</button>
                 </div>
                 <div id="comment-list" class="space-y-3 max-h-60 overflow-y-auto pr-2"></div>
             </div>
         </div>
 
-        <!-- 오른쪽 주문 패널 (md:col-span-1) -->
+        <!-- 오른쪽 매수/매도 주문 패널 -->
         <div class="md:col-span-1 space-y-4 md:sticky md:top-20">
             <div class="bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg">
                 <div class="flex justify-between items-center mb-6">
@@ -91,9 +97,9 @@
                             <span>수량</span><span id="holding-qty-text" class="text-blue-400 hidden">보유: 0주</span>
                         </label>
                         <div class="flex">
-                            <button id="qty-minus" class="bg-gray-800 text-white px-3 rounded-l-lg border border-gray-700 hover:bg-gray-700">-</button>
+                            <button id="qty-minus" class="bg-gray-800 text-white px-3 rounded-l-lg border border-gray-700 hover:bg-gray-700 transition-colors">-</button>
                             <input type="number" id="order-qty" value="1" min="1" class="w-full bg-[#1e2638] border-y border-gray-700 text-white text-center py-2 focus:outline-none">
-                            <button id="qty-plus" class="bg-gray-800 text-white px-3 rounded-r-lg border border-gray-700 hover:bg-gray-700">+</button>
+                            <button id="qty-plus" class="bg-gray-800 text-white px-3 rounded-r-lg border border-gray-700 hover:bg-gray-700 transition-colors">+</button>
                         </div>
                     </div>
                     <div class="pt-4 border-t border-gray-800 flex justify-between items-center">
@@ -106,11 +112,15 @@
                 </div>
             </div>
             <div id="stock-data-container" class="hidden">
-                {% if my_stocks %}{% for stock in my_stocks %}<span class="my-stock-data" data-code="{{ stock.STOCK_CODE }}" data-qty="{{ stock.QUANTITY }}"></span>{% endfor %}{% endif %}
+                {% if my_stocks %}
+                    {% for stock in my_stocks %}
+                        <span class="my-stock-data" data-code="{{ stock.STOCK_CODE }}" data-qty="{{ stock.QUANTITY }}"></span>
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
 
-        <!-- 📰 최근 이슈 전용 섹션 (md:col-span-2) -->
+        <!-- 📰 최근 이슈 전용 섹션 -->
         <div id="recent-issues-section" class="hidden md:col-span-2 bg-[#121824] rounded-2xl border border-gray-800 p-5 shadow-lg">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3.5 mb-3 border-b border-gray-800 gap-2">
                 <h3 class="text-white font-bold flex items-center"><span class="mr-2">📰</span> 최근 이슈</h3>
@@ -119,9 +129,7 @@
                     <span id="news-updated-time" class="font-mono text-gray-500"></span>
                 </div>
             </div>
-            
             <div id="news-list" class="space-y-3 min-h-[160px]"></div>
-            
             <div id="news-pagination" class="hidden flex justify-between items-center pt-4 mt-2 border-t border-gray-800/80 text-xs text-gray-400 font-mono">
                 <button id="news-prev" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition">◀ 이전</button>
                 <span id="news-page-info" class="font-bold text-blue-400">1 / 1</span>
@@ -129,24 +137,47 @@
             </div>
         </div>
 
+        <!-- 🤖 AI 종목 분석 섹션 -->
+        <div id="ai-analysis-section" class="hidden md:col-span-2 bg-gradient-to-r from-[#0d1425] to-[#121824] rounded-2xl border border-indigo-900/50 p-5 shadow-[0_0_15px_rgba(79,70,229,0.1)] relative overflow-hidden">
+            <div class="absolute -right-4 -top-4 w-24 h-24 bg-indigo-600/20 rounded-full blur-xl pointer-events-none"></div>
+            <h3 class="text-white font-bold flex items-center mb-3">
+                <span class="mr-2 text-indigo-400">✨</span> AI의 해당 종목 분석
+            </h3>
+            <div id="ai-analysis-content" class="text-sm text-gray-300 leading-relaxed min-h-[80px]"></div>
+            <div class="text-[10px] text-gray-500 text-right mt-3 pt-2 border-t border-gray-800/50" id="ai-model-info"></div>
+        </div>
+
     </div>
 
-    <!-- 모바일 메뉴 -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] space-x-2">
-        <a href="{{ url_for('dashboard') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span></a>
-        <a href="{{ url_for('trade') }}" class="flex-none w-16 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">📈</span><span class="text-[9px] font-bold">주문</span></a>
-        <a href="{{ url_for('portfolio') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
-        <a href="{{ url_for('ranking') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
-        <a href="{{ url_for('simulation') }}" class="flex-none w-16 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+    <!-- 모바일 하단 메뉴바 -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe no-scrollbar space-x-2">
+        <a href="{{ url_for('dashboard') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span></a>
+        <a href="{{ url_for('trade') }}" class="flex-none w-14 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">📈</span><span class="text-[9px] font-bold">주문</span></a>
+        <a href="{{ url_for('portfolio') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
+        <a href="{{ url_for('ranking') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
+        <a href="{{ url_for('simulation') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+        <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400 hover:text-indigo-300 transition-colors"><span class="text-2xl mb-1 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]">🤖</span><span class="text-[9px] font-bold">NCS AI</span></a>
         {% if session.get('username') == 'admin' %}
-        <a href="{{ url_for('admin') }}" class="flex-none w-16 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
+        <a href="{{ url_for('admin') }}" class="flex-none w-14 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
         {% endif %}
     </nav>
 </div>
 
 <script>
+// --- [에러 방어용 글로벌 핸들러] 차트 라이브러리의 무해한 에러를 무시합니다 ---
+window.addEventListener('error', function(e) {
+    if (e.message === 'ResizeObserver loop limit exceeded') {
+        e.stopImmediatePropagation();
+    }
+});
+
+// 모든 DOM이 안전하게 로드된 이후 실행
 document.addEventListener('DOMContentLoaded', () => {
-    const isAdmin = {{ 'true' if session.get('username') == 'admin' else 'false' }};
+    
+    // --- 1. 변수 초기화 (Null 체크 방어코드 포함) ---
+    // 템플릿 태그로 인한 SyntaxError 방지를 위해 문자열로 감싸서 비교합니다.
+    const isAdmin = ("{{ session.get('username') }}" === "admin");
+    
     const searchInput = document.getElementById('search-input');
     const searchBtn = document.getElementById('search-btn');
     const searchResults = document.getElementById('search-results');
@@ -154,11 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const chartContainer = document.getElementById('chart-container');
     const chartPlaceholder = document.getElementById('chart-placeholder');
     const stockLoadingSpinner = document.getElementById('stock-loading-spinner');
+    
     const stockHeader = document.getElementById('stock-header');
     const nameEl = document.getElementById('stock-name');
     const codeEl = document.getElementById('stock-code');
     const priceEl = document.getElementById('stock-price');
     const changeEl = document.getElementById('stock-change');
+    const dataSourceBadge = document.getElementById('data-source-badge');
     
     const tabBuy = document.getElementById('tab-buy');
     const tabSell = document.getElementById('tab-sell');
@@ -170,6 +203,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const discussionBoard = document.getElementById('discussion-board');
     const commentList = document.getElementById('comment-list');
+    const commentInput = document.getElementById('comment-input');
+    const commentSend = document.getElementById('comment-send');
     
     let chart = null;
     let candlestickSeries = null;
@@ -180,155 +215,320 @@ document.addEventListener('DOMContentLoaded', () => {
     let allNewsData = [];
     let currentNewsPage = 1;
     const NEWS_PER_PAGE = 3;
+    let searchSelectedIndex = -1;
     
+    // 내 보유 주식 데이터 파싱
     const myStocksData = {};
     document.querySelectorAll('.my-stock-data').forEach(item => {
         myStocksData[item.dataset.code] = parseInt(item.dataset.qty) || 0;
     });
 
+    // --- 2. 차트 초기화 함수 ---
     function initChart() {
-        if (chart) return;
+        if (chart) return; // 이미 있으면 무시
+        if (!chartContainer) return; // 컨테이너가 없으면(에러상황) 무시
+        
         chart = LightweightCharts.createChart(chartContainer, {
             layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#9ca3af' },
             grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
-            rightPriceScale: { borderColor: '#374151' }, timeScale: { borderColor: '#374151', timeVisible: true },
+            rightPriceScale: { borderColor: '#374151' }, 
+            timeScale: { borderColor: '#374151', timeVisible: true },
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
         });
-        candlestickSeries = chart.addCandlestickSeries({ upColor: '#ef4444', downColor: '#3b82f6', borderVisible: false, wickUpColor: '#ef4444', wickDownColor: '#3b82f6' });
-        new ResizeObserver(e => { if(e[0].target === chartContainer) chart.applyOptions({ height: e[0].contentRect.height, width: e[0].contentRect.width }); }).observe(chartContainer);
+        candlestickSeries = chart.addCandlestickSeries({ 
+            upColor: '#ef4444', downColor: '#3b82f6', borderVisible: false, wickUpColor: '#ef4444', wickDownColor: '#3b82f6' 
+        });
+        
+        new ResizeObserver(e => { 
+            if(e[0].target === chartContainer && chart) {
+                chart.applyOptions({ height: e[0].contentRect.height, width: e[0].contentRect.width }); 
+            }
+        }).observe(chartContainer);
     }
 
+    // --- 3. 검색 관련 함수 및 네비게이션 ---
     let searchTimeout;
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(searchTimeout);
-        const query = e.target.value.trim();
-        if (query.length === 0) { searchResults.classList.add('hidden'); return; }
-        searchTimeout = setTimeout(() => {
-            fetch(`/api/search?q=${query}`)
-            .then(r => r.json())
-            .then(data => {
-                searchResults.innerHTML = '';
-                if (data.results && data.results.length > 0) {
-                    data.results.forEach(item => {
-                        const li = document.createElement('li');
-                        li.className = 'px-4 py-3 hover:bg-gray-700 cursor-pointer text-white flex justify-between border-b border-gray-700 last:border-0';
-                        li.innerHTML = `<span>${item.name}</span><span class="text-xs text-gray-500">${item.code}</span>`;
-                        li.onclick = () => loadStockInfo(item.code);
-                        searchResults.appendChild(li);
-                    });
-                    searchResults.classList.remove('hidden');
-                } else {
-                    searchResults.classList.add('hidden');
-                }
-            })
-            .catch(err => console.error("Search Error", err));
-        }, 300);
-    });
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim();
+            searchSelectedIndex = -1;
+            
+            if (query.length === 0) { 
+                if (searchResults) searchResults.classList.add('hidden'); 
+                return; 
+            }
+            
+            searchTimeout = setTimeout(() => {
+                fetch(`/api/search?q=${query}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!searchResults) return;
+                    
+                    searchResults.innerHTML = '';
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(item => {
+                            const li = document.createElement('li');
+                            li.className = 'px-4 py-3 hover:bg-gray-700 cursor-pointer text-white flex justify-between border-b border-gray-700 last:border-0 search-result-item';
+                            li.innerHTML = `<span>${item.name}</span><span class="text-xs text-gray-500">${item.code}</span>`;
+                            li.onclick = () => loadStockInfo(item.code);
+                            searchResults.appendChild(li);
+                        });
+                        searchResults.classList.remove('hidden');
+                    } else {
+                        searchResults.classList.add('hidden');
+                    }
+                })
+                .catch(err => console.error("Search Fetch Error:", err));
+            }, 300);
+        });
 
-    searchBtn.addEventListener('click', () => {
-        const query = searchInput.value.trim();
-        if(query) {
-            fetch(`/api/search?q=${query}`)
-            .then(r => r.json())
-            .then(data => { 
-                if(data.results && data.results.length > 0) loadStockInfo(data.results[0].code); 
-            })
-            .catch(err => console.error("Search Error", err));
+        // 방향키 네비게이션 이벤트
+        searchInput.addEventListener('keydown', (e) => {
+            if (!searchResults) return;
+            const items = searchResults.querySelectorAll('.search-result-item');
+            if (items.length === 0 || searchResults.classList.contains('hidden')) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                searchSelectedIndex = (searchSelectedIndex + 1) % items.length;
+                updateSearchHighlight(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                searchSelectedIndex = (searchSelectedIndex - 1 + items.length) % items.length;
+                updateSearchHighlight(items);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (searchSelectedIndex >= 0 && searchSelectedIndex < items.length) {
+                    items[searchSelectedIndex].click();
+                } else if (items.length > 0) {
+                    items[0].click(); // 포커스가 없어도 엔터 치면 무조건 첫번째 항목 클릭
+                }
+            }
+        });
+    }
+
+    function updateSearchHighlight(items) {
+        items.forEach((item, idx) => {
+            if (idx === searchSelectedIndex) {
+                item.classList.add('bg-gray-600');
+                item.classList.remove('hover:bg-gray-700');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('bg-gray-600');
+                item.classList.add('hover:bg-gray-700');
+            }
+        });
+    }
+
+    if (searchBtn) {
+        searchBtn.addEventListener('click', () => {
+            const query = searchInput ? searchInput.value.trim() : "";
+            if(query) {
+                fetch(`/api/search?q=${query}`)
+                .then(r => r.json())
+                .then(data => { 
+                    if(data.results && data.results.length > 0) loadStockInfo(data.results[0].code); 
+                })
+                .catch(err => console.error("Search API Error:", err));
+            }
+        });
+    }
+
+    // 빈 화면 클릭 시 검색창 닫기
+    document.addEventListener('click', (e) => { 
+        if (searchInput && searchResults) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.add('hidden'); 
+            }
         }
     });
 
-    window.deleteComment = function(id) {
-        if(!confirm("이 댓글을 정말 삭제하시겠습니까?")) return;
-        fetch('/api/admin/comment', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'delete', id: id}) })
-        .then(r => r.json())
-        .then(data => { if(data.success) loadComments(currentStock.code); else alert(data.error); })
-        .catch(err => console.error("Delete Error", err));
-    };
-    
-    window.editComment = function(id, oldMsg) {
-        const newMsg = prompt("수정할 내용을 입력하세요:", oldMsg);
-        if(newMsg === null || newMsg.trim() === "" || newMsg === oldMsg) return;
-        fetch('/api/admin/comment', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({action: 'edit', id: id, message: newMsg}) })
-        .then(r => r.json())
-        .then(data => { if(data.success) loadComments(currentStock.code); else alert(data.error); })
-        .catch(err => console.error("Edit Error", err));
-    };
 
-    function loadComments(code) {
-        fetch(`/api/comments/${code}`)
+    // --- 4. 메인 종목 조회 함수 ---
+    function loadStockInfo(code) {
+        if (searchResults) searchResults.classList.add('hidden');
+        if (searchInput) searchInput.value = '';
+        if (chartPlaceholder) chartPlaceholder.classList.add('hidden');
+        
+        if (stockLoadingSpinner) {
+            stockLoadingSpinner.classList.remove('hidden');
+            stockLoadingSpinner.classList.add('flex');
+        }
+        
+        fetch(`/api/stock_info/${code}`)
         .then(r => r.json())
         .then(data => {
-            if(!data.comments) return;
-            commentList.innerHTML = data.comments.map(c => {
-                let badge = c.is_holder ? '<span class="bg-yellow-600/30 text-yellow-500 border border-yellow-600 px-1 rounded text-[9px] ml-1">주주</span>' : '';
-                let icon = c.return_rate > 0 ? '💰' : (c.return_rate < -20 ? '💀' : '💩');
-                let color = c.return_rate > 0 ? 'text-red-400' : 'text-blue-400';
-                
-                let adminBtns = '';
-                if (isAdmin) {
-                    const safeMsg = c.message.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-                    adminBtns = `<div class="mt-2 flex space-x-2 justify-end border-t border-gray-700/50 pt-2">
-                        <button onclick="editComment(${c.id}, '${safeMsg}')" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-white transition">수정</button>
-                        <button onclick="deleteComment(${c.id})" class="text-[10px] bg-red-900/50 hover:bg-red-800 px-3 py-1 rounded text-red-400 transition">삭제</button>
-                    </div>`;
+            // 방어 코드: 에러 반환 시 처리
+            if (data.error) { 
+                alert(data.error); 
+                if (chartPlaceholder) {
+                    chartPlaceholder.innerHTML = '데이터 조회 실패'; 
+                    chartPlaceholder.classList.remove('hidden'); 
                 }
-
-                return `<div class="bg-gray-800/50 p-3 rounded-xl border border-gray-700">
-                    <div class="flex justify-between items-center mb-1">
-                        <div class="flex items-center"><span class="font-bold text-gray-200 text-sm">${c.name}</span>${badge}
-                        <span class="ml-2 text-[10px] ${color}">${icon} ${c.return_rate > 0 ? '+' : ''}${c.return_rate}%</span></div>
-                        <span class="text-[10px] text-gray-500">${c.time}</span>
-                    </div>
-                    <p class="text-gray-300 text-xs break-words">${c.message}</p>
-                    ${adminBtns}
-                </div>`;
-            }).join('') || '<p class="text-gray-500 text-xs text-center py-4">첫 의견을 남겨보세요!</p>';
+                return; 
+            }
+            
+            // 데이터 업데이트
+            currentStock = data;
+            
+            // UI 요소 텍스트 안전 할당
+            if (nameEl) nameEl.innerText = data.name || "종목명 없음"; 
+            if (codeEl) codeEl.innerText = data.code || ""; 
+            if (priceEl) priceEl.innerText = (data.current_price || 0).toLocaleString() + '원';
+            if (dataSourceBadge) dataSourceBadge.innerText = data.source || "알수없음"; 
+            
+            if (changeEl) {
+                if (data.change_price > 0) {
+                    changeEl.innerHTML = `<span class="text-red-500">▲${data.change_price.toLocaleString()} (+${data.change_rate}%)</span>`;
+                    priceEl.className = 'text-3xl font-bold text-red-500';
+                } else if (data.change_price < 0) {
+                    changeEl.innerHTML = `<span class="text-blue-500">▼${Math.abs(data.change_price).toLocaleString()} (${data.change_rate}%)</span>`;
+                    priceEl.className = 'text-3xl font-bold text-blue-500';
+                } else {
+                    changeEl.innerHTML = `<span class="text-gray-400">- 0 (0.00%)</span>`;
+                    priceEl.className = 'text-3xl font-bold text-white';
+                }
+            }
+            
+            if (stockHeader) stockHeader.classList.remove('hidden');
+            if (discussionBoard) discussionBoard.classList.remove('hidden');
+            
+            // 차트 렌더링 (빈 배열 방어코드)
+            initChart(); 
+            if (chart && candlestickSeries) {
+                if (data.chart_data && data.chart_data.length > 0) {
+                    candlestickSeries.setData(data.chart_data); 
+                    chart.timeScale().fitContent();
+                } else {
+                    if (chartPlaceholder) {
+                        chartPlaceholder.innerHTML = '차트 데이터를 불러올 수 없습니다.';
+                        chartPlaceholder.classList.remove('hidden');
+                    }
+                }
+            }
+            
+            // 주문창 동기화
+            if (orderPriceInput) orderPriceInput.value = (data.current_price || 0).toLocaleString();
+            updateOrderPanelUI(); 
+            
+            // 연계 기능 호출
+            loadComments(code);
+            loadNews(code);
+            callAIAnalysis(data);
+            
+            if(commentInterval) clearInterval(commentInterval);
+            commentInterval = setInterval(() => loadComments(code), 5000);
         })
-        .catch(err => console.error("Comment Fetch Error", err));
+        .catch(err => {
+            console.error("Stock Info Load Error:", err);
+            alert("종목 정보를 불러오는 데 실패했습니다.");
+            if (chartPlaceholder) {
+                chartPlaceholder.innerHTML = '네트워크 통신 오류';
+                chartPlaceholder.classList.remove('hidden');
+            }
+        })
+        .finally(() => {
+            // 무조건 로딩 스피너 숨기기
+            if (stockLoadingSpinner) {
+                stockLoadingSpinner.classList.add('hidden');
+                stockLoadingSpinner.classList.remove('flex');
+            }
+        });
     }
 
-    document.getElementById('comment-send').addEventListener('click', () => {
-        const msg = document.getElementById('comment-input').value;
-        if(!msg || !currentStock) return;
-        fetch(`/api/comments/${currentStock.code}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:msg})})
+    // --- 5. AI 종목 분석 호출 ---
+    function callAIAnalysis(stockData) {
+        const aiSection = document.getElementById('ai-analysis-section');
+        const aiContent = document.getElementById('ai-analysis-content');
+        const aiModelInfo = document.getElementById('ai-model-info');
+        
+        if (!aiSection || !aiContent) return; // 돔 요소가 없다면 무시
+        
+        aiSection.classList.remove('hidden');
+        aiContent.innerHTML = `
+            <div class="flex items-center space-x-2 text-indigo-400 font-medium animate-pulse py-4">
+                <div class="w-2 h-2 bg-indigo-400 rounded-full"></div>
+                <div class="w-2 h-2 bg-indigo-400 rounded-full" style="animation-delay: 0.2s"></div>
+                <div class="w-2 h-2 bg-indigo-400 rounded-full" style="animation-delay: 0.4s"></div>
+                <span class="ml-2 text-sm">실시간 데이터 기반으로 분석을 작성 중입니다...</span>
+            </div>
+        `;
+        
+        fetch('/api/ai/analyze_stock', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                code: stockData.code,
+                name: stockData.name,
+                price: stockData.current_price,
+                change_rate: stockData.change_rate
+            })
+        })
         .then(r => r.json())
         .then(data => {
-            if(data.error) alert(data.error);
-            else { document.getElementById('comment-input').value = ''; loadComments(currentStock.code); }
+            if (data.error) {
+                aiContent.innerHTML = `<p class="text-red-400 text-sm">${data.error}</p>`;
+            } else if (data.analysis) {
+                const formattedText = data.analysis.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b class="text-white">$1</b>');
+                aiContent.innerHTML = `<p class="text-gray-300 text-sm leading-relaxed">${formattedText}</p>`;
+                if (data.model && aiModelInfo) aiModelInfo.innerText = `분석 모델: ${data.model}`;
+            } else {
+                aiContent.innerHTML = `<p class="text-gray-500 text-sm">알 수 없는 분석 오류 발생.</p>`;
+            }
         })
-        .catch(err => alert("서버와의 통신에 실패했습니다."));
-    });
+        .catch(err => {
+            console.error("AI Analysis Fetch Error:", err);
+            aiContent.innerHTML = `<p class="text-gray-500 text-sm">AI 전망을 가져오는 중 네트워크 오류가 발생했습니다.</p>`;
+        });
+    }
 
+    // --- 6. 실시간 뉴스 조회 및 페이징 ---
     function loadNews(code) {
         const section = document.getElementById('recent-issues-section');
         const listEl = document.getElementById('news-list');
+        const pgContainer = document.getElementById('news-pagination');
+        
+        if (!section || !listEl) return;
+        
         listEl.innerHTML = '<div class="text-center py-8 text-gray-500 text-xs animate-pulse">실시간 이슈 데이터를 불러오는 중...</div>';
         section.classList.remove('hidden');
 
         fetch(`/api/news/${code}`)
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('news-updated-time').innerText = data.updated_at + ' 기준';
-                document.getElementById('news-source-text').innerText = data.source;
+        .then(r => r.json())
+        .then(data => {
+            const upTimeEl = document.getElementById('news-updated-time');
+            const srcTextEl = document.getElementById('news-source-text');
+            
+            if (upTimeEl) upTimeEl.innerText = (data.updated_at || "시간없음") + ' 기준';
+            if (srcTextEl) srcTextEl.innerText = data.source || "알수없음";
 
-                allNewsData = data.news || [];
-                currentNewsPage = 1;
+            allNewsData = data.news || [];
+            currentNewsPage = 1;
 
-                if (allNewsData.length === 0) {
-                    listEl.innerHTML = '<div class="text-center py-8 text-gray-500 text-xs">등록된 최근 이슈가 없습니다.</div>';
-                    document.getElementById('news-pagination').classList.add('hidden');
-                } else {
-                    document.getElementById('news-pagination').classList.remove('hidden');
-                    renderNewsPage();
-                }
-            })
-            .catch(() => {
-                listEl.innerHTML = '<div class="text-center py-8 text-red-400 text-xs">이슈를 불러오지 못했습니다.</div>';
-            });
+            if (allNewsData.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-8 text-gray-500 text-xs">등록된 최근 이슈가 없습니다.</div>';
+                if (pgContainer) pgContainer.classList.add('hidden');
+            } else {
+                if (pgContainer) pgContainer.classList.remove('hidden');
+                renderNewsPage();
+            }
+        })
+        .catch((err) => {
+            console.error("News Load Error:", err);
+            listEl.innerHTML = '<div class="text-center py-8 text-red-400 text-xs">네트워크 통신으로 인해 이슈를 불러오지 못했습니다.</div>';
+        });
     }
 
     function renderNewsPage() {
         const listEl = document.getElementById('news-list');
+        const infoEl = document.getElementById('news-page-info');
+        const btnPrev = document.getElementById('news-prev');
+        const btnNext = document.getElementById('news-next');
+        
+        if (!listEl) return;
+
         const startIdx = (currentNewsPage - 1) * NEWS_PER_PAGE;
         const pageItems = allNewsData.slice(startIdx, startIdx + NEWS_PER_PAGE);
         const totalPages = Math.ceil(allNewsData.length / NEWS_PER_PAGE) || 1;
@@ -346,206 +546,274 @@ document.addEventListener('DOMContentLoaded', () => {
             </a>
         `).join('');
 
-        document.getElementById('news-page-info').innerText = `${currentNewsPage} / ${totalPages}`;
-        document.getElementById('news-prev').disabled = currentNewsPage === 1;
-        document.getElementById('news-next').disabled = currentNewsPage >= totalPages;
+        if (infoEl) infoEl.innerText = `${currentNewsPage} / ${totalPages}`;
+        if (btnPrev) btnPrev.disabled = currentNewsPage === 1;
+        if (btnNext) btnNext.disabled = currentNewsPage >= totalPages;
     }
 
-    document.getElementById('news-prev').addEventListener('click', () => {
-        if (currentNewsPage > 1) { currentNewsPage--; renderNewsPage(); }
-    });
+    if (document.getElementById('news-prev')) {
+        document.getElementById('news-prev').addEventListener('click', () => {
+            if (currentNewsPage > 1) { currentNewsPage--; renderNewsPage(); }
+        });
+    }
     
-    document.getElementById('news-next').addEventListener('click', () => {
-        const totalPages = Math.ceil(allNewsData.length / NEWS_PER_PAGE);
-        if (currentNewsPage < totalPages) { currentNewsPage++; renderNewsPage(); }
-    });
-
-    function loadStockInfo(code) {
-        searchResults.classList.add('hidden');
-        searchInput.value = '';
-        chartPlaceholder.classList.add('hidden');
-        
-        // 데이터 불러오기 전 스피너 활성화
-        stockLoadingSpinner.classList.remove('hidden');
-        stockLoadingSpinner.classList.add('flex');
-        
-        fetch(`/api/stock_info/${code}`)
-        .then(r => r.json())
-        .then(data => {
-            if (data.error) { 
-                alert(data.error); 
-                chartPlaceholder.innerHTML = '데이터 조회 실패'; 
-                chartPlaceholder.classList.remove('hidden'); 
-                return; 
-            }
-            
-            currentStock = data;
-            nameEl.innerText = data.name; 
-            codeEl.innerText = data.code; 
-            priceEl.innerText = data.current_price.toLocaleString() + '원';
-            document.getElementById('data-source-badge').innerText = data.source; 
-            
-            if (data.change_price > 0) {
-                changeEl.innerHTML = `<span class="text-red-500">▲${data.change_price.toLocaleString()} (+${data.change_rate}%)</span>`;
-                priceEl.className = 'text-3xl font-bold text-red-500';
-            } else if (data.change_price < 0) {
-                changeEl.innerHTML = `<span class="text-blue-500">▼${Math.abs(data.change_price).toLocaleString()} (${data.change_rate}%)</span>`;
-                priceEl.className = 'text-3xl font-bold text-blue-500';
-            } else {
-                changeEl.innerHTML = `<span class="text-gray-400">- 0 (0.00%)</span>`;
-                priceEl.className = 'text-3xl font-bold text-white';
-            }
-            
-            stockHeader.classList.remove('hidden');
-            discussionBoard.classList.remove('hidden');
-            
-            initChart(); 
-            candlestickSeries.setData(data.chart_data); 
-            chart.timeScale().fitContent();
-            orderPriceInput.value = data.current_price.toLocaleString();
-            updateOrderPanelUI(); 
-            
-            // 데이터 로드 완료 후 연계 API 실행
-            loadComments(code);
-            loadNews(code); // 뉴스를 자동 호출합니다 (에러 수정 완료)
-            
-            if(commentInterval) clearInterval(commentInterval);
-            commentInterval = setInterval(() => loadComments(code), 5000);
-        })
-        .catch(err => {
-            alert("종목 정보를 불러오는 데 실패했습니다.");
-            chartPlaceholder.innerHTML = '데이터 조회 실패';
-            chartPlaceholder.classList.remove('hidden');
-            console.error("Stock Info Fetch Error:", err);
-        })
-        .finally(() => {
-            // 통신 성공/실패 여부와 관계없이 스피너를 무조건 숨김
-            stockLoadingSpinner.classList.add('hidden');
-            stockLoadingSpinner.classList.remove('flex');
+    if (document.getElementById('news-next')) {
+        document.getElementById('news-next').addEventListener('click', () => {
+            const totalPages = Math.ceil(allNewsData.length / NEWS_PER_PAGE);
+            if (currentNewsPage < totalPages) { currentNewsPage++; renderNewsPage(); }
         });
     }
 
+
+    // --- 7. 주문 패널 업데이트 및 검증 ---
     function updateOrderTotal() {
         if (!currentStock) return;
-        const qty = parseInt(orderQtyInput.value) || 0;
+        
+        const qty = parseInt(orderQtyInput ? orderQtyInput.value : 0) || 0;
         const stockValue = currentStock.current_price * qty;
         
-        const now = new Date(); const hour = now.getHours(); const day = now.getDay();
+        const now = new Date(); 
+        const hour = now.getHours(); 
+        const day = now.getDay();
         const isRegularMarket = (day >= 1 && day <= 5 && hour >= 9 && hour < 16);
         
         let feeRate = currentTxType === 'BUY' ? (isRegularMarket ? 0.00015 : 0.00030) : 0.0020;
         const fee = Math.floor(stockValue * feeRate);
         const total = stockValue + (currentTxType === 'BUY' ? fee : -fee);
         
-        orderTotal.innerText = total.toLocaleString() + '원';
-        document.getElementById('fee-label').innerText = `예상 수수료 (${(feeRate * 100).toFixed(3)}%)`;
-        document.getElementById('order-fee').innerText = fee.toLocaleString() + '원';
+        if (orderTotal) orderTotal.innerText = total.toLocaleString() + '원';
         
-        if (qty > 0) {
-            if (currentTxType === 'SELL' && !isRegularMarket) {
-                submitBtn.disabled = true; 
-                submitBtn.className = 'w-full py-3 rounded-lg font-bold text-white bg-gray-600 cursor-not-allowed transition-all shadow-lg mt-4'; 
-                submitBtn.innerText = '야간/휴일 매도 불가';
+        const feeLabelEl = document.getElementById('fee-label');
+        const orderFeeEl = document.getElementById('order-fee');
+        if (feeLabelEl) feeLabelEl.innerText = `예상 수수료 (${(feeRate * 100).toFixed(3)}%)`;
+        if (orderFeeEl) orderFeeEl.innerText = fee.toLocaleString() + '원';
+        
+        if (submitBtn) {
+            if (qty > 0) {
+                if (currentTxType === 'SELL' && !isRegularMarket) {
+                    submitBtn.disabled = true; 
+                    submitBtn.className = 'w-full py-3 rounded-lg font-bold text-white bg-gray-600 cursor-not-allowed transition-all shadow-lg mt-4'; 
+                    submitBtn.innerText = '야간/휴일 매도 불가';
+                } else {
+                    submitBtn.disabled = false;
+                    submitBtn.className = currentTxType === 'BUY' 
+                        ? 'w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-4 bg-red-600 hover:bg-red-500' 
+                        : 'w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-4 bg-blue-600 hover:bg-blue-500';
+                    submitBtn.innerText = currentTxType === 'BUY' ? '매수 주문' : '매도 주문';
+                }
             } else {
-                submitBtn.disabled = false;
-                submitBtn.className = currentTxType === 'BUY' ? 'w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-4 bg-red-600 hover:bg-red-500' : 'w-full py-3 rounded-lg font-bold text-white transition-all shadow-lg mt-4 bg-blue-600 hover:bg-blue-500';
-                submitBtn.innerText = currentTxType === 'BUY' ? '매수 주문' : '매도 주문';
+                submitBtn.disabled = true; 
+                submitBtn.className = 'w-full py-3 rounded-lg font-bold text-white bg-gray-700 cursor-not-allowed transition-all shadow-lg mt-4'; 
+                submitBtn.innerText = '올바른 수량을 입력하세요';
             }
-        } else {
-            submitBtn.disabled = true; 
-            submitBtn.className = 'w-full py-3 rounded-lg font-bold text-white bg-gray-700 cursor-not-allowed transition-all shadow-lg mt-4'; 
-            submitBtn.innerText = '올바른 수량을 입력하세요';
         }
     }
 
     function updateOrderPanelUI() {
         if (!currentStock) return;
+        
         if (currentTxType === 'BUY') {
-            tabBuy.className = 'flex-1 py-2 text-sm font-bold rounded-md bg-red-500 text-white transition-colors';
-            tabSell.className = 'flex-1 py-2 text-sm font-bold rounded-md text-gray-400 hover:text-white transition-colors';
-            holdingQtyText.classList.add('hidden');
+            if(tabBuy) tabBuy.className = 'flex-1 py-2 text-sm font-bold rounded-md bg-red-500 text-white transition-colors';
+            if(tabSell) tabSell.className = 'flex-1 py-2 text-sm font-bold rounded-md text-gray-400 hover:text-white transition-colors';
+            if(holdingQtyText) holdingQtyText.classList.add('hidden');
         } else {
-            tabBuy.className = 'flex-1 py-2 text-sm font-bold rounded-md text-gray-400 hover:text-white transition-colors';
-            tabSell.className = 'flex-1 py-2 text-sm font-bold rounded-md bg-blue-500 text-white transition-colors';
+            if(tabBuy) tabBuy.className = 'flex-1 py-2 text-sm font-bold rounded-md text-gray-400 hover:text-white transition-colors';
+            if(tabSell) tabSell.className = 'flex-1 py-2 text-sm font-bold rounded-md bg-blue-500 text-white transition-colors';
+            
             const myQty = myStocksData[currentStock.code] || 0;
-            holdingQtyText.innerText = `보유: ${myQty}주`;
-            holdingQtyText.classList.remove('hidden');
-            if (parseInt(orderQtyInput.value) > myQty) orderQtyInput.value = myQty;
+            if(holdingQtyText) {
+                holdingQtyText.innerText = `보유: ${myQty}주`;
+                holdingQtyText.classList.remove('hidden');
+            }
+            if (orderQtyInput && parseInt(orderQtyInput.value) > myQty) orderQtyInput.value = myQty;
         }
         updateOrderTotal(); 
     }
 
-    tabBuy.addEventListener('click', () => { currentTxType = 'BUY'; updateOrderPanelUI(); });
-    tabSell.addEventListener('click', () => { currentTxType = 'SELL'; updateOrderPanelUI(); });
+    if(tabBuy) tabBuy.addEventListener('click', () => { currentTxType = 'BUY'; updateOrderPanelUI(); });
+    if(tabSell) tabSell.addEventListener('click', () => { currentTxType = 'SELL'; updateOrderPanelUI(); });
     
-    document.getElementById('qty-plus').addEventListener('click', () => {
-        let val = parseInt(orderQtyInput.value) || 0;
-        if (currentTxType === 'SELL' && currentStock && val >= (myStocksData[currentStock.code] || 0)) return; 
-        orderQtyInput.value = val + 1; updateOrderTotal();
-    });
+    if(document.getElementById('qty-plus')) {
+        document.getElementById('qty-plus').addEventListener('click', () => {
+            if(!orderQtyInput) return;
+            let val = parseInt(orderQtyInput.value) || 0;
+            if (currentTxType === 'SELL' && currentStock && val >= (myStocksData[currentStock.code] || 0)) return; 
+            orderQtyInput.value = val + 1; 
+            updateOrderTotal();
+        });
+    }
     
-    document.getElementById('qty-minus').addEventListener('click', () => {
-        let val = parseInt(orderQtyInput.value) || 0;
-        if (val > 1) { orderQtyInput.value = val - 1; updateOrderTotal(); }
-    });
+    if(document.getElementById('qty-minus')) {
+        document.getElementById('qty-minus').addEventListener('click', () => {
+            if(!orderQtyInput) return;
+            let val = parseInt(orderQtyInput.value) || 0;
+            if (val > 1) { 
+                orderQtyInput.value = val - 1; 
+                updateOrderTotal(); 
+            }
+        });
+    }
     
-    orderQtyInput.addEventListener('input', updateOrderTotal);
+    if(orderQtyInput) orderQtyInput.addEventListener('input', updateOrderTotal);
 
-    submitBtn.addEventListener('click', () => {
-        if (!currentStock) return;
-        
-        // NaN 에러 발생 완벽 차단
-        const qty = parseInt(orderQtyInput.value);
-        if (isNaN(qty) || qty <= 0) {
-            alert("올바른 주문 수량을 입력해주세요.");
-            return;
-        }
-
-        const now = new Date(); const hour = now.getHours(); const day = now.getDay();
-        const isRegularMarket = (day >= 1 && day <= 5 && hour >= 9 && hour < 16);
-
-        if (!isRegularMarket) {
-            if (currentTxType === 'SELL') { 
-                alert("장 마감 이후에는 매도할 수 없습니다."); 
-                return; 
-            } else if (!confirm(`💡 모의투자 특례 규칙 발동!\n현재는 정규 거래시간이 아니지만, [매수]를 진행합니다.\n특례 거래는 수수료가 두 배(0.03%) 적용됩니다. 계속하시겠습니까?`)) {
+    if(submitBtn) {
+        submitBtn.addEventListener('click', () => {
+            if (!currentStock || !orderQtyInput) return;
+            
+            const qty = parseInt(orderQtyInput.value);
+            if (isNaN(qty) || qty <= 0) {
+                alert("올바른 주문 수량을 입력해주세요.");
                 return;
             }
-        }
 
-        const payload = { code: currentStock.code, name: currentStock.name, type: currentTxType, qty: qty, price: currentStock.current_price };
+            const now = new Date(); const hour = now.getHours(); const day = now.getDay();
+            const isRegularMarket = (day >= 1 && day <= 5 && hour >= 9 && hour < 16);
 
-        // 주문 버튼 비활성화 (중복 제출 방지)
-        submitBtn.disabled = true;
-        submitBtn.innerText = "주문 전송 중...";
-
-        fetch('/api/order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        .then(r => { 
-            if(r.status === 429) throw new Error("주문이 너무 빠릅니다. 1.5초 후 다시 시도해주세요."); 
-            return r.json(); 
-        })
-        .then(data => {
-            if (data.success) { 
-                alert('✅ ' + data.message); 
-                window.location.reload(); 
-            } else {
-                alert('❌ ' + data.error);
-                updateOrderPanelUI(); // 버튼 상태 원상복구
+            if (!isRegularMarket) {
+                if (currentTxType === 'SELL') { 
+                    alert("장 마감 이후에는 매도할 수 없습니다."); 
+                    return; 
+                } else if (!confirm(`💡 모의투자 특례 규칙 발동!\n현재는 정규 거래시간이 아니지만, [매수]를 진행합니다.\n특례 거래는 수수료가 두 배(0.03%) 적용됩니다. 계속하시겠습니까?`)) {
+                    return;
+                }
             }
-        })
-        .catch(e => {
-            alert('❌ ' + e.message);
-            updateOrderPanelUI(); // 버튼 상태 원상복구
+
+            const payload = { 
+                code: currentStock.code, 
+                name: currentStock.name, 
+                type: currentTxType, 
+                qty: qty, 
+                price: currentStock.current_price 
+            };
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "주문 전송 중...";
+
+            fetch('/api/order', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(payload) 
+            })
+            .then(r => { 
+                if(r.status === 429) throw new Error("주문이 너무 빠릅니다. 1.5초 후 다시 시도해주세요."); 
+                return r.json(); 
+            })
+            .then(data => {
+                if (data.success) { 
+                    alert('✅ ' + data.message); 
+                    window.location.reload(); 
+                } else {
+                    alert('❌ ' + data.error);
+                    updateOrderPanelUI(); // 에러 시 상태 복구
+                }
+            })
+            .catch(e => {
+                alert('❌ ' + e.message);
+                updateOrderPanelUI();
+            });
         });
-    });
+    }
 
-    // 화면 클릭 시 검색 결과 닫기
-    document.addEventListener('click', (e) => { 
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-            searchResults.classList.add('hidden'); 
-        }
-    });
 
+    // --- 8. 댓글 조회/작성 및 관리자 기능 (안전 체크) ---
+    window.deleteComment = function(id) {
+        if (!currentStock) return;
+        if(!confirm("이 댓글을 정말 삭제하시겠습니까?")) return;
+        
+        fetch('/api/admin/comment', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({action: 'delete', id: id}) 
+        })
+        .then(r => r.json())
+        .then(data => { 
+            if(data.success) loadComments(currentStock.code); 
+            else alert(data.error); 
+        })
+        .catch(err => console.error("Del Err", err));
+    };
+    
+    window.editComment = function(id, oldMsg) {
+        if (!currentStock) return;
+        const newMsg = prompt("수정할 내용을 입력하세요:", oldMsg);
+        if(newMsg === null || newMsg.trim() === "" || newMsg === oldMsg) return;
+        
+        fetch('/api/admin/comment', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({action: 'edit', id: id, message: newMsg}) 
+        })
+        .then(r => r.json())
+        .then(data => { 
+            if(data.success) loadComments(currentStock.code); 
+            else alert(data.error); 
+        })
+        .catch(err => console.error("Edit Err", err));
+    };
+
+    function loadComments(code) {
+        if(!commentList) return;
+        
+        fetch(`/api/comments/${code}`)
+        .then(r => r.json())
+        .then(data => {
+            if(!data.comments) return;
+            
+            commentList.innerHTML = data.comments.map(c => {
+                let badge = c.is_holder ? '<span class="bg-yellow-600/30 text-yellow-500 border border-yellow-600 px-1 rounded text-[9px] ml-1">주주</span>' : '';
+                let icon = c.return_rate > 0 ? '💰' : (c.return_rate < -20 ? '💀' : '💩');
+                let color = c.return_rate > 0 ? 'text-red-400' : 'text-blue-400';
+                
+                let adminBtns = '';
+                if (isAdmin) {
+                    const safeMsg = c.message.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                    adminBtns = `
+                    <div class="mt-2 flex space-x-2 justify-end border-t border-gray-700/50 pt-2">
+                        <button onclick="editComment(${c.id}, '${safeMsg}')" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded text-white transition">수정</button>
+                        <button onclick="deleteComment(${c.id})" class="text-[10px] bg-red-900/50 hover:bg-red-800 px-3 py-1 rounded text-red-400 transition">삭제</button>
+                    </div>`;
+                }
+
+                return `
+                <div class="bg-gray-800/50 p-3 rounded-xl border border-gray-700">
+                    <div class="flex justify-between items-center mb-1">
+                        <div class="flex items-center">
+                            <span class="font-bold text-gray-200 text-sm">${c.name}</span>${badge}
+                            <span class="ml-2 text-[10px] ${color}">${icon} ${c.return_rate > 0 ? '+' : ''}${c.return_rate}%</span>
+                        </div>
+                        <span class="text-[10px] text-gray-500">${c.time}</span>
+                    </div>
+                    <p class="text-gray-300 text-xs break-words">${c.message}</p>
+                    ${adminBtns}
+                </div>`;
+            }).join('') || '<p class="text-gray-500 text-xs text-center py-4">첫 의견을 남겨보세요!</p>';
+        })
+        .catch(err => console.error("Comment Load Error:", err));
+    }
+
+    if (commentSend && commentInput) {
+        commentSend.addEventListener('click', () => {
+            const msg = commentInput.value;
+            if(!msg || !currentStock) return;
+            
+            fetch(`/api/comments/${currentStock.code}`, {
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({message:msg})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if(data.error) alert(data.error);
+                else { 
+                    commentInput.value = ''; 
+                    loadComments(currentStock.code); 
+                }
+            })
+            .catch(err => alert("댓글 등록 중 서버 통신에 실패했습니다."));
+        });
+    }
+
+    // 초기 진입 시 code 쿼리가 있다면 호출
     const urlParams = new URLSearchParams(window.location.search);
     const initCode = urlParams.get('code');
     if (initCode) loadStockInfo(initCode);
