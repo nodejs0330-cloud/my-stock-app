@@ -907,7 +907,7 @@ def api_ai_chat():
     }
     
     try:
-        response = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, timeout=15)
+        response = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, timeout=45)
         response.raise_for_status()
         return {"reply": response.json()['choices'][0]['message']['content'], "model": "Llama-3.3-70B"}
     except Exception as e:
@@ -997,7 +997,7 @@ def api_ai_analyze_stock():
     }
     
     try:
-        response = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, timeout=15)
+        response = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, timeout=45)
         response.raise_for_status()
         return {"analysis": response.json()['choices'][0]['message']['content'], "model": "Llama-3.3-70B"}
     except Exception: 
