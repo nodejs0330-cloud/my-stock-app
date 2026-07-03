@@ -630,7 +630,7 @@ def api_ai_chat():
             contents.append({"role": role, "parts": [{"text": m["content"]}]})
         payload = {"contents": contents}
         try:
-            res = requests.post(url, json=payload, timeout=15)
+            res = requests.post(url, json=payload, timeout=90)
             res.raise_for_status()
             reply = res.json()['candidates'][0]['content']['parts'][0]['text']
             return {"reply": reply, "model": "Gemini 2.5 Flash"}
@@ -662,7 +662,7 @@ def api_ai_image():
     headers = {"Authorization": f"Bearer {NVIDIA_IMAGE_API_KEY}", "Accept": "application/json"}
     payload = {"prompt": prompt, "steps": 4}
     try:
-        response = requests.post("https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell", headers=headers, json=payload, timeout=30)
+        response = requests.post("https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell", headers=headers, json=payload, timeout=90)
         response.raise_for_status()
         data = response.json()
         base64_data = ""
