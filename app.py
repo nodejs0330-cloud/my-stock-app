@@ -686,7 +686,7 @@ def api_ai_analyze_stock():
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
     try:
-        res = requests.post(url, json=payload, timeout=15)
+        res = requests.post(url, json=payload, timeout=90)
         res.raise_for_status()
         reply = res.json()['candidates'][0]['content']['parts'][0]['text']
         return {"analysis": reply, "model": "Gemini 2.5 Flash"}
