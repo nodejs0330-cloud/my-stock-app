@@ -156,50 +156,47 @@ def close_connection(exception):
             pass
 
 def init_db():
-    if DATABASE_URL:
-        print("☁️ 클라우드 환경 감지: init_db를 건너뜁니다.")
-        return
-
-    with app.app_context():
-        db = get_db()
-        cursor = db.cursor()
-        
+    db = get_db()
+    cursor = db.cursor()
+    
+    # 1. 테이블 기본 생성
+    try:
         cursor.execute('''CREATE TABLE IF NOT EXISTS USERS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USERNAME TEXT UNIQUE NOT NULL, PASSWORD_HASH TEXT NOT NULL, NAME TEXT NOT NULL, CASH_BALANCE INTEGER DEFAULT 50000000, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS HOLDINGS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, STOCK_NAME TEXT NOT NULL, AVG_PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS TRANSACTIONS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, TX_TYPE TEXT NOT NULL, PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FEE INTEGER DEFAULT 0, TX_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        
-        cursor.execute("PRAGMA table_info(TRANSACTIONS)")
-        columns = [col[1] for col in cursor.fetchall()]
-        if 'FEE' not in columns:
-            cursor.execute("ALTER TABLE TRANSACTIONS ADD COLUMN FEE INTEGER DEFAULT 0")
-            print("✅ 기존 TRANSACTIONS 테이블에 FEE 컬럼을 성공적으로 추가했습니다.")
-            
-        # AI 사용량 관리를 위한 컬럼 추가
-        cursor.execute("PRAGMA table_info(USERS)")
-        user_cols = [col[1] for col in cursor.fetchall()]
-        if 'DAILY_AI_COUNT' not in user_cols:
-            cursor.execute("ALTER TABLE USERS ADD COLUMN DAILY_AI_COUNT INTEGER DEFAULT 0")
-            cursor.execute("ALTER TABLE USERS ADD COLUMN LAST_AI_REQUEST REAL DEFAULT 0")
-            cursor.execute("ALTER TABLE USERS ADD COLUMN AI_RESET_DATE TEXT DEFAULT ''")
-            print("✅ USERS 테이블에 AI 관리 컬럼을 추가했습니다.")
-            
         cursor.execute('''CREATE TABLE IF NOT EXISTS WATCHLIST (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS ANNOUNCEMENT (ID INTEGER PRIMARY KEY, MESSAGE TEXT, IS_ACTIVE INTEGER DEFAULT 0)''')
         cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (1, "", 0)')
         cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (2, "", 1)')
         cursor.execute('''CREATE TABLE IF NOT EXISTS COMMENTS (ID INTEGER PRIMARY KEY AUTOINCREMENT, STOCK_CODE TEXT NOT NULL, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS CHAT (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        
-        db.commit()
+    except Exception as e:
+        print("Table Creation Error:", e)
+
+    # 2. 클라우드/로컬 DB 호환 컬럼 추가 (존재할 경우 에러가 나므로 무시함)
+    try: cursor.execute("ALTER TABLE TRANSACTIONS ADD COLUMN FEE INTEGER DEFAULT 0")
+    except: pass
+    
+    try: cursor.execute("ALTER TABLE USERS ADD COLUMN DAILY_AI_COUNT INTEGER DEFAULT 0")
+    except: pass
+    
+    try: cursor.execute("ALTER TABLE USERS ADD COLUMN LAST_AI_REQUEST REAL DEFAULT 0")
+    except: pass
+    
+    try: cursor.execute("ALTER TABLE USERS ADD COLUMN AI_RESET_DATE TEXT DEFAULT ''")
+    except: pass
+    
+    db.commit()
+
+# Render (Gunicorn) 환경에서도 앱 시작 시 무조건 1회 실행하여 DB 컬럼을 검증하고 추가합니다.
+with app.app_context():
+    init_db()
 
 # --- 데이터 캐싱 ---
 STOCK_CACHE = {'KOSPI': {'time': None, 'data': None, 'date': None, 'source': ''}, 'KOSDAQ': {'time': None, 'data': None, 'date': None, 'source': ''}}
 PRICE_CACHE = {'time': None, 'data': {}}
 RANKING_CACHE = {'time': None, 'data': []}
 TICKER_CACHE = {}
-
-if not DATABASE_URL:
-    init_db()
 
 def get_latest_business_day():
     now = datetime.now(KST)
@@ -333,7 +330,13 @@ def init_tickers():
 
 def check_ai_limit(user_id):
     db = get_db()
-    user = db.execute('SELECT DAILY_AI_COUNT, LAST_AI_REQUEST, AI_RESET_DATE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+    
+    # 예외처리로 안전하게 조회
+    try:
+        user = db.execute('SELECT DAILY_AI_COUNT, LAST_AI_REQUEST, AI_RESET_DATE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+    except Exception as e:
+        print("Check AI Limit Query Error:", e)
+        return False, "데이터베이스 통신 오류가 발생했습니다."
     
     if not user: 
         return False, "사용자를 찾을 수 없습니다."
@@ -1002,6 +1005,4 @@ def api_ai_analyze_stock():
 
 
 if __name__ == '__main__':
-    if not DATABASE_URL and not os.path.exists(DATABASE): 
-        init_db()
     app.run(host='0.0.0.0', port=5000, debug=True)
