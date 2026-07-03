@@ -14,12 +14,12 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24) 
 DATABASE = 'database.db'
 
-# --- 환경 변수 정의 (Render에서 설정) ---
+# --- 환경 변수 정의 ---
 DATABASE_URL = os.environ.get("TURSO_DATABASE_URL")
 DATABASE_TOKEN = os.environ.get("TURSO_AUTH_TOKEN", "")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "") # 구글 Gemini API Key 추가
 NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY", "")
 NVIDIA_IMAGE_API_KEY = os.environ.get("NVIDIA_IMAGE_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 # --- 메모리 기반 보안 락 ---
 LAST_ORDER_TIME = {}  
@@ -38,15 +38,18 @@ def get_single_stock_price(code):
     now = datetime.now(KST)
     start_date = (now - timedelta(days=15)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
+    
     try:
         df = stock.get_market_ohlcv(start_date.replace('-', ''), end_date.replace('-', ''), code)
         if not df.empty: return int(df.iloc[-1]['종가'])
     except: pass
+
     try:
         import FinanceDataReader as fdr
         df = fdr.DataReader(code, start_date, end_date)
         if not df.empty: return int(df.iloc[-1]['Close'])
     except: pass
+
     try:
         import yfinance as yf
         yf_code = f"{code}.KS" if not str(code).startswith('0') else f"{code}.KQ"
@@ -58,7 +61,7 @@ def get_single_stock_price(code):
 def get_stock_news_scraped(code):
     url = f"https://finance.naver.com/item/news_news.naver?code={code}&page=1"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
         'Referer': f'https://finance.naver.com/item/news.naver?code={code}'
     }
     news_list = []
@@ -73,14 +76,12 @@ def get_stock_news_scraped(code):
             info_el = row.select_one('.info')
             date_el = row.select_one('.date')
             if title_el:
-                news_list.append({
-                    'title': title_el.get_text(strip=True),
-                    'link': "https://finance.naver.com" + title_el['href'],
-                    'provider': info_el.get_text(strip=True) if info_el else "언론사",
-                    'date': date_el.get_text(strip=True) if date_el else ""
-                })
-    except Exception as e:
-        print(f"News Crawling Error: {e}")
+                title = title_el.get_text(strip=True)
+                link = "https://finance.naver.com" + title_el['href']
+                provider = info_el.get_text(strip=True) if info_el else "언론사"
+                date_str = date_el.get_text(strip=True) if date_el else ""
+                news_list.append({'title': title, 'link': link, 'provider': provider, 'date': date_str})
+    except Exception as e: print(f"News Crawling Error: {e}")
     return news_list[:15]
 
 def patch_libsql_result(result):
@@ -131,10 +132,13 @@ def init_db():
         cursor.execute('''CREATE TABLE IF NOT EXISTS ANNOUNCEMENT (ID INTEGER PRIMARY KEY, MESSAGE TEXT, IS_ACTIVE INTEGER DEFAULT 0)''')
         cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (1, "", 0)')
         cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (2, "", 1)')
+        cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (3, "최근 삼성전자의 하락 요인과 반등 가능성에 대해 분석해줘.", 1)')
+        cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (4, "가치투자 관점에서 워런 버핏이라면 현재 한국 시장에서 어떤 기준의 주식을 살까?", 1)')
         cursor.execute('''CREATE TABLE IF NOT EXISTS COMMENTS (ID INTEGER PRIMARY KEY AUTOINCREMENT, STOCK_CODE TEXT NOT NULL, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
         cursor.execute('''CREATE TABLE IF NOT EXISTS CHAT (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-    except Exception as e:
-        print("Table Creation Error:", e)
+        # AI 질문 로그 저장용 테이블
+        cursor.execute('''CREATE TABLE IF NOT EXISTS AI_LOGS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, PROMPT TEXT NOT NULL, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
+    except Exception as e: print("Table Creation Error:", e)
 
     try: cursor.execute("ALTER TABLE TRANSACTIONS ADD COLUMN FEE INTEGER DEFAULT 0")
     except: pass
@@ -146,10 +150,8 @@ def init_db():
     except: pass
     db.commit()
 
-with app.app_context():
-    init_db()
+with app.app_context(): init_db()
 
-# --- 데이터 캐싱 ---
 STOCK_CACHE = {'KOSPI': {'time': None, 'data': None, 'date': None, 'source': ''}, 'KOSDAQ': {'time': None, 'data': None, 'date': None, 'source': ''}}
 PRICE_CACHE = {'time': None, 'data': {}}
 RANKING_CACHE = {'time': None, 'data': []}
@@ -161,8 +163,7 @@ def get_latest_business_day():
     for i in range(10):
         target = (now - timedelta(days=i)).strftime("%Y%m%d")
         try:
-            tickers = stock.get_market_ticker_list(target, market="KOSPI")
-            if tickers: return target
+            if stock.get_market_ticker_list(target, market="KOSPI"): return target
         except: continue
     return datetime.now(KST).strftime("%Y%m%d")
 
@@ -170,13 +171,11 @@ def get_top_stocks(market="KOSPI"):
     global STOCK_CACHE
     now = datetime.now(KST)
     cache = STOCK_CACHE.get(market, {'time': None, 'data': None, 'date': None, 'source': ''})
-    if cache['time'] and (now.replace(tzinfo=None) - cache['time']).seconds < 600: 
-        return cache['data'], cache['date'], cache['source']
+    if cache['time'] and (now.replace(tzinfo=None) - cache['time']).seconds < 600: return cache['data'], cache['date'], cache['source']
     
     result = {'gainers': [], 'losers': []}
     target_date_str = ""
     data_source = "KRX (pykrx)"
-    
     try:
         target_date = get_latest_business_day()
         target_date_str = f"{target_date[:4]}.{target_date[4:6]}.{target_date[6:]}"
@@ -185,10 +184,8 @@ def get_top_stocks(market="KOSPI"):
         df = df[df.index.isin(tickers)]
         top10_df = df.sort_values(by="등락률", ascending=False).head(10)
         bottom10_df = df.sort_values(by="등락률", ascending=True).head(10)
-        for ticker, row in top10_df.iterrows(): 
-            result['gainers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
-        for ticker, row in bottom10_df.iterrows(): 
-            result['losers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
+        for ticker, row in top10_df.iterrows(): result['gainers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
+        for ticker, row in bottom10_df.iterrows(): result['losers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
     except Exception as e:
         data_source = "FinanceDataReader"
         try:
@@ -197,13 +194,9 @@ def get_top_stocks(market="KOSPI"):
             top10_df = df_fdr.sort_values(by="ChagesRatio", ascending=False).head(10)
             bottom10_df = df_fdr.sort_values(by="ChagesRatio", ascending=True).head(10)
             target_date_str = now.strftime("%Y.%m.%d")
-            for _, row in top10_df.iterrows(): 
-                result['gainers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
-            for _, row in bottom10_df.iterrows(): 
-                result['losers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
-        except Exception as fallback_e:
-            data_source = "데이터 불러오기 실패"
-
+            for _, row in top10_df.iterrows(): result['gainers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
+            for _, row in bottom10_df.iterrows(): result['losers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
+        except Exception: data_source = "데이터 불러오기 실패"
     STOCK_CACHE[market] = {'time': now.replace(tzinfo=None), 'data': result, 'date': target_date_str, 'source': data_source}
     return result, target_date_str, data_source
 
@@ -211,17 +204,14 @@ def get_rankings():
     global RANKING_CACHE
     now = datetime.now()
     if RANKING_CACHE['time'] and (now - RANKING_CACHE['time']).seconds < 1800: return RANKING_CACHE['data']
-        
     db = get_db()
     users = db.execute('SELECT ID, NAME, CASH_BALANCE, CREATED_AT FROM USERS').fetchall()
     holdings = db.execute('SELECT USER_ID, STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY FROM HOLDINGS').fetchall()
-    
     real_time_prices = {}
     user_holdings = {}
     for h in holdings:
         if h['USER_ID'] not in user_holdings: user_holdings[h['USER_ID']] = []
         user_holdings[h['USER_ID']].append(h)
-        
     ranking_list = []
     for u in users:
         total_asset = u['CASH_BALANCE']
@@ -237,13 +227,11 @@ def get_rankings():
                 profit = (current_price - h['AVG_PRICE']) * h['QUANTITY']
                 profit_rate = ((current_price - h['AVG_PRICE']) / h['AVG_PRICE']) * 100 if h['AVG_PRICE'] > 0 else 0
                 top_stocks.append({'name': h['STOCK_NAME'], 'profit_rate': profit_rate, 'profit': profit})
-                
         top_stocks.sort(key=lambda x: x['profit_rate'], reverse=True)
         best_stock_name = f"{top_stocks[0]['name']} ({top_stocks[0]['profit_rate']:+.1f}%)" if top_stocks else "보유종목 없음"
         return_rate = ((total_asset - 50000000) / 50000000) * 100
         created_date = datetime.strptime(u['CREATED_AT'], '%Y-%m-%d %H:%M:%S').strftime('%Y.%m.%d') if isinstance(u['CREATED_AT'], str) else u['CREATED_AT'].strftime('%Y.%m.%d')
         ranking_list.append({'name': u['NAME'], 'total_asset': total_asset, 'return_rate': return_rate, 'best_stock': best_stock_name, 'created_date': created_date, 'top_5_stocks': top_stocks[:5]})
-        
     ranking_list.sort(key=lambda x: x['total_asset'], reverse=True)
     top_10 = ranking_list[:10]
     RANKING_CACHE['time'] = now
@@ -261,17 +249,12 @@ def init_tickers():
 
 def check_ai_limit(user_id):
     db = get_db()
-    try:
-        user = db.execute('SELECT DAILY_AI_COUNT, LAST_AI_REQUEST, AI_RESET_DATE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
-    except Exception as e:
-        print("Check AI Limit Query Error:", e)
-        return False, "데이터베이스 통신 오류가 발생했습니다."
-    
+    try: user = db.execute('SELECT DAILY_AI_COUNT, LAST_AI_REQUEST, AI_RESET_DATE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+    except Exception as e: return False, "데이터베이스 오류"
     if not user: return False, "사용자를 찾을 수 없습니다."
     
     now_ts = time.time()
     today_str = datetime.now(KST).strftime('%Y-%m-%d')
-    
     last_req = user['LAST_AI_REQUEST'] or 0
     daily_count = user['DAILY_AI_COUNT'] or 0
     reset_date = user['AI_RESET_DATE'] or ''
@@ -280,7 +263,6 @@ def check_ai_limit(user_id):
     if reset_date != today_str:
         daily_count = 0
         reset_date = today_str
-        
     if daily_count >= 100: return False, "1일 AI 사용량(100회)을 모두 소진했습니다. 내일 다시 이용해주세요."
         
     db.execute('UPDATE USERS SET LAST_AI_REQUEST = ?, DAILY_AI_COUNT = ?, AI_RESET_DATE = ? WHERE ID = ?', (now_ts, daily_count + 1, reset_date, user_id))
@@ -304,9 +286,7 @@ def login_post():
     db = get_db()
     user = db.execute('SELECT * FROM USERS WHERE USERNAME = ?', (request.form.get('username'),)).fetchone()
     if user and check_password_hash(user['PASSWORD_HASH'], request.form.get('password')):
-        session['user_id'] = user['ID']
-        session['name'] = user['NAME']
-        session['username'] = user['USERNAME']
+        session['user_id'], session['name'], session['username'] = user['ID'], user['NAME'], user['USERNAME']
         return redirect(url_for('dashboard'))
     flash('아이디 또는 비밀번호 오류입니다.')
     return redirect(url_for('index'))
@@ -315,7 +295,9 @@ def login_post():
 def signup():
     if request.method == 'POST':
         db = get_db()
-        username, name, password = request.form.get('username', '').strip(), request.form.get('name', '').strip(), request.form.get('password', '').strip()
+        username = request.form.get('username', '').strip()
+        name = request.form.get('name', '').strip()
+        password = request.form.get('password', '').strip()
         if not username or not name or not password:
             flash('모든 항목을 입력해주세요.')
             return redirect(url_for('signup'))
@@ -327,9 +309,7 @@ def signup():
             db.commit()
             flash('✅ 회원가입 완료! 5,000만 원 지급됨.')
             return redirect(url_for('index'))
-        except Exception as e: 
-            flash('❌ 회원가입 중 오류가 발생했습니다.')
-            return redirect(url_for('signup'))
+        except Exception: flash('❌ 회원가입 중 오류가 발생했습니다.')
     return render_template('signup.html')
 
 @app.route('/dashboard')
@@ -348,7 +328,9 @@ def dashboard():
 def trade():
     if 'user_id' not in session: return redirect(url_for('index'))
     db = get_db()
-    return render_template('trade.html', user=db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone(), my_stocks=db.execute('SELECT STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall())
+    user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
+    my_stocks = db.execute('SELECT STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
+    return render_template('trade.html', user=user, my_stocks=my_stocks)
 
 @app.route('/portfolio')
 def portfolio():
@@ -356,8 +338,7 @@ def portfolio():
     db = get_db()
     user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
     holdings = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
-    portfolio_data = []
-    total_stock_value = 0
+    portfolio_data, total_stock_value = [], 0
     for h in holdings:
         curr_price = get_single_stock_price(h['STOCK_CODE']) or h['AVG_PRICE']
         profit = (curr_price - h['AVG_PRICE']) * h['QUANTITY']
@@ -382,7 +363,12 @@ def simulation():
 @app.route('/ai')
 def ai_page():
     if 'user_id' not in session: return redirect(url_for('index'))
-    return render_template('ai.html')
+    db = get_db()
+    q1 = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 3').fetchone()
+    q2 = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 4').fetchone()
+    rec_q1 = q1['MESSAGE'] if q1 and q1['MESSAGE'] else '최근 삼성전자의 하락 요인과 반등 가능성에 대해 분석해줘.'
+    rec_q2 = q2['MESSAGE'] if q2 and q2['MESSAGE'] else '가치투자 관점에서 워런 버핏이라면 현재 한국 시장에서 어떤 기준의 주식을 살까?'
+    return render_template('ai.html', rec_q1=rec_q1, rec_q2=rec_q2)
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
@@ -403,6 +389,12 @@ def admin():
             msg = request.form.get('main_text', '')
             db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (2, ?, 1)', (msg,))
             flash("✅ 메인 화면 문구 업데이트 완료.")
+        elif action == 'update_ai_questions':
+            q1 = request.form.get('rec_q1', '')[:100]
+            q2 = request.form.get('rec_q2', '')[:100]
+            db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (3, ?, 1)', (q1,))
+            db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (4, ?, 1)', (q2,))
+            flash("✅ AI 추천 질문이 업데이트 되었습니다.")
         elif action == 'reset_chat':
             db.execute('DELETE FROM CHAT')
             CHAT_BANS.clear()
@@ -418,10 +410,13 @@ def admin():
             db.execute('UPDATE USERS SET DAILY_AI_COUNT = 0 WHERE USERNAME = ?', (target,))
             flash(f"✅ [{target}] AI 일일 사용량 초기화 완료.")
         db.commit()
+            
     users = db.execute('SELECT * FROM USERS ORDER BY CREATED_AT DESC').fetchall()
     notice = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone()
     main_text_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
-    return render_template('admin.html', users=users, notice=notice, main_text=main_text_row)
+    q1_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 3').fetchone()
+    q2_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 4').fetchone()
+    return render_template('admin.html', users=users, notice=notice, main_text=main_text_row, q1=q1_row, q2=q2_row)
 
 @app.route('/logout')
 def logout():
@@ -450,28 +445,23 @@ def api_stock_info(code):
     chart_data, cp, pp, data_source = [], 0, 0, "KRX (pykrx)"
     try:
         df = stock.get_market_ohlcv(start_date.replace('-',''), end_date.replace('-',''), code)
-        if df.empty: raise Exception("No data from pykrx")
+        if df.empty: raise Exception()
         for index, row in df.iterrows(): chart_data.append({"time": index.strftime("%Y-%m-%d"), "open": int(row['시가']), "high": int(row['고가']), "low": int(row['저가']), "close": int(row['종가'])})
-        cp = int(df.iloc[-1]['종가'])
-        pp = int(df.iloc[-2]['종가']) if len(df) > 1 else cp
-    except Exception as e:
+        cp, pp = int(df.iloc[-1]['종가']), int(df.iloc[-2]['종가'] if len(df) > 1 else df.iloc[-1]['종가'])
+    except:
         try:
             data_source = "FinanceDataReader"
             import FinanceDataReader as fdr
             df = fdr.DataReader(code, start_date, end_date)
             for index, row in df.iterrows(): chart_data.append({"time": index.strftime("%Y-%m-%d"), "open": int(row['Open']), "high": int(row['High']), "low": int(row['Low']), "close": int(row['Close'])})
-            cp = int(df.iloc[-1]['Close'])
-            pp = int(df.iloc[-2]['Close']) if len(df) > 1 else cp
-        except Exception as e2:
-            return {"error": "데이터를 찾을 수 없습니다."}, 404
+            cp, pp = int(df.iloc[-1]['Close']), int(df.iloc[-2]['Close'] if len(df) > 1 else df.iloc[-1]['Close'])
+        except Exception: return {"error": "데이터를 찾을 수 없습니다."}, 404
     change_rate = ((cp - pp) / pp) * 100 if pp > 0 else 0
     return {"code": code, "name": TICKER_CACHE.get(code, code), "current_price": cp, "change_price": cp - pp, "change_rate": round(change_rate, 2), "chart_data": chart_data, "source": data_source}
 
 @app.route('/api/news/<code>')
 def api_news(code):
-    news_list = get_stock_news_scraped(code)
-    updated_time = datetime.now(KST).strftime("%Y.%m.%d %H:%M")
-    return {"news": news_list, "updated_at": updated_time, "source": "네이버 금융 실시간 뉴스"}
+    return {"news": get_stock_news_scraped(code), "updated_at": datetime.now(KST).strftime("%Y.%m.%d %H:%M"), "source": "네이버 금융 실시간 뉴스"}
 
 @app.route('/api/order', methods=['POST'])
 def api_order():
@@ -480,37 +470,41 @@ def api_order():
     now_ts = time.time()
     if now_ts - LAST_ORDER_TIME.get(user_id, 0) < 1.5: return {"error": "주문이 너무 빠릅니다. 1.5초 후 다시 시도해주세요.", "success": False}, 429
     LAST_ORDER_TIME[user_id] = now_ts
+
     data = request.json
     code, name, tx_type, qty, price = data.get('code'), data.get('name'), data.get('type'), int(data.get('qty', 0)), int(data.get('price', 0))
     if qty <= 0 or price <= 0: return {"error": "올바른 수량/가격이 아닙니다.", "success": False}
     is_regular_market = is_market_open()
     if tx_type == 'SELL' and not is_regular_market: return {"error": "장 마감 이후에는 매도가 불가능합니다.", "success": False}
+
     stock_amount = qty * price
-    fee = int(stock_amount * (0.00015 if is_regular_market else 0.00030)) if tx_type == 'BUY' else int(stock_amount * 0.0020)
-    total_amount = stock_amount + fee if tx_type == 'BUY' else stock_amount - fee 
+    if tx_type == 'BUY':
+        fee = int(stock_amount * (0.00015 if is_regular_market else 0.00030))
+        total_amount = stock_amount + fee
+    else:
+        fee = int(stock_amount * 0.0020)
+        total_amount = stock_amount - fee 
+
     db = get_db()
     try:
         cursor = db.cursor()
         user = cursor.execute('SELECT CASH_BALANCE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
         holding = cursor.execute('SELECT ID, AVG_PRICE, QUANTITY FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (user_id, code)).fetchone()
+        
         if tx_type == 'BUY':
             if user['CASH_BALANCE'] < total_amount: return {"error": "자본금이 부족합니다.", "success": False}
             cursor.execute('UPDATE USERS SET CASH_BALANCE = CASH_BALANCE - ? WHERE ID = ?', (total_amount, user_id))
-            if holding: 
-                new_qty = holding['QUANTITY'] + qty
-                new_avg = int(((holding['AVG_PRICE'] * holding['QUANTITY']) + stock_amount) / new_qty)
-                cursor.execute('UPDATE HOLDINGS SET QUANTITY = ?, AVG_PRICE = ? WHERE ID = ?', (new_qty, new_avg, holding['ID']))
+            if holding: cursor.execute('UPDATE HOLDINGS SET QUANTITY = ?, AVG_PRICE = ? WHERE ID = ?', (holding['QUANTITY'] + qty, int(((holding['AVG_PRICE'] * holding['QUANTITY']) + stock_amount) / (holding['QUANTITY'] + qty)), holding['ID']))
             else: cursor.execute('INSERT INTO HOLDINGS (USER_ID, STOCK_CODE, STOCK_NAME, AVG_PRICE, QUANTITY) VALUES (?, ?, ?, ?, ?)', (user_id, code, name, int(stock_amount/qty), qty))
-        else: # SELL
+        else:
             if not holding or holding['QUANTITY'] < qty: return {"error": "보유 수량이 부족합니다.", "success": False}
             cursor.execute('UPDATE USERS SET CASH_BALANCE = CASH_BALANCE + ? WHERE ID = ?', (total_amount, user_id))
             if holding['QUANTITY'] == qty: cursor.execute('DELETE FROM HOLDINGS WHERE ID = ?', (holding['ID'],))
             else: cursor.execute('UPDATE HOLDINGS SET QUANTITY = QUANTITY - ? WHERE ID = ?', (qty, holding['ID']))
+            
         cursor.execute('INSERT INTO TRANSACTIONS (USER_ID, STOCK_CODE, TX_TYPE, PRICE, QUANTITY, FEE) VALUES (?, ?, ?, ?, ?, ?)', (user_id, code, tx_type, price, qty, fee))
         db.commit()
-        new_balance = db.execute('SELECT CASH_BALANCE FROM USERS WHERE ID = ?', (user_id,)).fetchone()['CASH_BALANCE']
-        msg_extra = " (수수료 특례)" if (tx_type == 'BUY' and not is_regular_market) else ""
-        return {"success": True, "message": f"{name} {qty}주 {tx_type} 완료\n(수수료 {fee:,}원){msg_extra}", "new_balance": new_balance}
+        return {"success": True, "message": f"{name} {qty}주 {tx_type} 완료\n(수수료 {fee:,}원)", "new_balance": db.execute('SELECT CASH_BALANCE FROM USERS WHERE ID = ?', (user_id,)).fetchone()['CASH_BALANCE']}
     except Exception as e:
         db.rollback()
         return {"error": f"주문 처리 중 오류 발생: {str(e)}", "success": False}
@@ -527,8 +521,7 @@ def api_comments(code):
         if 'user_id' not in session: return {"error": "로그인이 필요합니다."}, 401
         msg = request.json.get('message', '').strip()[:200]
         if msg:
-            now_str = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
-            db.execute('INSERT INTO COMMENTS (STOCK_CODE, USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?, ?)', (code, session['user_id'], msg, now_str))
+            db.execute('INSERT INTO COMMENTS (STOCK_CODE, USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?, ?)', (code, session['user_id'], msg, datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')))
             db.commit()
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
@@ -537,11 +530,9 @@ def api_comments(code):
     result = []
     for c in comments:
         holding = db.execute('SELECT AVG_PRICE FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (c['UID'], code)).fetchone()
-        ret_rate, is_holder = 0, False
-        if holding:
-            is_holder = True
-            if holding['AVG_PRICE'] > 0 and curr_price is not None: ret_rate = ((curr_price - holding['AVG_PRICE']) / holding['AVG_PRICE']) * 100
-        result.append({"id": c['CID'], "name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5], "is_holder": is_holder, "return_rate": round(ret_rate, 1)})
+        ret_rate = 0
+        if holding and holding['AVG_PRICE'] > 0 and curr_price: ret_rate = ((curr_price - holding['AVG_PRICE']) / holding['AVG_PRICE']) * 100
+        result.append({"id": c['CID'], "name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5], "is_holder": holding is not None, "return_rate": round(ret_rate, 1)})
     return {"comments": result}
 
 @app.route('/api/admin/comment', methods=['POST'])
@@ -549,9 +540,8 @@ def api_admin_comment():
     if session.get('username') != 'admin': return {"error": "권한이 없습니다."}, 403
     db = get_db()
     data = request.json
-    action, comment_id = data.get('action'), data.get('id')
-    if action == 'delete': db.execute('DELETE FROM COMMENTS WHERE ID = ?', (comment_id,))
-    elif action == 'edit': db.execute('UPDATE COMMENTS SET MESSAGE = ? WHERE ID = ?', (data.get('message', '').strip()[:200], comment_id))
+    if data.get('action') == 'delete': db.execute('DELETE FROM COMMENTS WHERE ID = ?', (data.get('id'),))
+    elif data.get('action') == 'edit': db.execute('UPDATE COMMENTS SET MESSAGE = ? WHERE ID = ?', (data.get('message', '').strip()[:200], data.get('id')))
     db.commit()
     return {"success": True}
 
@@ -571,8 +561,7 @@ def api_chat():
         CHAT_HISTORY[user_id] = history
         msg = request.json.get('message', '').strip()[:100]
         if msg:
-            now_str = datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')
-            db.execute('INSERT INTO CHAT (USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?)', (user_id, msg, now_str))
+            db.execute('INSERT INTO CHAT (USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?)', (user_id, msg, datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')))
             db.commit()
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
@@ -586,24 +575,13 @@ def api_simulation_run():
     data = request.json
     code, amount, months, mode = data.get('code'), int(data.get('amount')), int(data.get('months')), data.get('mode') 
     now = datetime.now()
-    start_date, end_date = (now - timedelta(days=months*30)).strftime("%Y-%m-%d"), now.strftime("%Y-%m-%d")
     try:
         import FinanceDataReader as fdr
-        df = fdr.DataReader(code, start_date, end_date)
-        if df.empty: return {"error": "과거 주가 데이터가 존재하지 않습니다."}, 404
+        df = fdr.DataReader(code, (now - timedelta(days=months*30)).strftime("%Y-%m-%d"), now.strftime("%Y-%m-%d"))
+        if df.empty: return {"error": "과거 주가 데이터가 없습니다."}, 404
         past_price, curr_price = int(df.iloc[0]['Close']), int(df.iloc[-1]['Close'])
-        
-        if mode == 'lump':
-            total_invested = amount
-            shares = amount // past_price
-            stock_final = shares * curr_price + (amount % past_price)
-        else:
-            total_invested = amount * months
-            shares = total_invested // past_price
-            stock_final = shares * curr_price + (total_invested % past_price)
-        
-        stock_rate = ((stock_final - total_invested) / total_invested) * 100
-        
+        total_invested = amount if mode == 'lump' else amount * months
+        stock_final = (total_invested // past_price) * curr_price + (total_invested % past_price)
         if mode == 'lump':
             ksema_final = total_invested * ((1 + 0.05) ** (months / 12))
             ksema_lump_final = total_invested * ((1 + 0.03) ** (months / 12))
@@ -611,12 +589,12 @@ def api_simulation_run():
             r5, r3 = 0.05 / 12, 0.03 / 12
             ksema_final = amount * (((1 + r5)**months - 1) / r5) * (1 + r5)
             ksema_lump_final = amount * (((1 + r3)**months - 1) / r3) * (1 + r3)
-            
-        return {"success": True, "invested": total_invested, "stock_name": TICKER_CACHE.get(code, code), "stock_final": int(stock_final), "stock_rate": round(stock_rate, 1), "ksema_final": int(ksema_final), "ksema_lump_final": int(ksema_lump_final)}
+        return {"success": True, "invested": total_invested, "stock_name": TICKER_CACHE.get(code, code), "stock_final": int(stock_final), "stock_rate": round(((stock_final - total_invested) / total_invested) * 100, 1), "ksema_final": int(ksema_final), "ksema_lump_final": int(ksema_lump_final)}
     except Exception as e: return {"error": f"시뮬레이션 처리 중 오류: {e}"}, 500
 
+
 # ==========================================
-# AI 연동 API (Gemini & NVIDIA)
+# AI 연동 API (Gemini 2.5 Flash & NVIDIA 듀얼)
 # ==========================================
 
 @app.route('/api/ai/chat', methods=['POST'])
@@ -627,78 +605,72 @@ def api_ai_chat():
     
     data = request.json
     messages = data.get('messages', [])
-    model_provider = data.get('provider', 'gemini') # 기본값은 gemini로 설정
-    
+    vendor = data.get('vendor', 'gemini') # 'gemini' or 'text'
     if not messages: return {"error": "메시지가 제공되지 않았습니다."}, 400
     
-    # 1. Gemini 모델 요청 처리 (기본 및 거래소 분석)
-    if model_provider == 'gemini':
-        gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-        headers = {'Content-Type': 'application/json'}
-        
-        # Gemini API 스펙에 맞게 메시지 포맷 변환
-        gemini_contents = []
+    # [추가] 관리자 열람을 위한 사용자의 마지막 질문을 AI_LOGS 테이블에 저장
+    last_user_msg = ""
+    for m in reversed(messages):
+        if m.get('role') == 'user':
+            last_user_msg = m.get('content', '')[:500]
+            break
+            
+    if last_user_msg:
+        db = get_db()
+        db.execute('INSERT INTO AI_LOGS (USER_ID, PROMPT, CREATED_AT) VALUES (?, ?, ?)', (session['user_id'], last_user_msg, datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')))
+        db.execute('''DELETE FROM AI_LOGS WHERE ID NOT IN (SELECT ID FROM AI_LOGS ORDER BY ID DESC LIMIT 200)''')
+        db.commit()
+    
+    if vendor == 'gemini':
+        # Gemini 2.5 Flash 호출
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+        contents = []
         for m in messages:
-            # Gemini는 'user'와 'model' role만 허용
-            role = 'model' if m['role'] == 'assistant' else 'user'
-            gemini_contents.append({"role": role, "parts": [{"text": m['content']}]})
-            
-        payload = {"contents": gemini_contents}
-        
+            role = "user" if m["role"] == "user" else "model"
+            contents.append({"role": role, "parts": [{"text": m["content"]}]})
+        payload = {"contents": contents}
         try:
-            # Gemini는 매우 빠르므로 15초 타임아웃
-            response = requests.post(gemini_url, headers=headers, json=payload, timeout=15)
-            response.raise_for_status()
-            res_data = response.json()
-            reply_text = res_data['candidates'][0]['content']['parts'][0]['text']
-            return {"reply": reply_text, "model": "Gemini 1.5 Flash"}
-        except Exception as e:
-            print("Gemini API Error:", str(e))
-            return {"error": "Gemini 서버 통신 중 오류가 발생했습니다."}, 500
-            
-    # 2. NVIDIA (Llama 3.3) 모델 요청 처리 (느린 응답 대비 90초 대기)
-    elif model_provider == 'nvidia':
+            res = requests.post(url, json=payload, timeout=15)
+            res.raise_for_status()
+            reply = res.json()['candidates'][0]['content']['parts'][0]['text']
+            return {"reply": reply, "model": "Gemini 2.5 Flash"}
+        except Exception as e: return {"error": f"Gemini API 오류: {str(e)}"}, 500
+        
+    else:
+        # NVIDIA Llama 모델 호출
         headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
         payload = {"model": "meta/llama-3.3-70b-instruct", "messages": messages, "temperature": 0.5, "max_tokens": 1024}
         try:
-            # NVIDIA 무료 API는 병목현상이 심하므로 타임아웃을 90초로 설정
-            response = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, timeout=90)
-            response.raise_for_status()
-            return {"reply": response.json()['choices'][0]['message']['content'], "model": "Llama-3.3-70B"}
-        except Exception as e:
-            return {"error": f"NVIDIA 서버(Llama) 타임아웃 또는 통신 오류: {str(e)}"}, 500
-            
-    return {"error": "알 수 없는 AI 모델 제공자입니다."}, 400
+            res = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, timeout=90)
+            res.raise_for_status()
+            return {"reply": res.json()['choices'][0]['message']['content'], "model": "Llama-3.3-70B"}
+        except Exception as e: return {"error": f"NVIDIA 서버 통신 오류: {str(e)}"}, 500
 
 @app.route('/api/ai/image', methods=['POST'])
 def api_ai_image():
     if 'user_id' not in session: return {"error": "로그인이 필요합니다."}, 401
     is_ok, msg = check_ai_limit(session['user_id'])
     if not is_ok: return {"error": msg}, 429
-    
     prompt = request.json.get('prompt', '')
     if not prompt: return {"error": "프롬프트를 입력해주세요."}, 400
     
+    # 이미지 생성 프롬프트도 저장
+    db = get_db()
+    db.execute('INSERT INTO AI_LOGS (USER_ID, PROMPT, CREATED_AT) VALUES (?, ?, ?)', (session['user_id'], f"[이미지 생성] {prompt[:500]}", datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')))
+    db.commit()
+    
     headers = {"Authorization": f"Bearer {NVIDIA_IMAGE_API_KEY}", "Accept": "application/json"}
     payload = {"prompt": prompt, "steps": 4}
-    
     try:
-        # 이미지 생성도 시간이 꽤 걸리므로 90초 부여
-        response = requests.post("https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell", headers=headers, json=payload, timeout=90)
+        response = requests.post("https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell", headers=headers, json=payload, timeout=30)
         response.raise_for_status()
         data = response.json()
-        
         base64_data = ""
-        if 'data' in data and len(data['data']) > 0 and 'b64_json' in data['data'][0]:
-            base64_data = data['data'][0]['b64_json']
-        elif 'artifacts' in data and len(data['artifacts']) > 0 and 'base64' in data['artifacts'][0]:
-            base64_data = data['artifacts'][0]['base64']
-            
+        if 'data' in data and len(data['data']) > 0 and 'b64_json' in data['data'][0]: base64_data = data['data'][0]['b64_json']
+        elif 'artifacts' in data and len(data['artifacts']) > 0 and 'base64' in data['artifacts'][0]: base64_data = data['artifacts'][0]['base64']
         if not base64_data: return {"error": "이미지 생성에 실패했습니다."}, 500
         return {"b64_json": base64_data, "model": "Flux.1-schnell"}
-        
-    except Exception as e: 
-        return {"error": f"이미지 생성 서버 타임아웃 또는 오류: {str(e)}"}, 500
+    except Exception as e: return {"error": f"이미지 생성 서버 오류: {str(e)}"}, 500
 
 @app.route('/api/ai/analyze_stock', methods=['POST'])
 def api_ai_analyze_stock():
@@ -707,37 +679,34 @@ def api_ai_analyze_stock():
     if not is_ok: return {"error": msg}, 429
     
     data = request.json
-    code, name, price, change = data.get('code'), data.get('name'), data.get('price'), data.get('change_rate')
+    news_text = "\n".join([f"- {n['title']} ({n['provider']})" for n in get_stock_news_scraped(data.get('code'))[:3]])
+    prompt = f"당신은 NCS STOCK의 수석 주식 애널리스트입니다. 아래 실시간 종목 데이터를 바탕으로 한국어로 주식 전망을 300자 이내로 명쾌하고 논리적으로 요약해주세요.\n[데이터]\n종목명: {data.get('name')} ({data.get('code')})\n현재가: {data.get('price')}원\n등락률: {data.get('change_rate')}%\n[최근 이슈]\n{news_text}"
     
-    news_list = get_stock_news_scraped(code)[:3]
-    news_text = "\n".join([f"- {n['title']} ({n['provider']})" for n in news_list])
-    
-    prompt = f"""
-    당신은 NCS STOCK의 수석 주식 애널리스트입니다. 
-    아래 실시간 종목 데이터를 바탕으로 한국어로 주식 전망을 300자 이내로 명쾌하고 논리적으로 요약해주세요.
-    
-    [데이터]
-    종목명: {name} ({code})
-    현재가: {price}원
-    등락률: {change}%
-    
-    [최근 시장 이슈]
-    {news_text}
-    """
-    
-    # 거래소 분석은 빠르고 안정적인 Gemini를 사용하도록 기본 변경
-    gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {'Content-Type': 'application/json'}
+    # Gemini 2.5 Flash 호출
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
-    
     try:
-        response = requests.post(gemini_url, headers=headers, json=payload, timeout=15)
-        response.raise_for_status()
-        reply_text = response.json()['candidates'][0]['content']['parts'][0]['text']
-        return {"analysis": reply_text, "model": "Gemini 1.5 Flash"}
-    except Exception as e: 
-        print("Gemini Analysis Error:", str(e))
-        return {"error": "현재 AI 서버가 혼잡하여 실시간 전망을 가져올 수 없습니다. 잠시 후 새로고침 해보세요."}, 500
+        res = requests.post(url, json=payload, timeout=15)
+        res.raise_for_status()
+        reply = res.json()['candidates'][0]['content']['parts'][0]['text']
+        return {"analysis": reply, "model": "Gemini 2.5 Flash"}
+    except Exception: return {"error": "현재 AI 서버가 혼잡하여 실시간 전망을 가져올 수 없습니다. 잠시 후 새로고침 해보세요."}, 500
+
+# [추가] 관리자용 AI 질문 내역 조회 API
+@app.route('/api/admin/ai_logs/<code>')
+def api_admin_ai_logs(code):
+    if session.get('username') != 'admin': return {"error": "권한이 없습니다."}, 403
+    db = get_db()
+    # 파라미터 code를 username으로 활용하여 조회
+    target_user = db.execute('SELECT ID, NAME FROM USERS WHERE USERNAME = ?', (code,)).fetchone()
+    if not target_user: return {"error": "사용자를 찾을 수 없습니다."}, 404
+    
+    logs = db.execute('SELECT PROMPT, CREATED_AT FROM AI_LOGS WHERE USER_ID = ? ORDER BY CREATED_AT DESC LIMIT 20', (target_user['ID'],)).fetchall()
+    return {
+        "name": target_user['NAME'],
+        "logs": [{"prompt": l['PROMPT'], "time": l['CREATED_AT']} for l in logs]
+    }
 
 if __name__ == '__main__':
+    if not DATABASE_URL and not os.path.exists(DATABASE): init_db()
     app.run(host='0.0.0.0', port=5000, debug=True)

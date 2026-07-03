@@ -7,7 +7,7 @@
 <div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
     
     <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
-       <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
                 <span class="hidden md:inline-block text-xs font-bold text-red-400 bg-red-900/30 px-2 py-1 rounded border border-red-800/50">시스템 관리자</span>
@@ -28,7 +28,7 @@
                 <h2 class="text-2xl font-bold text-white flex items-center tracking-tight">
                     🛡️ 시스템 관리 패널
                 </h2>
-                <p class="text-xs text-gray-500 mt-1">공지사항 설정 및 사용자 관리를 수행합니다.</p>
+                <p class="text-xs text-gray-500 mt-1">공지사항 설정, AI 관리 및 사용자 조회를 수행합니다.</p>
             </div>
         </div>
 
@@ -40,45 +40,58 @@
           {% endif %}
         {% endwith %}
 
-        <!-- 신규: 공지사항 관리 패널 -->
         <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">📢</span> 대시보드 공지사항 설정</h3>
             <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="update_notice">
                 <div>
                     <label class="block text-sm text-gray-400 mb-2">공지 내용 (최대 100자 이내)</label>
-                    <input type="text" name="message" value="{{ notice.MESSAGE if notice else '' }}" maxlength="100" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="대시보드 상단에 흐르는 글씨로 표출될 공지사항을 입력하세요.">
+                    <input type="text" name="message" value="{{ notice.MESSAGE if notice else '' }}" maxlength="100" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-2">
                     <label class="flex items-center space-x-3 cursor-pointer mb-4 sm:mb-0">
                         <input type="checkbox" name="is_active" {% if notice and notice.IS_ACTIVE in [1, '1', True] %}checked{% endif %} class="w-5 h-5 text-blue-600 bg-gray-900 border-gray-600 rounded focus:ring-blue-500 focus:ring-2">
                         <span class="text-sm font-medium text-gray-300">대시보드에 공지 전광판 노출 활성화</span>
                     </label>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">
-                        공지사항 저장 및 적용
-                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">공지사항 저장 및 적용</button>
                 </div>
             </form>
         </div>
 
-        <!-- 신규: 메인화면 텍스트 관리 패널 -->
         <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden mt-8">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">📝</span> 메인 화면(로그인) 문구 설정</h3>
             <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
                 <input type="hidden" name="action" value="update_main_text">
                 <div>
                     <label class="block text-sm text-gray-400 mb-2">HTML 태그를 포함하여 자유롭게 작성하세요.</label>
-                    <textarea name="main_text" rows="3" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="기본 문구">{{ main_text.MESSAGE if main_text else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>' }}</textarea>
+                    <textarea name="main_text" rows="3" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">{{ main_text.MESSAGE if main_text else '' }}</textarea>
                 </div>
                 <div class="flex justify-end pt-2">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">
-                        메인 문구 저장
-                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">메인 문구 저장</button>
                 </div>
             </form>
         </div>
 
-        <!-- 신규: 시스템 데이터/캐시 관리 패널 -->
+        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden mt-8">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">🤖</span> NCS AI 추천 질문 설정</h3>
+            <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
+                <input type="hidden" name="action" value="update_ai_questions">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">추천 질문 1</label>
+                        <input type="text" name="rec_q1" value="{{ q1.MESSAGE if q1 else '' }}" maxlength="100" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">추천 질문 2</label>
+                        <input type="text" name="rec_q2" value="{{ q2.MESSAGE if q2 else '' }}" maxlength="100" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    </div>
+                </div>
+                <div class="flex justify-end pt-2">
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">추천 질문 저장</button>
+                </div>
+            </form>
+        </div>
+
         <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden mt-8">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">⚙️</span> 시스템 유지보수</h3>
             <div class="flex flex-col sm:flex-row gap-4">
@@ -88,10 +101,10 @@
                         <span class="mr-2">🏆</span> 랭킹 즉시 갱신
                     </button>
                 </form>
-                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('모든 채팅 내역과 도배 밴(Ban) 기록을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.');" class="flex-1">
+                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('모든 채팅 내역과 도배 밴(Ban) 기록을 삭제하시겠습니까?');" class="flex-1">
                     <input type="hidden" name="action" value="reset_chat">
                     <button type="submit" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-3 rounded-lg transition-colors shadow-lg flex items-center justify-center">
-                        <span class="mr-2">🗑️</span> 미니 채팅방 초기화
+                        <span class="mr-2">🗑️</span> 채팅방 초기화
                     </button>
                 </form>
             </div>
@@ -124,20 +137,17 @@
                             <td class="px-5 py-4 text-right font-medium text-yellow-400">{{ "{:,.0f}".format(u.CASH_BALANCE) }}원</td>
                             <td class="px-5 py-4 text-center font-bold text-indigo-400">{{ u.DAILY_AI_COUNT if u.DAILY_AI_COUNT is not none else 0 }}회</td>
                             <td class="px-5 py-4 text-center text-xs text-gray-500">{{ u.CREATED_AT.split(' ')[0] if u.CREATED_AT else '-' }}</td>
-                            <td class="px-5 py-4 text-center flex justify-center space-x-2">
-                                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('[{{ u.USERNAME }}] 계정의 비밀번호를 0000으로 초기화 하시겠습니까?');">
-                                    <input type="hidden" name="action" value="reset_pw">
-                                    <input type="hidden" name="target_user" value="{{ u.USERNAME }}">
-                                    <button type="submit" class="bg-red-600/80 hover:bg-red-500 text-white text-[10px] px-2 py-1 rounded transition shadow">
-                                        비번 초기화
-                                    </button>
-                                </form>
-                                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('[{{ u.USERNAME }}] 사용자의 오늘 AI 사용 횟수를 0으로 리셋하시겠습니까?');">
+                            <td class="px-5 py-4 text-center flex flex-wrap justify-center gap-1">
+                                <button onclick="viewAILogs('{{ u.USERNAME }}')" class="bg-gray-700 hover:bg-gray-600 text-white text-[10px] px-2 py-1 rounded transition shadow">질문조회</button>
+                                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('AI 사용량을 0으로 리셋하시겠습니까?');">
                                     <input type="hidden" name="action" value="reset_ai_limit">
                                     <input type="hidden" name="target_user" value="{{ u.USERNAME }}">
-                                    <button type="submit" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-[10px] px-2 py-1 rounded transition shadow">
-                                        AI 리셋
-                                    </button>
+                                    <button type="submit" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-[10px] px-2 py-1 rounded transition shadow">AI리셋</button>
+                                </form>
+                                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('비밀번호를 0000으로 초기화 하시겠습니까?');">
+                                    <input type="hidden" name="action" value="reset_pw">
+                                    <input type="hidden" name="target_user" value="{{ u.USERNAME }}">
+                                    <button type="submit" class="bg-red-600/80 hover:bg-red-500 text-white text-[10px] px-2 py-1 rounded transition shadow">비번리셋</button>
                                 </form>
                             </td>
                         </tr>
@@ -145,7 +155,7 @@
                         
                         {% if not users %}
                         <tr>
-                            <td colspan="6" class="px-5 py-10 text-center text-gray-500">
+                            <td colspan="7" class="px-5 py-10 text-center text-gray-500">
                                 가입된 사용자가 없습니다.
                             </td>
                         </tr>
@@ -156,4 +166,48 @@
         </div>
     </div>
 </div>
+
+<!-- 사용자 AI 로그 모달 -->
+<div id="ai-log-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex-col items-center justify-center z-50 transition-opacity">
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl relative w-full max-w-2xl mx-4 border border-gray-700">
+        <button onclick="document.getElementById('ai-log-modal').classList.add('hidden'); document.getElementById('ai-log-modal').classList.remove('flex');" class="absolute top-4 right-5 text-gray-400 hover:text-white font-bold text-2xl transition-colors">&times;</button>
+        <h3 class="text-white font-bold text-lg mb-4 flex items-center"><span class="mr-2">🔎</span> <span id="modal-log-user">사용자</span>님의 최근 AI 질문</h3>
+        <div id="modal-log-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2 text-sm">
+            <!-- Logs injected here -->
+        </div>
+        <button onclick="document.getElementById('ai-log-modal').classList.add('hidden'); document.getElementById('ai-log-modal').classList.remove('flex');" class="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition-colors">닫기</button>
+    </div>
+</div>
+
+<script>
+    function viewAILogs(username) {
+        document.getElementById('modal-log-list').innerHTML = '<p class="text-center py-4 text-gray-400">데이터를 불러오는 중...</p>';
+        const modal = document.getElementById('ai-log-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        
+        fetch(`/api/admin/ai_logs/${username}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) {
+                document.getElementById('modal-log-list').innerHTML = `<p class="text-center text-red-400 py-4">${data.error}</p>`;
+                return;
+            }
+            document.getElementById('modal-log-user').innerText = data.name;
+            if (data.logs.length === 0) {
+                document.getElementById('modal-log-list').innerHTML = '<p class="text-center py-4 text-gray-400">최근 질문 내역이 없습니다.</p>';
+                return;
+            }
+            document.getElementById('modal-log-list').innerHTML = data.logs.map(log => `
+                <div class="bg-gray-900 p-3 rounded-lg border border-gray-700/50">
+                    <p class="text-gray-300 text-xs mb-1 font-mono">${log.time}</p>
+                    <p class="text-white whitespace-pre-wrap">${log.prompt}</p>
+                </div>
+            `).join('');
+        })
+        .catch(err => {
+            document.getElementById('modal-log-list').innerHTML = '<p class="text-center text-red-400 py-4">조회 중 오류가 발생했습니다.</p>';
+        });
+    }
+</script>
 {% endblock %}
