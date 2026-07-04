@@ -6,6 +6,7 @@
 {% block content %}
 <div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
     
+    <!-- 상단 헤더 -->
     <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
         <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
@@ -15,171 +16,131 @@
             <nav class="hidden md:flex space-x-2 items-center">
                 <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">홈</a>
                 <a href="{{ url_for('ai_page') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">NCS AI</a>
-                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">대시보드로 돌아가기</a>
             </nav>
-            <a href="{{ url_for('dashboard') }}" class="md:hidden text-gray-400 hover:text-white text-xs font-medium bg-gray-800/50 px-3 py-1.5 rounded-full">뒤로가기</a>
         </div>
     </header>
 
-    <div class="w-full max-w-5xl mx-auto p-4 flex-grow mt-4 space-y-6">
-        
-        <div class="flex justify-between items-end mb-4 px-2">
-            <div>
-                <h2 class="text-2xl font-bold text-white flex items-center tracking-tight">
-                    🛡️ 시스템 관리 패널
-                </h2>
-                <p class="text-xs text-gray-500 mt-1">공지사항 설정, AI 관리 및 사용자 조회를 수행합니다.</p>
-            </div>
-        </div>
-
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <div class="mb-4 bg-green-500/20 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-sm font-bold text-center shadow-lg">
-              {{ messages[0] }}
-            </div>
-          {% endif %}
-        {% endwith %}
-
-        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">📢</span> 대시보드 공지사항 설정</h3>
-            <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
-                <input type="hidden" name="action" value="update_notice">
+    <!-- 사용자 관리 섹션 (버튼 높이 최적화 적용) -->
+    <div class="max-w-5xl mx-auto w-full px-4 py-6">
+        <h2 class="text-xl font-bold text-white mb-4">사용자 목록</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="user-list-container">
+            {% for u in users %}
+            <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-4 flex flex-col justify-between">
                 <div>
-                    <label class="block text-sm text-gray-400 mb-2">공지 내용 (최대 100자 이내)</label>
-                    <input type="text" name="message" value="{{ notice.MESSAGE if notice else '' }}" maxlength="100" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <h3 class="text-lg font-bold text-white">{{ u.NAME }}</h3>
+                    <p class="text-sm text-gray-400 font-mono">{{ u.USERNAME }}</p>
                 </div>
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-2">
-                    <label class="flex items-center space-x-3 cursor-pointer mb-4 sm:mb-0">
-                        <input type="checkbox" name="is_active" {% if notice and notice.IS_ACTIVE in [1, '1', True] %}checked{% endif %} class="w-5 h-5 text-blue-600 bg-gray-900 border-gray-600 rounded focus:ring-blue-500 focus:ring-2">
-                        <span class="text-sm font-medium text-gray-300">대시보드에 공지 전광판 노출 활성화</span>
-                    </label>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">공지사항 저장 및 적용</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden mt-8">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">📝</span> 메인 화면(로그인) 문구 설정</h3>
-            <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
-                <input type="hidden" name="action" value="update_main_text">
-                <div>
-                    <label class="block text-sm text-gray-400 mb-2">HTML 태그를 포함하여 자유롭게 작성하세요.</label>
-                    <textarea name="main_text" rows="3" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500">{{ main_text.MESSAGE if main_text else '' }}</textarea>
-                </div>
-                <div class="flex justify-end pt-2">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">메인 문구 저장</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden mt-8">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">🤖</span> NCS AI 추천 질문 설정</h3>
-            <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
-                <input type="hidden" name="action" value="update_ai_questions">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-2">추천 질문 1</label>
-                        <input type="text" name="rec_q1" value="{{ q1.MESSAGE if q1 else '' }}" maxlength="100" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-2">추천 질문 2</label>
-                        <input type="text" name="rec_q2" value="{{ q2.MESSAGE if q2 else '' }}" maxlength="100" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500">
-                    </div>
-                </div>
-                <div class="flex justify-end pt-2">
-                    <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-2.5 rounded-lg transition-colors shadow-lg">추천 질문 저장</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl p-6 relative overflow-hidden mt-8">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center"><span class="mr-2">⚙️</span> 시스템 유지보수</h3>
-            <div class="flex flex-col sm:flex-row gap-4">
-                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('모든 사용자의 최신 자산을 기준으로 랭킹을 즉시 다시 계산하시겠습니까?');" class="flex-1">
-                    <input type="hidden" name="action" value="refresh_ranking">
-                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition-colors shadow-lg flex items-center justify-center">
-                        <span class="mr-2">🏆</span> 랭킹 즉시 갱신
+                <!-- 버튼 영역을 가로 한 줄로 변경 (그리드 배열) -->
+                <div class="mt-4 grid grid-cols-3 gap-1.5">
+                    <button onclick="resetPassword('{{ u.USERNAME }}')" class="w-full text-[11px] bg-yellow-900/40 text-yellow-500 py-2 rounded border border-yellow-800/50 hover:bg-yellow-900/60 transition font-bold whitespace-nowrap">
+                        비밀번호
                     </button>
-                </form>
-                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('모든 채팅 내역과 도배 밴(Ban) 기록을 삭제하시겠습니까?');" class="flex-1">
-                    <input type="hidden" name="action" value="reset_chat">
-                    <button type="submit" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-3 rounded-lg transition-colors shadow-lg flex items-center justify-center">
-                        <span class="mr-2">🗑️</span> 채팅방 초기화
+                    <button onclick="viewAILogs('{{ u.USERNAME }}')" class="w-full text-[11px] bg-purple-900/40 text-purple-400 py-2 rounded border border-purple-800/50 hover:bg-purple-900/60 transition font-bold whitespace-nowrap">
+                        AI 로그
                     </button>
-                </form>
+                    <button onclick="deleteUser('{{ u.USERNAME }}')" class="w-full text-[11px] bg-red-900/40 text-red-500 py-2 rounded border border-red-800/50 hover:bg-red-900/60 transition font-bold whitespace-nowrap">
+                        삭제
+                    </button>
+                </div>
             </div>
+            {% endfor %}
         </div>
+    </div>
+    
+    <!-- 모바일 하단 메뉴 네비게이션 -->
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe no-scrollbar space-x-2">
+        <a href="{{ url_for('dashboard') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏠</span><span class="text-[9px] font-medium">홈</span></a>
+        <a href="{{ url_for('trade') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">📈</span><span class="text-[9px] font-medium">주문</span></a>
+        <a href="{{ url_for('portfolio') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
+        <a href="{{ url_for('ranking') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
+        <a href="{{ url_for('simulation') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
+        <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400 hover:text-indigo-300 transition-colors">
+            <!-- 하단 메뉴 아이콘 SVG 교체 -->
+            <span class="mb-1 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
+            </span>
+            <span class="text-[9px] font-bold">NCS AI</span>
+        </a>
+        {% if session.get('username') == 'admin' %}
+        <a href="{{ url_for('admin') }}" class="flex-none w-14 flex flex-col items-center justify-center text-red-500"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
+        {% endif %}
+    </nav>
+</div>
 
-        <!-- 사용자 목록 테이블 -->
-        <div class="bg-[#121824]/50 rounded-2xl border border-gray-800 shadow-xl overflow-hidden mt-8">
-            <div class="p-5 border-b border-gray-800">
-                <h3 class="text-lg font-bold text-white flex items-center"><span class="mr-2">👥</span> 전체 사용자 관리</h3>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-gray-300">
-                    <thead class="bg-[#0b101a] text-gray-500 text-xs uppercase font-semibold">
-                        <tr>
-                            <th scope="col" class="px-5 py-4 w-12 text-center">No</th>
-                            <th scope="col" class="px-5 py-4">아이디</th>
-                            <th scope="col" class="px-5 py-4">이름/닉네임</th>
-                            <th scope="col" class="px-5 py-4 text-right">보유 현금</th>
-                            <th scope="col" class="px-5 py-4 text-center">AI사용량</th>
-                            <th scope="col" class="px-5 py-4 text-center">가입일</th>
-                            <th scope="col" class="px-5 py-4 text-center">작업</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-800/50">
-                        {% for u in users %}
-                        <tr class="hover:bg-gray-800/30 transition-colors">
-                            <td class="px-5 py-4 text-center text-gray-500">{{ loop.index }}</td>
-                            <td class="px-5 py-4 font-mono font-bold text-blue-400">{{ u.USERNAME }}</td>
-                            <td class="px-5 py-4 font-bold text-white">{{ u.NAME }}</td>
-                            <td class="px-5 py-4 text-right font-medium text-yellow-400">{{ "{:,.0f}".format(u.CASH_BALANCE) }}원</td>
-                            <td class="px-5 py-4 text-center font-bold text-indigo-400">{{ u.DAILY_AI_COUNT if u.DAILY_AI_COUNT is not none else 0 }}회</td>
-                            <td class="px-5 py-4 text-center text-xs text-gray-500">{{ u.CREATED_AT.split(' ')[0] if u.CREATED_AT else '-' }}</td>
-                            <td class="px-5 py-4 text-center flex flex-wrap justify-center gap-1">
-                                <button onclick="viewAILogs('{{ u.USERNAME }}')" class="bg-gray-700 hover:bg-gray-600 text-white text-[10px] px-2 py-1 rounded transition shadow">질문조회</button>
-                                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('AI 사용량을 0으로 리셋하시겠습니까?');">
-                                    <input type="hidden" name="action" value="reset_ai_limit">
-                                    <input type="hidden" name="target_user" value="{{ u.USERNAME }}">
-                                    <button type="submit" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-[10px] px-2 py-1 rounded transition shadow">AI리셋</button>
-                                </form>
-                                <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('비밀번호를 0000으로 초기화 하시겠습니까?');">
-                                    <input type="hidden" name="action" value="reset_pw">
-                                    <input type="hidden" name="target_user" value="{{ u.USERNAME }}">
-                                    <button type="submit" class="bg-red-600/80 hover:bg-red-500 text-white text-[10px] px-2 py-1 rounded transition shadow">비번리셋</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        
-                        {% if not users %}
-                        <tr>
-                            <td colspan="7" class="px-5 py-10 text-center text-gray-500">
-                                가입된 사용자가 없습니다.
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+<!-- AI 로그 조회 모달 -->
+<div id="ai-log-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center p-4 transition-opacity">
+    <div class="bg-[#121824] rounded-2xl border border-gray-700 w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl relative">
+        <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 rounded-t-2xl">
+            <h3 class="text-lg font-bold text-white"><span id="modal-log-user" class="text-purple-400"></span>님의 AI 질문 내역</h3>
+            <button onclick="closeModal('ai-log-modal')" class="text-gray-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div id="modal-log-list" class="p-4 overflow-y-auto flex-grow space-y-3">
+            <!-- 로그 리스트 삽입 위치 -->
         </div>
     </div>
 </div>
 
-<!-- 사용자 AI 로그 모달 -->
-<div id="ai-log-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex-col items-center justify-center z-50 transition-opacity">
-    <div class="bg-gray-800 p-6 rounded-2xl shadow-2xl relative w-full max-w-2xl mx-4 border border-gray-700">
-        <button onclick="document.getElementById('ai-log-modal').classList.add('hidden'); document.getElementById('ai-log-modal').classList.remove('flex');" class="absolute top-4 right-5 text-gray-400 hover:text-white font-bold text-2xl transition-colors">&times;</button>
-        <h3 class="text-white font-bold text-lg mb-4 flex items-center"><span class="mr-2">🔎</span> <span id="modal-log-user">사용자</span>님의 최근 AI 질문</h3>
-        <div id="modal-log-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2 text-sm">
-            <!-- Logs injected here -->
-        </div>
-        <button onclick="document.getElementById('ai-log-modal').classList.add('hidden'); document.getElementById('ai-log-modal').classList.remove('flex');" class="w-full mt-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition-colors">닫기</button>
-    </div>
-</div>
-
+<!-- 자바스크립트 영역 -->
 <script>
+    // 모달 닫기
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    // 비밀번호 초기화
+    function resetPassword(username) {
+        if(!confirm(`${username}의 비밀번호를 초기화 하시겠습니까? (초기화 시 기본값: 1234)`)) return;
+        
+        fetch('/api/admin/reset_password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: username})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                alert("비밀번호가 성공적으로 초기화되었습니다.");
+            } else {
+                alert("오류 발생: " + data.error);
+            }
+        })
+        .catch(err => {
+            alert("서버 통신 중 문제가 발생했습니다.");
+            console.error(err);
+        });
+    }
+
+    // 사용자 삭제
+    function deleteUser(username) {
+        if(!confirm(`정말로 ${username} 사용자를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 보유 주식과 데이터가 모두 삭제됩니다.`)) return;
+        
+        fetch('/api/admin/delete_user', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: username})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                alert("사용자가 삭제되었습니다.");
+                window.location.reload();
+            } else {
+                alert("오류 발생: " + data.error);
+            }
+        })
+        .catch(err => {
+            alert("서버 통신 중 문제가 발생했습니다.");
+            console.error(err);
+        });
+    }
+
+    // 사용자별 AI 로그 조회
     function viewAILogs(username) {
         document.getElementById('modal-log-list').innerHTML = '<p class="text-center py-4 text-gray-400">데이터를 불러오는 중...</p>';
         const modal = document.getElementById('ai-log-modal');
@@ -193,20 +154,24 @@
                 document.getElementById('modal-log-list').innerHTML = `<p class="text-center text-red-400 py-4">${data.error}</p>`;
                 return;
             }
+            
             document.getElementById('modal-log-user').innerText = data.name;
+            
             if (data.logs.length === 0) {
                 document.getElementById('modal-log-list').innerHTML = '<p class="text-center py-4 text-gray-400">최근 질문 내역이 없습니다.</p>';
                 return;
             }
+            
             document.getElementById('modal-log-list').innerHTML = data.logs.map(log => `
                 <div class="bg-gray-900 p-3 rounded-lg border border-gray-700/50">
-                    <p class="text-gray-300 text-xs mb-1 font-mono">${log.time}</p>
-                    <p class="text-white whitespace-pre-wrap">${log.prompt}</p>
+                    <p class="text-gray-400 text-[11px] mb-1 font-mono">${log.time}</p>
+                    <p class="text-gray-200 text-sm whitespace-pre-wrap">${log.prompt}</p>
                 </div>
             `).join('');
         })
         .catch(err => {
-            document.getElementById('modal-log-list').innerHTML = '<p class="text-center text-red-400 py-4">조회 중 오류가 발생했습니다.</p>';
+            document.getElementById('modal-log-list').innerHTML = `<p class="text-center text-red-400 py-4">서버 오류가 발생했습니다.</p>`;
+            console.error(err);
         });
     }
 </script>

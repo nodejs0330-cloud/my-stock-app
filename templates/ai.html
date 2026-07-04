@@ -40,9 +40,9 @@
         </div>
     </header>
 
-    <div class="flex-grow w-full max-w-4xl mx-auto flex flex-col relative pt-4 pb-[140px] md:pb-32 px-4 no-scrollbar overflow-y-auto" id="chat-container">
+    <div class="flex-grow w-full max-w-4xl mx-auto flex flex-col relative pt-4 pb-[130px] md:pb-32 px-4 overflow-y-auto no-scrollbar" id="chat-container">
         
-        <div class="flex justify-center mb-8 sticky top-0 z-30 pt-2">
+        <div class="flex justify-center mb-4 md:mb-8 sticky top-0 z-30 pt-2">
             <div class="bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-full p-1 flex shadow-lg space-x-1 overflow-x-auto no-scrollbar">
                 <button id="btn-gemini-model" onclick="switchModel('gemini')" class="px-4 py-2 rounded-full text-[13px] font-bold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap">
                     NCS 텍스트 비서 <span class="text-[10px] text-blue-300 ml-1 font-normal">Gemini 2.5</span>
@@ -56,18 +56,25 @@
             </div>
         </div>
 
-        <div id="welcome-message" class="flex flex-col items-center justify-center flex-grow mt-10 transition-opacity duration-500">
-            <h1 class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 text-center tracking-tight mb-4">
-                {{ session.name }}님,<br>오늘 어떤 통찰을 얻고 싶으신가요?
-            </h1>
-            <p class="text-gray-400 text-center text-sm md:text-base max-w-lg mb-8">안정적인 최신 AI 모델이 주식 전망부터 투자 전략, 창의적인 이미지까지 모든 것을 지원합니다.</p>
+        <div id="welcome-message" class="flex flex-col items-center justify-center flex-grow mt-2 md:mt-10 transition-opacity duration-500 min-h-[300px]">
+            <!-- Gemini 스타일 SVG 로고 -->
+            <div class="mb-4 text-transparent bg-clip-text text-purple-400 flex justify-center">
+                <svg class="w-14 h-14 md:w-16 md:h-16 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)] animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/>
+                </svg>
+            </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl" id="suggested-queries">
-                <button onclick="setInputAndSend(`{{ rec_q1 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-4 rounded-2xl text-left transition text-sm text-gray-300">
-                    <span class="block text-xl mb-2">📉</span> {{ rec_q1 }}
+            <h1 id="greeting-text" class="text-2xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 text-center tracking-tight mb-4 leading-tight">
+                {{ session.name }}님,<br>무엇을 도와드릴까요?
+            </h1>
+            <p class="text-gray-400 text-center text-xs md:text-base max-w-lg mb-6">안정적인 최신 AI 모델이 주식 전망부터 투자 전략, 창의적인 이미지까지 모든 것을 지원합니다.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 w-full max-w-2xl px-2" id="suggested-queries">
+                <button onclick="setInputAndSend(`{{ rec_q1 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition text-[13px] md:text-sm text-gray-300">
+                    <span class="block text-lg mb-1">📉</span> <span class="line-clamp-2">{{ rec_q1 }}</span>
                 </button>
-                <button onclick="setInputAndSend(`{{ rec_q2 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-4 rounded-2xl text-left transition text-sm text-gray-300">
-                    <span class="block text-xl mb-2">🧐</span> {{ rec_q2 }}
+                <button onclick="setInputAndSend(`{{ rec_q2 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition text-[13px] md:text-sm text-gray-300">
+                    <span class="block text-lg mb-1">🧐</span> <span class="line-clamp-2">{{ rec_q2 }}</span>
                 </button>
             </div>
         </div>
@@ -86,7 +93,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                 </button>
             </div>
-            <p class="text-[10px] text-gray-500 text-center mt-3">NCS AI는 실수할 수 있습니다. 생성된 정보나 이미지를 중요한 투자 결정의 근거로 사용하지 마세요.</p>
+            <p class="text-[10px] text-gray-500 text-center mt-3 hidden md:block">NCS AI는 실수할 수 있습니다. 생성된 정보나 이미지를 중요한 투자 결정의 근거로 사용하지 마세요.</p>
         </div>
     </div>
 
@@ -96,11 +103,28 @@
         <a href="{{ url_for('portfolio') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">💼</span><span class="text-[9px] font-medium">내주식</span></a>
         <a href="{{ url_for('ranking') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
         <a href="{{ url_for('simulation') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
-        <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400"><span class="text-2xl mb-1 drop-shadow-[0_0_8px_rgba(99,102,241,0.8)]">🤖</span><span class="text-[9px] font-bold">NCS AI</span></a>
+        <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400">
+            <!-- 하단 메뉴 아이콘 SVG 로 교체 -->
+            <span class="mb-1 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
+            </span>
+            <span class="text-[9px] font-bold">NCS AI</span>
+        </a>
     </nav>
 </div>
 
 <script>
+    // --- 2-2. 랜덤 인사말 기능 ---
+    const greetings = [
+        "오늘 어떤 통찰을 얻고 싶으신가요?",
+        "어떤 영감이 필요하신가요?",
+        "투자에 대한 고민, 함께 나누어 볼까요?",
+        "새로운 아이디어가 필요하신가요?",
+        "무엇이든 물어보세요, 대답할 준비가 되었습니다."
+    ];
+    const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+    document.getElementById('greeting-text').innerHTML = `{{ session.name }}님,<br>${randomGreeting}`;
+
     let currentMode = 'gemini'; 
     const chatHistory = [];
     const chatContainer = document.getElementById('chat-container');
@@ -111,7 +135,21 @@
     const suggestedQueries = document.getElementById('suggested-queries');
     const nvidiaWarning = document.getElementById('nvidia-warning');
     
-    // --- 기능 1: 요청 취소 컨트롤러 선언 ---
+    // --- 2-1. 사용자 스크롤 추적 및 자동 스크롤 제어 ---
+    let isUserScrolling = false;
+    chatContainer.addEventListener('scroll', () => {
+        // 스크롤이 맨 밑에서 10px 이상 위로 올라갔는지 판단
+        const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 10;
+        isUserScrolling = !isAtBottom;
+    });
+
+    function scrollToBottom() {
+        // 사용자가 위로 스크롤한 상태가 아닐 때만 맨 아래로 이동
+        if (!isUserScrolling) {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+        }
+    }
+
     let abortController = null;
     let timeoutTimer = null;
 
@@ -155,7 +193,6 @@
         sendMessage();
     }
     
-    // --- 기능 2: 중지 버튼 호출 함수 ---
     window.cancelAIRequest = function() {
         if (abortController) {
             abortController.abort();
@@ -175,25 +212,26 @@
             bubble.textContent = content;
         } else {
             bubble.className = "text-gray-200 px-2 py-2 w-full max-w-3xl text-[15px] leading-relaxed flex flex-col";
-            const iconHtml = `<div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mb-3 shrink-0 shadow-lg"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg></div>`;
+            const iconHtml = `
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mb-3 shrink-0 shadow-lg">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
+            </div>`;
             
             let contentHtml = '';
             if (type === 'text') {
                 let formatted = content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
                 contentHtml = `<div class="prose prose-invert max-w-none">${formatted}</div>`;
             } else if (type === 'typing') {
-                // 타이핑 효과를 위한 빈 컨테이너 반환
                 contentHtml = `<div class="prose prose-invert max-w-none text-content"></div>`;
             } else if (type === 'image') {
                 contentHtml = `<img src="data:image/jpeg;base64,${content}" class="rounded-xl shadow-2xl max-w-full h-auto mt-2 border border-white/10" alt="Generated Image">`;
             } else if (type === 'loading') {
-                // 로딩 중 UI에 [중지] 버튼 추가
                 contentHtml = `
                 <div class="flex items-center justify-between w-full max-w-sm">
-                    <div class="flex items-center space-x-2 text-indigo-400 font-medium animate-pulse mt-1">
-                        <div class="w-2 h-2 bg-indigo-400 rounded-full"></div>
-                        <div class="w-2 h-2 bg-indigo-400 rounded-full" style="animation-delay: 0.2s"></div>
-                        <div class="w-2 h-2 bg-indigo-400 rounded-full" style="animation-delay: 0.4s"></div>
+                    <div class="flex items-center space-x-2 text-purple-400 font-medium animate-pulse mt-1">
+                        <div class="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <div class="w-2 h-2 bg-purple-400 rounded-full" style="animation-delay: 0.2s"></div>
+                        <div class="w-2 h-2 bg-purple-400 rounded-full" style="animation-delay: 0.4s"></div>
                         <span class="ml-2 text-sm">생각 중...</span>
                     </div>
                     <button onclick="cancelAIRequest()" class="ml-4 text-xs font-bold bg-red-900/50 hover:bg-red-800 text-red-300 border border-red-700/50 px-3 py-1.5 rounded transition">
@@ -207,22 +245,20 @@
 
         wrapper.appendChild(bubble);
         messagesDiv.appendChild(wrapper);
-        scrollToBottom();
+        
+        // 메시지 추가 시 사용자가 스크롤을 올려둔 상태가 아니면 무조건 오토스크롤 실행
+        if (!isUserScrolling) {
+            chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
+        }
         return wrapper;
     }
 
-    function scrollToBottom() {
-        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-    }
-
-    // --- 기능 3: 타이핑 애니메이션 함수 ---
     function typeWriter(element, text, speed = 15) {
         return new Promise(resolve => {
             let i = 0;
             element.innerHTML = '';
             const interval = setInterval(() => {
                 let currentText = text.substring(0, i);
-                // HTML 마크다운 파싱을 유지하며 렌더링
                 element.innerHTML = currentText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
                 scrollToBottom();
                 i++;
@@ -238,8 +274,9 @@
         const text = retryText || inputEl.value.trim();
         if (!text) return;
         
-        // 재시도가 아닐 때만 사용자의 질문을 화면과 히스토리에 기록
         if (!retryText && !skipHistory) {
+            // 새 질문 전송 시 오토 스크롤 락 해제
+            isUserScrolling = false; 
             appendMessage('user', text);
             chatHistory.push({ role: "user", content: text });
         }
@@ -249,28 +286,23 @@
         sendBtn.disabled = true;
 
         const loadingNode = appendMessage('assistant', '', 'loading');
-
-        // 요청 취소 객체 초기화
         abortController = new AbortController();
-        let isSwitched = false; // 제안 승낙 여부 플래그
+        let isSwitched = false; 
 
-        // --- 기능 4: 70초 지연 시 자동 제안 로직 ---
         clearTimeout(timeoutTimer);
         timeoutTimer = setTimeout(() => {
             if (currentMode === 'text' && !abortController.signal.aborted) {
                 if (confirm("서버가 혼잡하여 로딩이 길어지고 있습니다. 속도가 빠른 Gemini로 변경하여 답변을 받으시겠습니까?")) {
                     isSwitched = true;
-                    abortController.abort(); // 기존 Llama 요청 취소
-                    switchModel('gemini');   // 모드 변경
+                    abortController.abort(); 
+                    switchModel('gemini');   
                     
                     messagesDiv.removeChild(loadingNode);
-                    chatHistory.pop(); // Llama용으로 넣었던 User prompt 빼기 (다시 넣을 것이므로)
-                    
-                    // Gemini로 재검색 트리거
+                    chatHistory.pop(); 
                     sendMessage(text);
                 }
             }
-        }, 70000); // 70초
+        }, 70000); 
 
         try {
             if (currentMode === 'gemini' || currentMode === 'text') {
@@ -278,10 +310,10 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ messages: chatHistory, vendor: currentMode }),
-                    signal: abortController.signal // fetch에 signal 연결
+                    signal: abortController.signal
                 });
                 
-                clearTimeout(timeoutTimer); // 완료 시 타이머 해제
+                clearTimeout(timeoutTimer); 
                 const data = await res.json();
                 
                 messagesDiv.removeChild(loadingNode);
@@ -290,7 +322,6 @@
                     appendMessage('assistant', "오류: " + data.error);
                     chatHistory.pop(); 
                 } else {
-                    // 타이핑 컨테이너 생성 및 애니메이션 호출
                     const msgNode = appendMessage('assistant', '', 'typing');
                     const textContainer = msgNode.querySelector('.text-content');
                     chatHistory.push({ role: "assistant", content: data.reply });
@@ -321,9 +352,7 @@
             clearTimeout(timeoutTimer);
             if(messagesDiv.contains(loadingNode)) messagesDiv.removeChild(loadingNode);
             
-            // AbortController로 취소된 경우
             if (e.name === 'AbortError') {
-                // 모델 전환 수락에 의한 취소가 아닐 때만 '중지됨' 표시
                 if (!isSwitched) {
                     appendMessage('assistant', "🚫 대화가 중지되었습니다.");
                     chatHistory.pop();

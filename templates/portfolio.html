@@ -127,7 +127,13 @@
         <a href="{{ url_for('portfolio') }}" class="flex-none w-14 flex flex-col items-center justify-center text-white"><span class="text-2xl mb-1">💼</span><span class="text-[9px] font-bold">내주식</span></a>
         <a href="{{ url_for('ranking') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
         <a href="{{ url_for('simulation') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
-        <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400 hover:text-indigo-300 transition-colors"><span class="text-2xl mb-1 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]">🤖</span><span class="text-[9px] font-bold">NCS AI</span></a>
+        <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400 hover:text-indigo-300 transition-colors">
+            <!-- 하단 메뉴 아이콘 SVG 교체 -->
+            <span class="mb-1 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
+            </span>
+            <span class="text-[9px] font-bold">NCS AI</span>
+        </a>
         {% if session.get('username') == 'admin' %}
         <a href="{{ url_for('admin') }}" class="flex-none w-14 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors"><span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span></a>
         {% endif %}
