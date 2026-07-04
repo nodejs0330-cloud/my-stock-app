@@ -21,8 +21,19 @@
 
     <header class="w-full bg-[#050810]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-40">
         <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
+            
+            <!-- 상단 로고 (모바일/데스크탑 분기) -->
+            <div class="flex items-center space-x-2">
+                <!-- 데스크탑에서는 NCC STOCK -->
+                <span class="hidden md:inline text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
+                
+                <!-- 모바일에서는 (로고) NCS AI -->
+                <span class="md:hidden flex items-center space-x-1.5 text-white font-bold text-lg">
+                    <svg class="w-5 h-5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
+                    <span>NCS AI</span>
+                </span>
+                
+                <!-- 데스크탑 전용 뱃지 -->
                 <span class="hidden md:inline-block text-xs font-bold text-indigo-400 bg-indigo-900/30 px-2 py-1 rounded border border-indigo-800/50">NCS AI</span>
             </div>
             
@@ -57,24 +68,28 @@
         </div>
 
         <div id="welcome-message" class="flex flex-col items-center justify-center flex-grow mt-2 md:mt-10 transition-opacity duration-500 min-h-[300px]">
-            <!-- Gemini 스타일 SVG 로고 -->
-            <div class="mb-4 text-transparent bg-clip-text text-purple-400 flex justify-center">
-                <svg class="w-14 h-14 md:w-16 md:h-16 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)] animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+            <!-- 중앙 상단 Gemini 스타일 SVG 로고 -->
+            <div class="mb-4 text-purple-400 flex justify-center">
+                <svg class="w-12 h-12 md:w-16 md:h-16 drop-shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-pulse" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/>
                 </svg>
             </div>
             
-            <h1 id="greeting-text" class="text-2xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-red-400 text-center tracking-tight mb-4 leading-tight">
-                {{ session.name }}님,<br>무엇을 도와드릴까요?
+            <!-- 인사말 텍스트 (Gemini 스타일 적용) -->
+            <h1 class="text-3xl md:text-5xl font-semibold text-center tracking-tight mb-8 leading-tight">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">{{ session.name }}님,</span><br>
+                <span id="dynamic-greeting" class="text-[#c4c7c5] mt-2 block text-2xl md:text-4xl">무엇을 도와드릴까요?</span>
             </h1>
-            <p class="text-gray-400 text-center text-xs md:text-base max-w-lg mb-6">안정적인 최신 AI 모델이 주식 전망부터 투자 전략, 창의적인 이미지까지 모든 것을 지원합니다.</p>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 w-full max-w-2xl px-2" id="suggested-queries">
-                <button onclick="setInputAndSend(`{{ rec_q1 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition text-[13px] md:text-sm text-gray-300">
-                    <span class="block text-lg mb-1">📉</span> <span class="line-clamp-2">{{ rec_q1 }}</span>
+            <!-- 추천 질문 (항상 2열 유지) -->
+            <div class="grid grid-cols-2 gap-2 md:gap-3 w-full max-w-2xl px-1" id="suggested-queries">
+                <button onclick="setInputAndSend(`{{ rec_q1 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition flex flex-col">
+                    <span class="block text-xl mb-1 sm:mb-2">📉</span> 
+                    <span class="text-[11px] sm:text-sm text-gray-300 line-clamp-3 md:line-clamp-2 leading-snug">{{ rec_q1 }}</span>
                 </button>
-                <button onclick="setInputAndSend(`{{ rec_q2 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition text-[13px] md:text-sm text-gray-300">
-                    <span class="block text-lg mb-1">🧐</span> <span class="line-clamp-2">{{ rec_q2 }}</span>
+                <button onclick="setInputAndSend(`{{ rec_q2 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition flex flex-col">
+                    <span class="block text-xl mb-1 sm:mb-2">🧐</span> 
+                    <span class="text-[11px] sm:text-sm text-gray-300 line-clamp-3 md:line-clamp-2 leading-snug">{{ rec_q2 }}</span>
                 </button>
             </div>
         </div>
@@ -104,7 +119,6 @@
         <a href="{{ url_for('ranking') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🏆</span><span class="text-[9px] font-medium">랭킹</span></a>
         <a href="{{ url_for('simulation') }}" class="flex-none w-14 flex flex-col items-center justify-center text-gray-500 hover:text-white transition-colors"><span class="text-2xl mb-1 opacity-60">🤔</span><span class="text-[9px] font-medium">만약에</span></a>
         <a href="{{ url_for('ai_page') }}" class="flex-none w-14 flex flex-col items-center justify-center text-indigo-400">
-            <!-- 하단 메뉴 아이콘 SVG 로 교체 -->
             <span class="mb-1 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.6)]">
                 <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
             </span>
@@ -114,16 +128,15 @@
 </div>
 
 <script>
-    // --- 2-2. 랜덤 인사말 기능 ---
+    // --- 랜덤 인사말 로직 ---
     const greetings = [
         "오늘 어떤 통찰을 얻고 싶으신가요?",
         "어떤 영감이 필요하신가요?",
         "투자에 대한 고민, 함께 나누어 볼까요?",
         "새로운 아이디어가 필요하신가요?",
-        "무엇이든 물어보세요, 대답할 준비가 되었습니다."
+        "무엇이든 물어보세요."
     ];
-    const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-    document.getElementById('greeting-text').innerHTML = `{{ session.name }}님,<br>${randomGreeting}`;
+    document.getElementById('dynamic-greeting').innerText = greetings[Math.floor(Math.random() * greetings.length)];
 
     let currentMode = 'gemini'; 
     const chatHistory = [];
@@ -135,16 +148,14 @@
     const suggestedQueries = document.getElementById('suggested-queries');
     const nvidiaWarning = document.getElementById('nvidia-warning');
     
-    // --- 2-1. 사용자 스크롤 추적 및 자동 스크롤 제어 ---
+    // --- 사용자 스크롤 추적 및 자동 스크롤 제어 ---
     let isUserScrolling = false;
     chatContainer.addEventListener('scroll', () => {
-        // 스크롤이 맨 밑에서 10px 이상 위로 올라갔는지 판단
         const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 10;
         isUserScrolling = !isAtBottom;
     });
 
     function scrollToBottom() {
-        // 사용자가 위로 스크롤한 상태가 아닐 때만 맨 아래로 이동
         if (!isUserScrolling) {
             chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
         }
@@ -184,7 +195,7 @@
             btnImage.innerHTML = 'NCS 상상 화가 <span class="text-[10px] text-pink-300 ml-1 font-normal">Flux.1</span>';
             inputEl.placeholder = "생성하고 싶은 이미지를 영어/한국어로 묘사해주세요...";
             suggestedQueries.classList.add('hidden');
-            nvidiaWarning.classList.add('hidden');
+            nvidiaWarning.classList.remove('hidden'); // Flux 모델도 NVIDIA 무료 서버이므로 경고창 활성화
         }
     }
 
@@ -246,7 +257,6 @@
         wrapper.appendChild(bubble);
         messagesDiv.appendChild(wrapper);
         
-        // 메시지 추가 시 사용자가 스크롤을 올려둔 상태가 아니면 무조건 오토스크롤 실행
         if (!isUserScrolling) {
             chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
         }
@@ -275,7 +285,6 @@
         if (!text) return;
         
         if (!retryText && !skipHistory) {
-            // 새 질문 전송 시 오토 스크롤 락 해제
             isUserScrolling = false; 
             appendMessage('user', text);
             chatHistory.push({ role: "user", content: text });
