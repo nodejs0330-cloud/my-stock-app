@@ -278,8 +278,12 @@ def check_ai_limit(user_id):
 def index():
     db = get_db()
     main_text_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
+    bg_mode_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 5').fetchone()
+    
     main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>'
-    return render_template('index.html', main_text=main_text)
+    bg_mode = bg_mode_row['MESSAGE'] if bg_mode_row else 'random'
+    
+    return render_template('index.html', main_text=main_text, bg_mode=bg_mode)
 
 @app.route('/', methods=['POST'])
 def login_post():
@@ -389,6 +393,10 @@ def admin():
             msg = request.form.get('main_text', '')
             db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (2, ?, 1)', (msg,))
             flash("✅ 메인 화면 문구 업데이트 완료.")
+        elif action == 'update_bg_mode':
+            mode = request.form.get('bg_mode', 'random')
+            db.execute('INSERT OR REPLACE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (5, ?, 1)', (mode,))
+            flash("✅ 메인 화면 배경 설정 완료.")
         elif action == 'update_ai_questions':
             q1 = request.form.get('rec_q1', '')[:100]
             q2 = request.form.get('rec_q2', '')[:100]
@@ -416,7 +424,8 @@ def admin():
     main_text_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
     q1_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 3').fetchone()
     q2_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 4').fetchone()
-    return render_template('admin.html', users=users, notice=notice, main_text=main_text_row, q1=q1_row, q2=q2_row)
+    bg_mode_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 5').fetchone()
+    return render_template('admin.html', users=users, notice=notice, main_text=main_text_row, q1=q1_row, q2=q2_row, bg_mode=bg_mode_row)
 
 @app.route('/logout')
 def logout():

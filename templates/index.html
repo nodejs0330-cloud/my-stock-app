@@ -65,7 +65,7 @@
     </div>
 </div>
 
-<!-- QR 모달 팝업 등 기타 UI (원본 유지) -->
+<!-- QR 모달 팝업 -->
 <div id="qr-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 transition-opacity">
     <div class="bg-gray-800 p-8 rounded-3xl shadow-2xl text-center relative max-w-sm w-full mx-4 border border-gray-700">
         <button id="qr-close-btn" class="absolute top-4 right-5 text-gray-400 hover:text-red-400 font-bold text-2xl transition-colors">&times;</button>
@@ -78,11 +78,13 @@
 <script>
     // 관리자 페이지 배경 설정(랜덤/고정)에 따른 화면 제어
     document.addEventListener("DOMContentLoaded", function() {
-        const bgMode = "{{ bg_mode }}";
+        // app.py에서 내려주는 bg_mode 변수. 값이 없거나 에러가 나면 'random'으로 기본 처리
+        const bgMode = "{{ bg_mode }}" || "random";
         
-        // bg_mode가 'random'일 경우 (혹은 설정이 없는 기본 상태일 경우)
         if (bgMode === 'random') {
-            document.body.style.backgroundImage = "url('https://source.unsplash.com/random/1920x1080/?space,galaxy,night')";
+            // Unsplash 대신 Picsum API를 사용하여 무작위 배경 적용
+            const randomImageUrl = `https://picsum.photos/1920/1080?random=${new Date().getTime()}`;
+            document.body.style.backgroundImage = `url('${randomImageUrl}')`;
             document.body.style.backgroundSize = "cover";
             document.body.style.backgroundPosition = "center";
         } else {
