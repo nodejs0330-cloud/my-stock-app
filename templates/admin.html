@@ -44,11 +44,11 @@
                         <div class="flex space-x-4">
                             <label class="flex items-center space-x-2 cursor-pointer">
                                 <input type="radio" name="bg_mode" value="fixed" {% if bg_mode and bg_mode.MESSAGE == 'fixed' %}checked{% endif %} class="w-4 h-4 text-blue-600 bg-gray-900 border-gray-600">
-                                <span class="text-sm text-gray-300">지정된 기본 이미지 사용</span>
+                                <span class="text-sm text-gray-300">기본 이미지 사용</span>
                             </label>
                             <label class="flex items-center space-x-2 cursor-pointer">
                                 <input type="radio" name="bg_mode" value="random" {% if not bg_mode or bg_mode.MESSAGE != 'fixed' %}checked{% endif %} class="w-4 h-4 text-blue-600 bg-gray-900 border-gray-600">
-                                <span class="text-sm text-gray-300">랜덤 우주/은하 이미지 사용</span>
+                                <span class="text-sm text-gray-300">랜덤 이미지 사용</span>
                             </label>
                         </div>
                         <button type="submit" class="w-full bg-blue-600/80 hover:bg-blue-500 text-white font-bold py-2 rounded transition">배경 모드 저장</button>
@@ -82,6 +82,25 @@
                         </div>
                     </form>
                 </div>
+
+                <!-- [복구됨] AI 추천 질문 설정 폼 -->
+                <div class="bg-gray-800/50 rounded-xl border border-gray-700/50 p-5 shadow-lg md:col-span-2">
+                    <h3 class="text-md font-bold text-purple-400 mb-3 flex items-center"><span class="mr-2"></span> NCS AI 추천 질문 설정</h3>
+                    <form action="{{ url_for('admin') }}" method="POST" class="space-y-4">
+                        <input type="hidden" name="action" value="update_ai_questions">
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">추천 질문 1</label>
+                            <input type="text" name="rec_q1" value="{{ q1.MESSAGE if q1 else '' }}" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded py-2 px-3 text-sm focus:outline-none" placeholder="예: 최근 삼성전자 하락 요인은?">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400 mb-1 block">추천 질문 2</label>
+                            <input type="text" name="rec_q2" value="{{ q2.MESSAGE if q2 else '' }}" class="w-full bg-[#1e2638] border border-gray-700 text-white rounded py-2 px-3 text-sm focus:outline-none" placeholder="예: 워런 버핏이라면 어떤 주식을 살까?">
+                        </div>
+                        <div class="flex justify-end pt-2">
+                            <button type="submit" class="bg-purple-600/80 hover:bg-purple-500 px-6 py-2 rounded text-white text-sm font-bold transition">AI 질문 저장</button>
+                        </div>
+                    </form>
+                </div>
             </div>
             
             <!-- 관리자 도구 버튼들 -->
@@ -89,13 +108,13 @@
                 <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('투자자 랭킹을 지금 즉시 최신화하시겠습니까?');">
                     <input type="hidden" name="action" value="refresh_ranking">
                     <button type="submit" class="bg-yellow-600/80 hover:bg-yellow-500 text-white px-4 py-2 rounded text-sm font-bold transition flex items-center">
-                        <span class="mr-1">🏆</span> 랭킹 즉시 새로고침
+                        <span class="mr-1">🏆</span> 랭킹 새로고침
                     </button>
                 </form>
                 <form action="{{ url_for('admin') }}" method="POST" onsubmit="return confirm('실시간 미니 채팅방의 모든 기록을 삭제하시겠습니까?');">
                     <input type="hidden" name="action" value="reset_chat">
                     <button type="submit" class="bg-red-600/80 hover:bg-red-500 text-white px-4 py-2 rounded text-sm font-bold transition flex items-center">
-                        <span class="mr-1">🧹</span> 전체 채팅 기록 삭제
+                        <span class="mr-1">🧹</span> 채팅 기록 삭제
                     </button>
                 </form>
             </div>
