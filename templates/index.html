@@ -9,9 +9,9 @@
     <p class="text-gray-400 text-sm mt-2">안전한 통신망을 연결하고 있습니다.</p>
 </div>
 
-<!-- 키치한 배경 텍스트 -->
+<!-- 고급스러운 느낌의 텍스트 영역 (명조/궁서체 느낌으로 고급화, 줄바꿈 자동 적용) -->
 <div id="kitsch-text" class="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none transition-all duration-500">
-    <h1 class="text-4xl md:text-6xl font-black text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] tracking-tighter text-center animate-bounce" style="font-family: 'Comic Sans MS', cursive, sans-serif;">
+    <h1 class="text-4xl md:text-6xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] tracking-tighter text-center transition-all duration-500">
         {{ main_text | safe }}
     </h1>
     
@@ -37,6 +37,7 @@
         </div>
     </div>
 
+    <!-- 로그인/회원가입 에러나 완료 메시지만 노출되도록 유지 (관리자 페이지 작업은 이곳에 뜨지 않습니다) -->
     {% with messages = get_flashed_messages() %}
       {% if messages %}
         <div class="mb-4 bg-red-500/80 backdrop-blur-sm border border-red-400 text-white px-4 py-3 rounded-lg text-sm font-medium text-center shadow-lg">
@@ -65,7 +66,7 @@
     </div>
 </div>
 
-<!-- QR 모달 팝업 -->
+<!-- QR 모달 팝업 등 기타 UI (원본 유지) -->
 <div id="qr-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50 transition-opacity">
     <div class="bg-gray-800 p-8 rounded-3xl shadow-2xl text-center relative max-w-sm w-full mx-4 border border-gray-700">
         <button id="qr-close-btn" class="absolute top-4 right-5 text-gray-400 hover:text-red-400 font-bold text-2xl transition-colors">&times;</button>
@@ -78,32 +79,37 @@
 <script>
     // 관리자 페이지 배경 설정(랜덤/고정)에 따른 화면 제어
     document.addEventListener("DOMContentLoaded", function() {
-        // app.py에서 내려주는 bg_mode 변수. 값이 없거나 에러가 나면 'random'으로 기본 처리
-        const bgMode = "{{ bg_mode }}" || "random";
-        const kitschTextH1 = document.querySelector('#kitsch-text h1');
+        const bgMode = "{{ bg_mode }}";
+        const titleEl = document.querySelector('#kitsch-text h1');
+        
+        // 데이터베이스에 남아있을 수 있는 HTML 태그 찌꺼기를 제거하고 순수 텍스트만 추출
+        const textContent = titleEl.innerText.trim();
         
         if (bgMode === 'random') {
-            // Unsplash 대신 Picsum API를 사용하여 무작위 배경 적용
-            const randomImageUrl = `https://picsum.photos/1920/1080?random=${new Date().getTime()}`;
-            document.body.style.backgroundImage = `url('${randomImageUrl}')`;
+            document.body.style.backgroundImage = "url('https://picsum.photos/1920/1080?random=" + new Date().getTime() + "')";
             document.body.style.backgroundSize = "cover";
             document.body.style.backgroundPosition = "center";
             
-            // 랜덤 이미지 모드일 때: 애니메이션 제거 및 폰트 변경
-            if (kitschTextH1) {
-                kitschTextH1.classList.remove('animate-bounce'); // 통통 튀는 애니메이션 제거
-                kitschTextH1.style.fontFamily = "'Georgia', 'Nanum Myeongjo', serif"; // 품위있는 폰트
-                
-                // 관리자가 입력한 무지개 그라데이션 강제 제거 및 흰색 텍스트 덮어쓰기
-                const innerSpan = kitschTextH1.querySelector('span');
-                if (innerSpan) {
-                    innerSpan.classList.remove('text-transparent', 'bg-clip-text', 'bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)]');
-                    innerSpan.classList.add('text-white', 'drop-shadow-lg');
-                }
-            }
+            // [랜덤 배경] 고급스러운 명조체, 애니메이션 없음, 단색 적용
+            titleEl.className = "text-4xl md:text-5xl text-white drop-shadow-2xl text-center tracking-wide font-light whitespace-pre-line";
+            titleEl.style.fontFamily = "'Nanum Myeongjo', '궁서', 'Gowun Dodum', serif";
+            titleEl.innerText = textContent;
         } else {
-            // 'fixed' 일 경우 배경 이미지 해제 (base.html에 지정된 css 기본 테마 색상이 나타남)
-            document.body.style.backgroundImage = "none";
+            // 빈 문자열을 넣어 base.html에 지정된 기본 테마(로컬 이미지)가 나타나게 처리
+            document.body.style.backgroundImage = "";
+            
+            // [고정 배경] 통통 튀는 애니메이션, 둥근 글꼴 유지
+            titleEl.className = "text-4xl md:text-6xl font-black text-yellow-300 drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] tracking-tighter text-center animate-bounce whitespace-pre-line";
+            titleEl.style.fontFamily = "'Comic Sans MS', cursive, sans-serif";
+            
+            // 텍스트를 줄바꿈 기준으로 나누어 마지막 줄(예: NCC STOCK)만 무지개 그라데이션으로 렌더링
+            const lines = textContent.split('\n');
+            if (lines.length > 1) {
+                const lastLine = lines.pop();
+                titleEl.innerHTML = lines.join('<br>') + `<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">${lastLine}</span>`;
+            } else {
+                titleEl.innerHTML = `<span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl block">${textContent}</span>`;
+            }
         }
     });
 

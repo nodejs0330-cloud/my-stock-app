@@ -122,33 +122,8 @@ def close_connection(exception):
         except: pass
 
 def init_db():
-    db = get_db()
-    cursor = db.cursor()
-    try:
-        cursor.execute('''CREATE TABLE IF NOT EXISTS USERS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USERNAME TEXT UNIQUE NOT NULL, PASSWORD_HASH TEXT NOT NULL, NAME TEXT NOT NULL, CASH_BALANCE INTEGER DEFAULT 50000000, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS HOLDINGS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, STOCK_NAME TEXT NOT NULL, AVG_PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS TRANSACTIONS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, TX_TYPE TEXT NOT NULL, PRICE REAL NOT NULL, QUANTITY INTEGER NOT NULL, FEE INTEGER DEFAULT 0, TX_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS WATCHLIST (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, STOCK_CODE TEXT NOT NULL, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS ANNOUNCEMENT (ID INTEGER PRIMARY KEY, MESSAGE TEXT, IS_ACTIVE INTEGER DEFAULT 0)''')
-        cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (1, "", 0)')
-        cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (2, "", 1)')
-        cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (3, "최근 삼성전자의 하락 요인과 반등 가능성에 대해 분석해줘.", 1)')
-        cursor.execute('INSERT OR IGNORE INTO ANNOUNCEMENT (ID, MESSAGE, IS_ACTIVE) VALUES (4, "가치투자 관점에서 워런 버핏이라면 현재 한국 시장에서 어떤 기준의 주식을 살까?", 1)')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS COMMENTS (ID INTEGER PRIMARY KEY AUTOINCREMENT, STOCK_CODE TEXT NOT NULL, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        cursor.execute('''CREATE TABLE IF NOT EXISTS CHAT (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, MESSAGE TEXT, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-        # AI 질문 로그 저장용 테이블
-        cursor.execute('''CREATE TABLE IF NOT EXISTS AI_LOGS (ID INTEGER PRIMARY KEY AUTOINCREMENT, USER_ID INTEGER, PROMPT TEXT NOT NULL, CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(USER_ID) REFERENCES USERS(ID))''')
-    except Exception as e: print("Table Creation Error:", e)
-
-    try: cursor.execute("ALTER TABLE TRANSACTIONS ADD COLUMN FEE INTEGER DEFAULT 0")
-    except: pass
-    try: cursor.execute("ALTER TABLE USERS ADD COLUMN DAILY_AI_COUNT INTEGER DEFAULT 0")
-    except: pass
-    try: cursor.execute("ALTER TABLE USERS ADD COLUMN LAST_AI_REQUEST REAL DEFAULT 0")
-    except: pass
-    try: cursor.execute("ALTER TABLE USERS ADD COLUMN AI_RESET_DATE TEXT DEFAULT ''")
-    except: pass
-    db.commit()
+    # Turso DB 연동 환경이므로 서버 구동 시의 테이블 CREATE 및 ALTER 로직을 모두 제거합니다.
+    pass
 
 with app.app_context(): init_db()
 
@@ -280,7 +255,8 @@ def index():
     main_text_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
     bg_mode_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 5').fetchone()
     
-    main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!<br><span class="text-transparent bg-clip-text bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)] text-6xl md:text-8xl mt-2 block">NCC STOCK</span>'
+    # CSS 요소를 배제하고 순수 텍스트 기본값으로 변경
+    main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!\nNCC STOCK'
     bg_mode = bg_mode_row['MESSAGE'] if bg_mode_row else 'random'
     
     return render_template('index.html', main_text=main_text, bg_mode=bg_mode)
@@ -534,7 +510,6 @@ def api_comments(code):
             holding = db.execute('SELECT AVG_PRICE FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (user_id, code)).fetchone()
             curr_price = get_single_stock_price(code)
             ret_rate = 0
-            # [수정] 댓글 등록 시점의 수익률 계산 및 저장
             if holding and holding['AVG_PRICE'] > 0 and curr_price:
                 ret_rate = ((curr_price - holding['AVG_PRICE']) / holding['AVG_PRICE']) * 100
                 
@@ -543,20 +518,14 @@ def api_comments(code):
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
     
-    # [수정] RETURN_RATE 컬럼을 함께 조회하도록 쿼리 수정
     comments = db.execute('SELECT C.ID as CID, C.MESSAGE, C.CREATED_AT, C.RETURN_RATE, U.NAME, U.ID as UID FROM COMMENTS C JOIN USERS U ON C.USER_ID = U.ID WHERE C.STOCK_CODE = ? ORDER BY C.CREATED_AT DESC LIMIT 50', (code,)).fetchall()
     
     result = []
     for c in comments:
         holding = db.execute('SELECT AVG_PRICE FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (c['UID'], code)).fetchone()
-        
-        # [수정] 조회 시점이 아닌 DB에 기록된 박제된 수익률을 출력
-        try:
-            ret_rate = c['RETURN_RATE'] if c['RETURN_RATE'] is not None else 0
-        except:
-            ret_rate = 0
+        try: ret_rate = c['RETURN_RATE'] if c['RETURN_RATE'] is not None else 0
+        except: ret_rate = 0
             
-        # [수정] 날짜 포맷 변경 (HH:MM -> MM.DD HH:MM)
         dt_str = str(c['CREATED_AT'])
         time_formatted = dt_str[5:16].replace('-', '.') if len(dt_str) >= 16 else dt_str
         
@@ -636,7 +605,6 @@ def api_ai_chat():
     vendor = data.get('vendor', 'gemini') # 'gemini' or 'text'
     if not messages: return {"error": "메시지가 제공되지 않았습니다."}, 400
     
-    # [추가] 관리자 열람을 위한 사용자의 마지막 질문을 AI_LOGS 테이블에 저장
     last_user_msg = ""
     for m in reversed(messages):
         if m.get('role') == 'user':
@@ -682,7 +650,6 @@ def api_ai_image():
     prompt = request.json.get('prompt', '')
     if not prompt: return {"error": "프롬프트를 입력해주세요."}, 400
     
-    # 이미지 생성 프롬프트도 저장
     db = get_db()
     db.execute('INSERT INTO AI_LOGS (USER_ID, PROMPT, CREATED_AT) VALUES (?, ?, ?)', (session['user_id'], f"[이미지 생성] {prompt[:500]}", datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')))
     db.commit()
@@ -710,7 +677,6 @@ def api_ai_analyze_stock():
     news_text = "\n".join([f"- {n['title']} ({n['provider']})" for n in get_stock_news_scraped(data.get('code'))[:3]])
     prompt = f"당신은 NCS STOCK의 수석 주식 애널리스트입니다. 아래 실시간 종목 데이터를 바탕으로 한국어로 주식 전망을 300자 이내로 명쾌하고 논리적으로 요약해주세요.\n[데이터]\n종목명: {data.get('name')} ({data.get('code')})\n현재가: {data.get('price')}원\n등락률: {data.get('change_rate')}%\n[최근 이슈]\n{news_text}"
     
-    # Gemini 2.5 Flash 호출
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
     try:
@@ -720,12 +686,10 @@ def api_ai_analyze_stock():
         return {"analysis": reply, "model": "Gemini 2.5 Flash"}
     except Exception: return {"error": "현재 AI 서버가 혼잡하여 실시간 전망을 가져올 수 없습니다. 잠시 후 새로고침 해보세요."}, 500
 
-# [추가] 관리자용 AI 질문 내역 조회 API
 @app.route('/api/admin/ai_logs/<code>')
 def api_admin_ai_logs(code):
     if session.get('username') != 'admin': return {"error": "권한이 없습니다."}, 403
     db = get_db()
-    # 파라미터 code를 username으로 활용하여 조회
     target_user = db.execute('SELECT ID, NAME FROM USERS WHERE USERNAME = ?', (code,)).fetchone()
     if not target_user: return {"error": "사용자를 찾을 수 없습니다."}, 404
     
