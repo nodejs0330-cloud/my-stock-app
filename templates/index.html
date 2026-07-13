@@ -80,6 +80,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         // app.py에서 내려주는 bg_mode 변수. 값이 없거나 에러가 나면 'random'으로 기본 처리
         const bgMode = "{{ bg_mode }}" || "random";
+        const kitschTextH1 = document.querySelector('#kitsch-text h1');
         
         if (bgMode === 'random') {
             // Unsplash 대신 Picsum API를 사용하여 무작위 배경 적용
@@ -87,6 +88,19 @@
             document.body.style.backgroundImage = `url('${randomImageUrl}')`;
             document.body.style.backgroundSize = "cover";
             document.body.style.backgroundPosition = "center";
+            
+            // 랜덤 이미지 모드일 때: 애니메이션 제거 및 폰트 변경
+            if (kitschTextH1) {
+                kitschTextH1.classList.remove('animate-bounce'); // 통통 튀는 애니메이션 제거
+                kitschTextH1.style.fontFamily = "'Georgia', 'Nanum Myeongjo', serif"; // 품위있는 폰트
+                
+                // 관리자가 입력한 무지개 그라데이션 강제 제거 및 흰색 텍스트 덮어쓰기
+                const innerSpan = kitschTextH1.querySelector('span');
+                if (innerSpan) {
+                    innerSpan.classList.remove('text-transparent', 'bg-clip-text', 'bg-[linear-gradient(to_right,#ef4444,#eab308,#22c55e,#3b82f6)]');
+                    innerSpan.classList.add('text-white', 'drop-shadow-lg');
+                }
+            }
         } else {
             // 'fixed' 일 경우 배경 이미지 해제 (base.html에 지정된 css 기본 테마 색상이 나타남)
             document.body.style.backgroundImage = "none";

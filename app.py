@@ -530,18 +530,37 @@ def api_comments(code):
         if 'user_id' not in session: return {"error": "로그인이 필요합니다."}, 401
         msg = request.json.get('message', '').strip()[:200]
         if msg:
-            db.execute('INSERT INTO COMMENTS (STOCK_CODE, USER_ID, MESSAGE, CREATED_AT) VALUES (?, ?, ?, ?)', (code, session['user_id'], msg, datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')))
+            user_id = session['user_id']
+            holding = db.execute('SELECT AVG_PRICE FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (user_id, code)).fetchone()
+            curr_price = get_single_stock_price(code)
+            ret_rate = 0
+            # [수정] 댓글 등록 시점의 수익률 계산 및 저장
+            if holding and holding['AVG_PRICE'] > 0 and curr_price:
+                ret_rate = ((curr_price - holding['AVG_PRICE']) / holding['AVG_PRICE']) * 100
+                
+            db.execute('INSERT INTO COMMENTS (STOCK_CODE, USER_ID, MESSAGE, CREATED_AT, RETURN_RATE) VALUES (?, ?, ?, ?, ?)', (code, user_id, msg, datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S'), ret_rate))
             db.commit()
             return {"success": True}
         return {"error": "내용을 입력하세요."}, 400
-    comments = db.execute('SELECT C.ID as CID, C.MESSAGE, C.CREATED_AT, U.NAME, U.ID as UID FROM COMMENTS C JOIN USERS U ON C.USER_ID = U.ID WHERE C.STOCK_CODE = ? ORDER BY C.CREATED_AT DESC LIMIT 50', (code,)).fetchall()
-    curr_price = get_single_stock_price(code)
+    
+    # [수정] RETURN_RATE 컬럼을 함께 조회하도록 쿼리 수정
+    comments = db.execute('SELECT C.ID as CID, C.MESSAGE, C.CREATED_AT, C.RETURN_RATE, U.NAME, U.ID as UID FROM COMMENTS C JOIN USERS U ON C.USER_ID = U.ID WHERE C.STOCK_CODE = ? ORDER BY C.CREATED_AT DESC LIMIT 50', (code,)).fetchall()
+    
     result = []
     for c in comments:
         holding = db.execute('SELECT AVG_PRICE FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (c['UID'], code)).fetchone()
-        ret_rate = 0
-        if holding and holding['AVG_PRICE'] > 0 and curr_price: ret_rate = ((curr_price - holding['AVG_PRICE']) / holding['AVG_PRICE']) * 100
-        result.append({"id": c['CID'], "name": c['NAME'], "message": c['MESSAGE'], "time": c['CREATED_AT'].split(' ')[1][:5], "is_holder": holding is not None, "return_rate": round(ret_rate, 1)})
+        
+        # [수정] 조회 시점이 아닌 DB에 기록된 박제된 수익률을 출력
+        try:
+            ret_rate = c['RETURN_RATE'] if c['RETURN_RATE'] is not None else 0
+        except:
+            ret_rate = 0
+            
+        # [수정] 날짜 포맷 변경 (HH:MM -> MM.DD HH:MM)
+        dt_str = str(c['CREATED_AT'])
+        time_formatted = dt_str[5:16].replace('-', '.') if len(dt_str) >= 16 else dt_str
+        
+        result.append({"id": c['CID'], "name": c['NAME'], "message": c['MESSAGE'], "time": time_formatted, "is_holder": holding is not None, "return_rate": round(ret_rate, 1)})
     return {"comments": result}
 
 @app.route('/api/admin/comment', methods=['POST'])
