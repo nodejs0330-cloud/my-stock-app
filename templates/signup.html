@@ -39,4 +39,18 @@
         <a href="{{ url_for('index') }}" class="text-sm text-gray-400 hover:text-white transition-colors">← 로그인 화면으로 돌아가기</a>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const bgMode = "{{ bg_mode }}";
+        
+        if (bgMode === 'random') {
+            document.body.style.backgroundImage = "url('https://picsum.photos/1920/1080?random=" + new Date().getTime() + "')";
+            document.body.style.backgroundSize = "cover";
+            document.body.style.backgroundPosition = "center";
+        } else {
+            // 'fixed' 일 경우 base.html에 지정된 기본 배경(로컬 이미지)이 나타나도록 처리
+            document.body.style.backgroundImage = "";
+        }
+    });
+</script>
 {% endblock %}

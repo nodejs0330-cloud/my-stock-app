@@ -273,8 +273,8 @@ def login_post():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    db = get_db()
     if request.method == 'POST':
-        db = get_db()
         username = request.form.get('username', '').strip()
         name = request.form.get('name', '').strip()
         password = request.form.get('password', '').strip()
@@ -290,7 +290,10 @@ def signup():
             flash('✅ 회원가입 완료! 5,000만 원 지급됨.')
             return redirect(url_for('index'))
         except Exception: flash('❌ 회원가입 중 오류가 발생했습니다.')
-    return render_template('signup.html')
+        
+    bg_mode_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 5').fetchone()
+    bg_mode = bg_mode_row['MESSAGE'] if bg_mode_row else 'random'
+    return render_template('signup.html', bg_mode=bg_mode)
 
 @app.route('/dashboard')
 def dashboard():
