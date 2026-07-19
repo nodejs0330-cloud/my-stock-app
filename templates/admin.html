@@ -5,22 +5,7 @@
 
 {% block content %}
 <div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
-    
-    <!-- 상단 헤더 -->
-    <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
-        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
-                <span class="hidden md:inline-block text-xs font-bold text-red-400 bg-red-900/30 px-2 py-1 rounded border border-red-800/50">시스템 관리자</span>
-            </div>
-            <nav class="hidden md:flex space-x-2 items-center">
-                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">홈</a>
-                <a href="{{ url_for('ai_page') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition text-sm">NCS AI</a>
-            </nav>
-        </div>
-    </header>
-
-    <div class="max-w-5xl mx-auto w-full px-4 py-6 space-y-8">
+        <div class="max-w-5xl mx-auto w-full px-4 py-6 space-y-8">
         
         <!-- [추가] 관리자 페이지 전용 플래시 알림 영역 -->
         {% with messages = get_flashed_messages() %}

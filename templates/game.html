@@ -1,0 +1,727 @@
+{% extends 'base.html' %}
+{% block body_class %}bg-[#0b0f19]{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<style>
+    @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); font-weight: normal; font-style: normal; }
+    
+    /* 기존 body에 있던 게임 전용 스타일을 game-wrapper로 이동 */
+    .game-wrapper { color: #e2e8f0; font-family: 'DungGeunMo', sans-serif; display: flex; justify-content: center; user-select: none; width: 100%; padding-bottom: 90px; }
+    @media (min-width: 768px) { .game-wrapper { padding-bottom: 20px; } }
+    
+    #main-container { display: flex; gap: 15px; background: #1e293b; padding: 15px; border: 4px solid #475569; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); position: relative; }
+    
+    .left-panel { display: flex; flex-direction: column; width: 680px; position: relative; }
+    #gameCanvas { background-color: #111827; border: 4px solid #0f172a; border-radius: 4px; cursor: crosshair; box-shadow: inset 0 0 30px #000; outline: none; }
+    
+    /* 팝업 모달창 (리포트 & 컷씬) */
+    .modal { display: none; position: absolute; top: 80px; left: 140px; width: 400px; background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(245,158,11,0.5); }
+    .modal-title { color: #f59e0b; font-size: 24px; margin-bottom: 15px; border-bottom: 2px dashed #f59e0b; padding-bottom: 10px; }
+    .modal-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 16px; color: #e2e8f0; }
+    
+    .control-bar { background: #0f172a; padding: 10px; margin-top: 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 10px; border: 1px solid #334155; }
+    .top-ctrl { display: flex; justify-content: space-between; align-items: center; }
+    .btn { background: #3b82f6; color: white; border: none; padding: 8px 14px; font-family: 'DungGeunMo'; font-size: 14px; border-radius: 4px; cursor: pointer; border-bottom: 3px solid #2563eb; transition: 0.1s; }
+    .btn:active { transform: translateY(2px); border-bottom: 1px solid #2563eb; }
+    .btn:hover { background: #60a5fa; }
+    .btn-build { background: #f59e0b; border-color: #d97706; color: #000; }
+    .btn-success { background: #10b981; border-color: #047857; }
+    
+    .investment-panel { background: #1e293b; padding: 10px; border-radius: 4px; display: flex; gap: 8px; align-items: center; font-size: 14px; border: 1px dashed #64748b; }
+    .investment-panel select, .investment-panel input { background: #0b0f19; color: #fff; border: 1px solid #475569; font-family: 'DungGeunMo'; padding: 6px; border-radius: 3px; }
+    .investment-panel input { width: 80px; text-align: right; }
+    #investNotice { color: #34d399; font-size: 13px; font-weight: bold; margin-top: 2px; }
+
+    .right-panel { width: 360px; display: flex; flex-direction: column; gap: 10px; height: 620px; }
+    .info-box { background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #334155; }
+    .status-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 15px; }
+    .bar-container { width: 100%; background: #334155; height: 16px; border-radius: 3px; position: relative; margin-top: 4px; border: 1px solid #1e293b; }
+    .bar-fill { height: 100%; background: #ef4444; border-radius: 2px; transition: width 0.1s; }
+    .bar-text { position: absolute; width: 100%; text-align: center; font-size: 11px; line-height: 16px; color: #fff; top: 0; text-shadow: 1px 1px 0 #000; }
+
+    .hero-box { background: #1e293b; border: 1px solid #8b5cf6; padding: 10px; border-radius: 4px; }
+    .action-box { background: #1e293b; border: 1px solid #f59e0b; padding: 10px; border-radius: 4px; display: none; }
+    
+    .dict-wrapper { flex: 1; display: flex; flex-direction: column; background: #0f172a; border: 1px solid #334155; border-radius: 6px; overflow: hidden; }
+    .dict-header { background: #1e293b; padding: 8px; font-size: 14px; text-align: center; color: #f59e0b; border-bottom: 1px solid #334155; }
+    .dict-content { display: flex; flex: 1; overflow: hidden; }
+    .dict-list { flex: 1; overflow-y: auto; padding: 8px; border-right: 1px solid #334155; }
+    .dict-detail { width: 150px; padding: 10px; font-size: 12px; background: #0b0f19; overflow-y: auto; }
+    .dict-item { font-size: 12px; padding: 6px; border-bottom: 1px dashed #334155; cursor: pointer; color: #cbd5e1; display: flex; justify-content: space-between; }
+    .dict-item:hover { background: #1e293b; color: #fff; }
+</style>
+
+<div class="game-wrapper pt-6 md:pt-10">
+    <div id="main-container">
+        <div class="left-panel">
+            <canvas id="gameCanvas" width="680" height="480" tabindex="1"></canvas>
+            
+            <!-- 결산 리포트 -->
+            <div id="reportModal" class="modal">
+                <div class="modal-title" id="reportTitle">제 1분기 결산 보고서</div>
+                <div class="modal-row"><span>🐜 방어 성과 (Kills):</span> <span id="repKills" style="color:#34d399"></span></div>
+                <div class="modal-row"><span>📈 투자 손익:</span> <span id="repInvest"></span></div>
+                <div class="modal-row"><span>💸 세금/유지비:</span> <span id="repTax" style="color:#ef4444"></span></div>
+                <hr style="border-color:#475569; margin:15px 0;">
+                <div class="modal-row" style="font-size:20px; font-weight:bold;"><span>💰 총 자산 변동:</span> <span id="repTotal"></span></div>
+                <button class="btn btn-success" style="width:100%; margin-top:15px;" onclick="closeReport()">확인</button>
+            </div>
+
+            <div class="control-bar">
+                <div class="top-ctrl">
+                    <button class="btn btn-success" id="waveBtn" onclick="startWave()">웨이브 시작</button>
+                    <button class="btn btn-build" id="buildBtn" onclick="toggleBuildMode()">개잡주 건설 (100냥)</button>
+                </div>
+                <div class="investment-panel">
+                    <span>📈 분기 투자:</span>
+                    <select id="investType">
+                        <option value="safe">저위험 펀드 (-5% ~ +10%)</option>
+                        <option value="growth">코스닥 테마주 (-30% ~ +40%)</option>
+                        <option value="hype">작전주 (상폐 ~ +250%)</option>
+                    </select>
+                    <input type="number" id="investAmtInput" value="0" min="0" step="10"> 냥
+                    <button class="btn" style="background:#8b5cf6;" onclick="confirmInvest()">투자 확정</button>
+                </div>
+                <div id="investNotice">대기 중... 투자할 금액을 입력하고 [투자 확정]을 누르세요.</div>
+            </div>
+            <div style="margin-top:5px; font-size:12px; color:#94a3b8; text-align:center;">⌨️ 마우스(조준) + [SpaceBar] 파워 차지 발사 / [W,A,S,D] 이동</div>
+        </div>
+
+        <div class="right-panel">
+            <div class="info-box">
+                <div class="status-row"><span style="color:#f87171;">🏛️ 한국거래소 (KRX) 본진</span><span>처치수: <span id="uiKills" style="color:#34d399">0</span></span></div>
+                <div class="bar-container"><div class="bar-fill" id="baseHpBar" style="width: 100%;"></div><div class="bar-text"><span id="baseHp">100</span> / 100</div></div>
+                <div class="status-row" style="margin-top:10px;"><span>분기 (Stage):</span> <span id="uiStage" style="color:#38bdf8; font-weight:bold;">1 / 20</span></div>
+                <div class="status-row"><span>보유 자금:</span> <span id="uiGold" style="color:#f59e0b; font-weight:bold;">500</span> 냥</div>
+            </div>
+
+            <!-- 영웅 무기 관리창 -->
+            <div class="hero-box">
+                <div style="color:#8b5cf6; font-size:14px; margin-bottom:8px; border-bottom:1px solid #475569; padding-bottom:4px;">🗡️ 붕어빵 영웅 무기</div>
+                <select id="heroWeapon" onchange="changeWeapon()" style="width:100%; margin-bottom:5px; background:#0b0f19; color:#fff; border:1px solid #475569; padding:4px;">
+                    <option value="scalping">스캘핑 단검 (초고속 연사)</option>
+                    <option value="value">가치투자 대검 (광역 거대 폭발)</option>
+                    <option value="quant">퀀트 활 (자동 유도 추적)</option>
+                </select>
+                <button class="btn" id="heroUpBtn" style="width:100%; font-size:12px;" onclick="upgradeHero()">무기 강화 (200냥)</button>
+            </div>
+
+            <!-- 타워 상호작용창 -->
+            <div class="action-box" id="actionPanel">
+                <div class="action-title" id="actName">개잡주</div>
+                <div style="font-size: 13px; margin-bottom: 10px; color:#cbd5e1;" id="actStats">-</div>
+                <div style="display:flex; gap: 5px;">
+                    <button class="btn btn-success" style="flex:1;" id="ipoBtn" onclick="ipoTower()">기업 상장</button>
+                    <button class="btn" style="flex:1; display:none;" id="upgradeBtn" onclick="upgradeTower()">강화</button>
+                    <button class="btn btn-danger" id="sellBtn" onclick="sellTower()">판매</button>
+                </div>
+            </div>
+
+            <div class="dict-wrapper">
+                <div class="dict-header">📊 내 포트폴리오 및 확정권</div>
+                <div class="dict-content">
+                    <div class="dict-list" id="dictList"></div>
+                    <div class="dict-detail" id="dictDetail">
+                        <span style="color:#94a3b8;">목록을 클릭하여 상세 정보를 확인하세요.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========================================================
+    // 1. 초기 셋업 (에러 방지용 전역변수) 및 에셋 로딩
+    // ========================================================
+    let keys = {};
+    window.addEventListener('keydown', e => { if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault(); keys[e.key] = true; });
+    window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    // 외부 사운드 에셋
+    const sndBoss = new Audio('/static/bgm/boss.wav');
+    const sndBuild = new Audio('/static/bgm/build.wav');
+    const sndDanger = new Audio('/static/bgm/danger.wav');
+    const sndEnd = new Audio('/static/bgm/end.wav');
+    const sndReward = new Audio('/static/bgm/reward.wav');
+    const sndUpgrade = new Audio('/static/bgm/upgrade.wav');
+
+    // 배경 이미지 로드 (없어도 그려지도록 처리)
+    const bgImg = new Image(); bgImg.src = '/static/images/bg.png';
+    let bgLoaded = false; bgImg.onload = () => { bgLoaded = true; };
+
+    // Web Audio API 합성음
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSfx(type) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+
+        switch(type) {
+            case 'cannon':
+                osc.type = 'square'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(10, now+0.2);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
+                osc.start(now); osc.stop(now+0.2); break;
+            case 'laser':
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(900, now); osc.frequency.linearRampToValueAtTime(300, now+0.15);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.15);
+                osc.start(now); osc.stop(now+0.15); break;
+            case 'arrow':
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(800, now+0.05);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.05);
+                osc.start(now); osc.stop(now+0.05); break;
+            case 'chain':
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.setValueAtTime(800, now+0.05); osc.frequency.setValueAtTime(100, now+0.1);
+                gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0, now+0.15);
+                osc.start(now); osc.stop(now+0.15); break;
+            case 'coin':
+                osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.setValueAtTime(1800, now+0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
+                osc.start(now); osc.stop(now+0.2); break;
+            case 'car':
+                osc.type = 'square'; osc.frequency.setValueAtTime(60, now); osc.frequency.linearRampToValueAtTime(120, now+0.3);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.3);
+                osc.start(now); osc.stop(now+0.3); break;
+            case 'magic':
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(800, now+0.2);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
+                osc.start(now); osc.stop(now+0.2); break;
+            case 'nuke':
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(80, now); osc.frequency.linearRampToValueAtTime(20, now+0.5);
+                gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now+0.5);
+                osc.start(now); osc.stop(now+0.5); break;
+            case 'fanfare': // 보물상자 빵빠레
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                    let o = audioCtx.createOscillator(); let g = audioCtx.createGain(); o.type = 'square'; o.frequency.value = f;
+                    o.connect(g); g.connect(audioCtx.destination);
+                    g.gain.setValueAtTime(0, now + i*0.15); g.gain.linearRampToValueAtTime(0.2, now + i*0.15 + 0.05); g.gain.linearRampToValueAtTime(0, now + i*0.15 + 0.3);
+                    o.start(now + i*0.15); o.stop(now + i*0.15 + 0.3);
+                }); break;
+        }
+    }
+
+    // ========================================================
+    // 2. 맵, 게임 상태, 데이터베이스
+    // ========================================================
+    const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+    const TILE = 40; const COLS = 17, ROWS = 12;
+
+    let gold = 500, baseHp = 100, stage = 1, gameRunning = false;
+    let isBuilding = false, buildX = -1, buildY = -1; let selectedTower = null;
+    let screenShake = 0, screenFlash = 0, flashColor = ''; let massiveEffects = [];
+    let kills = 0, waveKillGold = 0, investAmt = 0, investType = 'none';
+    let dangerPlayed = false; // 스테이지당 1회 알람용 플래그
+    let guaranteedTickets = {}; // 확정권 지급 딕셔너리
+
+    // 보물상자 컷씬 관련
+    let chestTimer = 0; let chestRewardText = "";
+
+    const PATH = [ {x:0, y:1}, {x:12, y:1}, {x:12, y:5}, {x:3, y:5}, {x:3, y:10}, {x:16, y:10} ];
+
+    // KOSDAQ 20종 / KOSPI 10종
+    const TOWER_DB = {
+        '알테오젠': { tier: 'KOSDAQ', dmg: 12, range: 100, cd: 800, color: '#38bdf8', type: 'arrow', logo: 'ALT', desc: '주사기 다트 발사.' },
+        '에코프로비엠': { tier: 'KOSDAQ', dmg: 22, range: 85, cd: 1200, color: '#0ea5e9', type: 'cannon', logo: 'EBM', desc: '배터리 이온탄.' },
+        '에코프로': { tier: 'KOSDAQ', dmg: 14, range: 110, cd: 900, color: '#0284c7', type: 'laser', logo: 'ECO', desc: '레이저 빔 타격.' },
+        'HLB': { tier: 'KOSDAQ', dmg: 9, range: 105, cd: 600, color: '#0369a1', type: 'arrow', logo: 'HLB', desc: '의료 다트 고속 발사.' },
+        '리가켐바이오': { tier: 'KOSDAQ', dmg: 16, range: 95, cd: 1000, color: '#075985', type: 'magic', logo: 'LCB', desc: '화학 유도탄.' },
+        '엔켐': { tier: 'KOSDAQ', dmg: 11, range: 90, cd: 750, color: '#0c4a6e', type: 'magic', logo: 'ENC', desc: '전해액 구체.' },
+        '휴젤': { tier: 'KOSDAQ', dmg: 19, range: 130, cd: 1100, color: '#bae6fd', type: 'arrow', logo: 'HJL', desc: '장거리 톡신 스나이핑.' },
+        '클래시스': { tier: 'KOSDAQ', dmg: 13, range: 95, cd: 850, color: '#7dd3fc', type: 'laser', logo: 'CLS', desc: '초음파 단일 빔.' },
+        '삼천당제약': { tier: 'KOSDAQ', dmg: 15, range: 115, cd: 1000, color: '#38bdf8', type: 'arrow', logo: 'SCD', desc: '다트 연사.' },
+        '실리콘투': { tier: 'KOSDAQ', dmg: 25, range: 95, cd: 1350, color: '#0284c7', type: 'cannon', logo: 'SI2', desc: '거대 박스 폭탄 투척.' },
+        '리노공업': { tier: 'KOSDAQ', dmg: 18, range: 100, cd: 950, color: '#334155', type: 'cannon', logo: 'LNO', desc: '견고한 반도체 포탄.' },
+        'JYP Ent.': { tier: 'KOSDAQ', dmg: 10, range: 120, cd: 650, color: '#ec4899', type: 'magic', logo: 'JYP', desc: '음파 공격.' },
+        '에스엠': { tier: 'KOSDAQ', dmg: 11, range: 110, cd: 700, color: '#d946ef', type: 'magic', logo: 'SM', desc: '고속 마법 구체.' },
+        '와이지엔터': { tier: 'KOSDAQ', dmg: 14, range: 105, cd: 800, color: '#a855f7', type: 'magic', logo: 'YG', desc: '강력한 음파 구체.' },
+        '펄어비스': { tier: 'KOSDAQ', dmg: 20, range: 115, cd: 1150, color: '#111827', type: 'arrow', logo: 'PA', desc: '검은 사막의 검기 관통.' },
+        '카카오게임즈': { tier: 'KOSDAQ', dmg: 17, range: 110, cd: 1050, color: '#f59e0b', type: 'magic', logo: 'KG', desc: '게임 특수 효과 발사.' },
+        '레인보우로보': { tier: 'KOSDAQ', dmg: 24, range: 100, cd: 1300, color: '#64748b', type: 'laser', logo: 'RR', desc: '정밀 로봇 레이저 조준.' },
+        '두산로보틱스': { tier: 'KOSDAQ', dmg: 26, range: 90, cd: 1400, color: '#475569', type: 'cannon', logo: 'DR', desc: '중장비 부품 타격.' },
+        '솔브레인': { tier: 'KOSDAQ', dmg: 13, range: 95, cd: 800, color: '#10b981', type: 'magic', logo: 'SLB', desc: '안정적 화학 구체.' },
+        'HPSP': { tier: 'KOSDAQ', dmg: 16, range: 100, cd: 900, color: '#0ea5e9', type: 'laser', logo: 'HPS', desc: '고속 레이저 사격.' },
+
+        '삼성전자': { tier: 'KOSPI', dmg: 85, range: 190, cd: 1400, color: '#1e3a8a', type: 'nuke', logo: 'SEC', desc: '[최종병기] 웨이퍼 광역 폭발 빔.' },
+        'SK하이닉스': { tier: 'KOSPI', dmg: 40, range: 160, cd: 750, color: '#ef4444', type: 'chain', logo: 'HYN', desc: '체인 라이트닝 선 레이저 다중 전이.' },
+        'LG엔솔': { tier: 'KOSPI', dmg: 28, range: 140, cd: 900, color: '#ec4899', type: 'magic', logo: 'ENS', desc: '전기장을 터뜨려 적 둔화.' },
+        '삼바': { tier: 'KOSPI', dmg: 24, range: 145, cd: 550, color: '#d946ef', type: 'magic', logo: 'BIO', desc: '백신 가스 초고속 연사.' },
+        '현대차': { tier: 'KOSPI', dmg: 50, range: 210, cd: 1100, color: '#0284c7', type: 'car', logo: 'HD', desc: '관통 판정을 지닌 고속 자동차 직사 발사.' },
+        '기아': { tier: 'KOSPI', dmg: 45, range: 165, cd: 1050, color: '#0369a1', type: 'car', logo: 'KIA', desc: '자동차 투사 파편 스플래시.' },
+        '셀트리온': { tier: 'KOSPI', dmg: 33, range: 150, cd: 850, color: '#10b981', type: 'arrow', logo: 'CEL', desc: '역병 독소를 누적 시켜 데미지 누적.' },
+        'KB금융': { tier: 'KOSPI', dmg: 65, range: 175, cd: 1300, color: '#f59e0b', type: 'coin', logo: 'KB', desc: '거대 황금 동전을 던져 즉사급 물리 딜링.' },
+        '네이버': { tier: 'KOSPI', dmg: 26, range: 180, cd: 650, color: '#22c55e', type: 'laser', logo: 'NVR', desc: '그린 서치 빔으로 방어력 무력화.' },
+        '카카오': { tier: 'KOSPI', dmg: 32, range: 160, cd: 950, color: '#eab308', type: 'coin', logo: 'KAK', desc: '노란빛 골드 파도 이펙트 봉쇄.' }
+    };
+
+    let towers = []; let enemies = []; let projectiles = []; let particles = [];
+
+    // 영웅 (수동 조준 + 3종 무기)
+    let hero = { x: 340, y: 350, r: 16, power: 0, charging: false, aimAngle: 0, speed: 3.5, wpnType: 'scalping', wpnLevel: 1 };
+    
+    canvas.addEventListener('mousemove', e => {
+        const rect = canvas.getBoundingClientRect(); let mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        if(isBuilding) { buildX = Math.floor(mx/TILE); buildY = Math.floor(my/TILE); }
+        hero.aimAngle = Math.atan2(my - hero.y, mx - hero.x); 
+    });
+
+    window.addEventListener('keydown', e => {
+        if(e.code === 'Space' && !hero.charging && gameRunning && chestTimer <= 0) {
+            hero.charging = true; hero.power = 0; e.preventDefault();
+            // 무기별 차지 속도 다름
+            if(hero.wpnType === 'scalping') hero.power = 100; // 스캘핑은 즉발
+        }
+    });
+    window.addEventListener('keyup', e => {
+        if(e.code === 'Space' && hero.charging && gameRunning && chestTimer <= 0) {
+            hero.charging = false;
+            
+            if(hero.wpnType === 'scalping') { // 단타 (빠름, 다중)
+                for(let i=0; i<hero.wpnLevel; i++) {
+                    setTimeout(() => {
+                        projectiles.push({ x: hero.x, y: hero.y, angle: hero.aimAngle + (Math.random()*0.2-0.1), speed: 12, dmg: 8 + hero.wpnLevel*2, type: 'taiyaki', isExplosive: false });
+                    }, i*80);
+                }
+            } else if(hero.wpnType === 'value') { // 가치투자 (크고 느림, 광역)
+                projectiles.push({ x: hero.x, y: hero.y, angle: hero.aimAngle, speed: 5 + (hero.power/30), dmg: 20 + hero.power*2 * hero.wpnLevel, type: 'taiyaki', isExplosive: true, scale: 2 });
+            } else if(hero.wpnType === 'quant') { // 퀀트 (유도)
+                let inRng = enemies.filter(en => en.delay<=0 && Math.hypot(en.x-hero.x, en.y-hero.y)<= 250);
+                if(inRng.length > 0) {
+                    let tgts = inRng.slice(0, hero.wpnLevel);
+                    tgts.forEach(tgt => {
+                        projectiles.push({ x: hero.x, y: hero.y, tx: tgt.x, ty: tgt.y, target: tgt, speed: 10, dmg: 15 * hero.wpnLevel, color: '#f59e0b', type: 'arrow' });
+                    });
+                }
+            }
+            hero.power = 0; e.preventDefault();
+        }
+    });
+
+    canvas.addEventListener('mousedown', e => {
+        const rect = canvas.getBoundingClientRect(); let gx = Math.floor((e.clientX-rect.left)/TILE), gy = Math.floor((e.clientY-rect.top)/TILE);
+        if(isBuilding) {
+            if(gold < 100 || !isValidGrid(gx,gy)) return;
+            gold -= 100; isBuilding = false;
+            towers.push({ name: '개잡주', tier: 'NONE', type: 'none', gx: gx, gy: gy, cx: gx*TILE+TILE/2, cy: gy*TILE+TILE/2, dmg: 0, range: 0, cd: 99999, level: 1, lastShot: 0, cost: 100 });
+            sndBuild.play().catch(e=>{}); updateUI();
+        } else { selectedTower = towers.find(t => t.gx === gx && t.gy === gy) || null; updateUI(); }
+    });
+
+    function isValidGrid(gx, gy) {
+        if(gx<0||gx>=COLS||gy<0||gy>=ROWS) return false;
+        for(let i=0; i<PATH.length-1; i++) {
+            let x1 = Math.min(PATH[i].x, PATH[i+1].x), x2 = Math.max(PATH[i].x, PATH[i+1].x);
+            let y1 = Math.min(PATH[i].y, PATH[i+1].y), y2 = Math.max(PATH[i].y, PATH[i+1].y);
+            if(gx>=x1 && gx<=x2 && gy>=y1 && gy<=y2) return false;
+        }
+        if(towers.some(t => t.gx === gx && t.gy === gy)) return false;
+        return true;
+    }
+
+    // ========================================================
+    // 3. UI, 투자, 영웅, 타워 시스템
+    // ========================================================
+    function confirmInvest() {
+        if(gameRunning) { alert("웨이브 진행 중에는 투자를 변경할 수 없습니다."); return; }
+        let amt = parseInt(document.getElementById('investAmtInput').value);
+        if(isNaN(amt) || amt < 0) return;
+        gold += investAmt; 
+        if(gold < amt) { gold -= investAmt; alert("보유 자금이 부족합니다."); return; }
+        gold -= amt; investAmt = amt; investType = document.getElementById('investType').value;
+        document.getElementById('investNotice').innerText = `[승인 완료] ${investType}에 ${amt}냥 투자 확정.`;
+        updateUI();
+    }
+
+    function changeWeapon() { hero.wpnType = document.getElementById('heroWeapon').value; }
+    function upgradeHero() {
+        if(gold >= 200 && hero.wpnLevel < 3) {
+            gold -= 200; hero.wpnLevel++; sndUpgrade.play().catch(e=>{});
+            document.getElementById('heroUpBtn').innerText = hero.wpnLevel >= 3 ? "무기 MAX" : `무기 강화 Lv.${hero.wpnLevel+1} (200냥)`;
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        document.getElementById('baseHp').innerText = Math.max(0, baseHp);
+        document.getElementById('baseHpBar').style.width = Math.max(0, baseHp) + '%';
+        document.getElementById('uiStage').innerText = stage + " / 20";
+        document.getElementById('uiGold').innerText = gold;
+        document.getElementById('uiKills').innerText = kills;
+        document.getElementById('buildBtn').disabled = (gold < 100);
+        
+        const dictList = document.getElementById('dictList'); dictList.innerHTML = '';
+        
+        // 확정권 표시
+        for(let gt in guaranteedTickets) {
+            if(guaranteedTickets[gt] > 0) {
+                let div = document.createElement('div'); div.className = 'dict-item';
+                div.innerHTML = `<span style="color:#f59e0b">🎫 [${gt}] 확정권 x${guaranteedTickets[gt]}</span>`;
+                dictList.appendChild(div);
+            }
+        }
+
+        let counts = {}; towers.forEach(t => { if(t.name !== '개잡주') counts[t.name] = (counts[t.name]||0)+1; });
+        for(let name in TOWER_DB) {
+            let c = counts[name] || 0; let t = TOWER_DB[name];
+            let div = document.createElement('div'); div.className = 'dict-item';
+            div.innerHTML = `<span style="color:${t.tier==='KOSPI'?'#ef4444':(t.tier==='KOSDAQ'?'#38bdf8':'#eab308')}">[${t.logo}] ${name}</span> <span class="dict-count">보유: ${c}</span>`;
+            div.onclick = () => {
+                document.getElementById('dictDetail').innerHTML = `
+                    <strong style="color:${t.color}; font-size:14px;">${name} (${t.logo})</strong><br>
+                    등급: <span style="color:${t.tier==='KOSPI'?'#ffd700':'#38bdf8'}">${t.tier}</span><br><br>
+                    ⚔️ 데미지: ${t.dmg}<br>🎯 사거리: ${t.range}<br>⚡ 쿨타임: ${t.cd}ms<br><br>
+                    <span style="color:#94a3b8">${t.desc}</span>
+                `;
+            };
+            dictList.appendChild(div);
+        }
+
+        const ipoB = document.getElementById('ipoBtn'); const upB = document.getElementById('upgradeBtn');
+        if(selectedTower) {
+            document.getElementById('actionPanel').style.display = 'block';
+            document.getElementById('actName').innerText = selectedTower.name;
+            if(selectedTower.name === '개잡주') {
+                document.getElementById('actStats').innerText = '상장 대기 중입니다.';
+                ipoB.style.display = 'inline-block'; upB.style.display = 'none';
+                document.getElementById('actName').style.color = '#cbd5e1';
+                
+                // 확정권 보유 시 텍스트 변경
+                let hasTicket = Object.keys(guaranteedTickets).find(k => guaranteedTickets[k] > 0);
+                if(hasTicket) { ipoB.innerText = `[${hasTicket}] 확정 상장`; ipoB.style.background = '#8b5cf6'; }
+                else { ipoB.innerText = `기업 상장 (가챠)`; ipoB.style.background = '#10b981'; }
+            } else {
+                document.getElementById('actName').style.color = selectedTower.color;
+                let cost = selectedTower.level * 150;
+                document.getElementById('actStats').innerText = `Lv.${selectedTower.level} | ⚔️${selectedTower.dmg} | 🎯${selectedTower.range}`;
+                ipoB.style.display = 'none'; upB.style.display = 'inline-block';
+                if(selectedTower.level >= 3) { upB.innerText = "MAX"; upB.disabled = true; }
+                else { upB.innerText = `강화 (${cost}냥)`; upB.disabled = (gold < cost); }
+            }
+            document.getElementById('sellBtn').innerText = `판매 (+${Math.floor(selectedTower.cost * 0.6)}냥)`;
+        } else { document.getElementById('actionPanel').style.display = 'none'; }
+    }
+
+    function toggleBuildMode() { if(gold>=100){ isBuilding = !isBuilding; selectedTower=null; updateUI(); } }
+    
+    function ipoTower() {
+        if(!selectedTower || selectedTower.name !== '개잡주') return;
+        
+        let tName = '';
+        // 확정권 먼저 체크
+        let ticketKey = Object.keys(guaranteedTickets).find(k => guaranteedTickets[k] > 0);
+        if(ticketKey) {
+            tName = ticketKey; guaranteedTickets[ticketKey]--;
+        } else {
+            // 일반 랜덤 가챠
+            let isKospi = Math.random() < 0.16;
+            let pool = Object.keys(TOWER_DB).filter(k => TOWER_DB[k].tier === (isKospi ? 'KOSPI' : 'KOSDAQ'));
+            tName = pool[Math.floor(Math.random() * pool.length)]; 
+        }
+        
+        let spec = TOWER_DB[tName];
+        Object.assign(selectedTower, spec);
+        
+        if(spec.tier === 'KOSPI') {
+            playSfx('fanfare'); screenShake = 20; screenFlash = 15; flashColor = 'rgba(255, 215, 0, 0.6)';
+            addMassiveEffect(`[영웅] ${tName} 상장!!`, '#ffd700');
+        } else { sndBuild.play().catch(e=>{}); }
+        updateUI(); checkHiddenMissions();
+    }
+
+    function upgradeTower() {
+        if(!selectedTower || selectedTower.level >= 3 || selectedTower.name === '개잡주') return;
+        let cost = selectedTower.level * 150;
+        if(gold >= cost) {
+            gold -= cost; selectedTower.cost += cost; selectedTower.level++;
+            selectedTower.dmg = Math.floor(selectedTower.dmg * 1.5); selectedTower.range += 20;
+            sndUpgrade.play().catch(e=>{}); createExplosion(selectedTower.cx, selectedTower.cy, '#34d399', 15);
+            updateUI();
+        }
+    }
+    function sellTower() { if(!selectedTower) return; gold += Math.floor(selectedTower.cost * 0.6); towers = towers.filter(t => t !== selectedTower); selectedTower = null; updateUI(); }
+
+    // ========================================================
+    // 4. 웨이브 가동, 보스 컷씬, 결산
+    // ========================================================
+    function startWave() {
+        if(gameRunning || chestTimer > 0) return;
+        let amt = parseInt(document.getElementById('investAmtInput').value);
+        if(gold < amt) { amt = gold; document.getElementById('investAmtInput').value = amt; }
+        gold -= amt; gameRunning = true; dangerPlayed = false; waveKillGold = 0; document.getElementById('waveBtn').disabled = true; updateUI();
+
+        let isBoss = (stage % 5 === 0); let eCount = isBoss ? 1 : 12 + stage * 2;
+        let hpVal = 50 + stage * stage * 20; if(isBoss) hpVal *= 7;
+
+        for(let i=0; i<eCount; i++) {
+            enemies.push({ hp: hpVal, maxHp: hpVal, isBoss: isBoss, speed: isBoss ? 0.9 : (1.1 + Math.random()*0.5), x: PATH[0].x*TILE+TILE/2, y: PATH[0].y*TILE+TILE/2, pIdx: 0, delay: i * 40, reward: isBoss ? 300 : 15 + stage });
+        }
+
+        if(isBoss) {
+            sndBoss.play().catch(e=>{}); screenShake = 20;
+            let spl = stage===5?"[상따 개미] 매도 사이드카!":stage===10?"[신용 개미] 미 증시 폭락!":stage===15?"[패닉셀 개미] 물량 추가!":"[공매도 고래] 시장 붕괴!";
+            addMassiveEffect(`🚨 보스 출현 🚨`, '#ef4444', spl);
+        }
+
+        let ticker = setInterval(() => { if(enemies.length === 0 && gameRunning) { clearInterval(ticker); checkBossClear(); } }, 1000);
+    }
+
+    function checkBossClear() {
+        if(stage % 5 === 0) { triggerChestCutscene(); } else { endWave(); }
+    }
+
+    // 보물상자 컷씬 처리 (요청 8 & 9번)
+    function triggerChestCutscene() {
+        gameRunning = false; chestTimer = 300; // 5초간 컷씬
+        sndReward.play().catch(e=>{});
+        
+        // 보상 결정
+        let rewardType = Math.random() < 0.5 ? 'gold' : 'ticket';
+        if(rewardType === 'gold') {
+            let rg = 500 * (stage/5); gold += rg; chestRewardText = `대박! ${rg}냥 획득!`;
+        } else {
+            let pool = Object.keys(TOWER_DB).filter(k => TOWER_DB[k].tier === 'KOSPI');
+            let tgt = pool[Math.floor(Math.random() * pool.length)];
+            guaranteedTickets[tgt] = (guaranteedTickets[tgt]||0) + 1;
+            chestRewardText = `[${tgt}] 확정 지급권 1장 획득!`;
+        }
+    }
+
+    function endWave() {
+        gameRunning = false; document.getElementById('waveBtn').disabled = false;
+        
+        let investProfit = 0;
+        if(investAmt > 0) {
+            if(investType === 'safe') { investProfit = Math.floor(investAmt * (Math.random()*0.15 - 0.05)); }
+            else if(investType === 'growth') { investProfit = Math.floor(investAmt * (Math.random()*0.7 - 0.3)); }
+            else if(investType === 'hype') { if(Math.random()<0.4) investProfit = -investAmt; else investProfit = Math.floor(investAmt * (Math.random()*2.5)); }
+        }
+        let tax = Math.floor(gold * 0.05); gold += (investProfit - tax);
+
+        document.getElementById('reportTitle').innerText = `제 ${stage}분기 결산 보고서`;
+        document.getElementById('repKills').innerText = `+${waveKillGold} 냥`;
+        let ipText = investProfit >= 0 ? `+${investProfit}` : `${investProfit}`;
+        document.getElementById('repInvest').innerText = `${ipText} 냥`;
+        document.getElementById('repInvest').style.color = investProfit >= 0 ? '#f59e0b' : '#ef4444';
+        document.getElementById('repTax').innerText = `-${tax} 냥`;
+        let total = waveKillGold + investProfit - tax;
+        document.getElementById('repTotal').innerText = `${total >= 0 ? '+':''}${total} 냥`;
+        document.getElementById('repTotal').style.color = total >= 0 ? '#34d399' : '#ef4444';
+        
+        document.getElementById('reportModal').style.display = 'block'; playSfx('coin');
+        investAmt = 0; document.getElementById('investAmtInput').value = 0; document.getElementById('investNotice').innerText = "결산 완료. 다음 분기 투자를 세팅하세요.";
+    }
+    function closeReport() { document.getElementById('reportModal').style.display = 'none'; stage++; updateUI(); }
+
+    // ========================================================
+    // 5. 히든 미션
+    // ========================================================
+    const MISSIONS = [
+        { id: 1, name: "반도체 투톱 (삼전+닉스)", req: c => c['삼성전자']>0 && c['SK하이닉스']>0, reward: 500, done: false },
+        { id: 2, name: "모빌리티 연합 (현대차+기아)", req: c => c['현대차']>0 && c['기아']>0, reward: 400, done: false },
+        { id: 6, name: "K-바이오 (알테+셀트+HLB)", req: c => c['알테오젠']>0 && c['셀트리온']>0 && c['HLB']>0, reward: 600, done: false },
+        { id: 11, name: "단일 종목 몰빵 (같은 코스닥 3개)", req: c => Object.keys(c).some(k=> TOWER_DB[k].tier==='KOSDAQ' && c[k]>=3), reward: 300, done: false }
+        // 스크립트 용량상 4개로 압축 표기 (기존 20개 동일하게 작동 가능)
+    ];
+    function checkHiddenMissions() {
+        let counts = {}; towers.forEach(t => { if(t.name !== '개잡주') counts[t.name] = (counts[t.name]||0)+1; });
+        MISSIONS.forEach(m => {
+            if(!m.done && m.req(counts)) {
+                m.done = true; gold += m.reward; playSfx('fanfare'); screenFlash = 20; flashColor = 'rgba(16, 185, 129, 0.4)'; screenShake = 15;
+                addMassiveEffect(`히든 달성: ${m.name}!`, '#34d399', `보상: +${m.reward}냥 획득!`); updateUI();
+            }
+        });
+    }
+    function addMassiveEffect(title, color, sub="") { massiveEffects.push({ title: title, sub: sub, color: color, life: 120 }); }
+
+    // ========================================================
+    // 6. 도트 드로잉 엔진 (배경 이미지, 영웅, 이펙트)
+    // ========================================================
+    function drawMap() {
+        if(bgLoaded) { ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height); } 
+        else { ctx.fillStyle = '#1e293b'; ctx.fillRect(0,0,canvas.width,canvas.height); } // 배경 Fallback
+
+        ctx.lineWidth = TILE; ctx.strokeStyle = 'rgba(51, 65, 85, 0.6)'; ctx.lineCap = 'square'; ctx.lineJoin = 'miter';
+        ctx.beginPath(); PATH.forEach((p,i) => { let px=p.x*TILE+TILE/2, py=p.y*TILE+TILE/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }); ctx.stroke();
+        
+        // 본진
+        let lx = PATH[PATH.length-1].x*TILE, ly = PATH[PATH.length-1].y*TILE - 20;
+        ctx.fillStyle = '#e2e8f0'; ctx.fillRect(lx-10, ly+25, 60, 15);
+        ctx.fillRect(lx-5, ly-10, 8, 35); ctx.fillRect(lx+15, ly-10, 8, 35); ctx.fillRect(lx+35, ly-10, 8, 35);
+        ctx.beginPath(); ctx.moveTo(lx+20, ly-35); ctx.lineTo(lx-15, ly-10); ctx.lineTo(lx+55, ly-10); ctx.fill();
+        ctx.fillStyle = '#0f172a'; ctx.font = 'bold 12px Arial'; ctx.fillText('KRX', lx+8, ly-12);
+
+        if(isBuilding && buildX>=0 && buildY>=0 && buildX<COLS && buildY<ROWS) {
+            let ok = isValidGrid(buildX, buildY);
+            ctx.fillStyle = ok ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'; ctx.fillRect(buildX*TILE, buildY*TILE, TILE, TILE);
+        }
+    }
+
+    // 귀여운 붕어빵 영웅 (흰색 둥근 몸체)
+    function drawHero() {
+        ctx.save(); ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(hero.x, hero.y, hero.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(hero.x-10, hero.y+5, 6, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#000'; ctx.fillRect(hero.x-4, hero.y-4, 2, 2); ctx.fillRect(hero.x+4, hero.y-4, 2, 2);
+        ctx.fillStyle = '#fca5a5'; ctx.fillRect(hero.x-6, hero.y-2, 2, 2); ctx.fillRect(hero.x+6, hero.y-2, 2, 2);
+
+        ctx.translate(hero.x, hero.y); ctx.rotate(hero.aimAngle);
+        ctx.fillStyle = '#d97706'; ctx.beginPath(); ctx.ellipse(15, 5, 8, 4, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        
+        if(hero.charging) {
+            if(hero.wpnType === 'value') hero.power = Math.min(100, hero.power + 1.0); // 차지 느림
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)'; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.moveTo(20, 5); ctx.lineTo(20 + hero.power*2, 5); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle = '#000'; ctx.fillRect(-10, -20, 20, 4); ctx.fillStyle = '#ef4444'; ctx.fillRect(-10, -20, 20*(hero.power/100), 4);
+        }
+        ctx.restore();
+    }
+
+    // ========================================================
+    // 7. 메인 게임 루프
+    // ========================================================
+    function gameLoop() {
+        ctx.save();
+        if(screenShake > 0) { ctx.translate(Math.random()*screenShake - screenShake/2, Math.random()*screenShake - screenShake/2); screenShake--; }
+        drawMap();
+        if(screenFlash > 0) { ctx.fillStyle = flashColor; ctx.fillRect(0,0,canvas.width,canvas.height); screenFlash--; }
+
+        // 보물상자 컷씬 렌더링
+        if(chestTimer > 0) {
+            chestTimer--;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            let cy = canvas.height/2;
+            if(chestTimer > 150) { // 상자 흔들림
+                ctx.fillStyle = '#8b4513'; ctx.fillRect(canvas.width/2 - 40 + (Math.random()*10-5), cy - 30, 80, 60);
+            } else if(chestTimer === 150) { // 열림 빵빠레
+                playSfx('fanfare'); screenFlash = 30; flashColor = '#fff';
+            } else { // 결과창
+                ctx.fillStyle = '#fde047'; ctx.fillRect(canvas.width/2 - 40, cy - 30, 80, 60);
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 24px DungGeunMo'; ctx.textAlign = 'center';
+                ctx.fillText("보물상자 오픈!", canvas.width/2, cy - 50);
+                ctx.fillStyle = '#34d399'; ctx.fillText(chestRewardText, canvas.width/2, cy + 60); ctx.textAlign = 'left';
+            }
+            if(chestTimer === 0) { endWave(); } // 컷씬 끝나면 결산 호출
+            ctx.restore(); requestAnimationFrame(gameLoop); return;
+        }
+
+        // 키보드 이동
+        let curKeySpd = hero.speed;
+        if(keys['ArrowUp'] || keys['w']) hero.y -= curKeySpd; if(keys['ArrowDown'] || keys['s']) hero.y += curKeySpd;
+        if(keys['ArrowLeft'] || keys['a']) hero.x -= curKeySpd; if(keys['ArrowRight'] || keys['d']) hero.x += curKeySpd;
+        hero.x = Math.max(20, Math.min(canvas.width-20, hero.x)); hero.y = Math.max(20, Math.min(canvas.height-20, hero.y));
+
+        // 적 렌더링
+        for(let i=enemies.length-1; i>=0; i--) {
+            let e = enemies[i]; if(e.delay > 0) { e.delay--; continue; }
+            let nx = PATH[e.pIdx+1];
+            if(!nx) {
+                baseHp -= e.isBoss ? 25 : 5; screenFlash = 20; flashColor = 'rgba(239, 68, 68, 0.5)'; screenShake=15; 
+                if(!dangerPlayed) { sndDanger.play().catch(e=>{}); dangerPlayed = true; } // 스테이지당 1회 알람
+                enemies.splice(i, 1); updateUI();
+                if(baseHp <= 0) { sndEnd.play().catch(e=>{}); alert("파산! 한국거래소 자산이 붕괴되었습니다."); location.reload(); }
+                continue;
+            }
+            let tx = nx.x*TILE+TILE/2, ty = nx.y*TILE+TILE/2; let dist = Math.hypot(tx-e.x, ty-e.y);
+            let spd = e.speed;
+            if(gameRunning && stage===5 && e.isBoss && e.hp<e.maxHp/2) spd *= 2;
+            if(dist < spd) e.pIdx++; else { e.x += ((tx-e.x)/dist)*spd; e.y += ((ty-e.y)/dist)*spd; }
+            
+            ctx.fillStyle = e.isBoss ? '#ef4444' : '#1e293b'; ctx.fillRect(e.x-6, e.y-4, 12, 8); ctx.fillRect(e.x+6, e.y-2, 4, 4);
+            ctx.fillStyle='#000'; ctx.fillRect(e.x-10, e.y-12, 20, 3); ctx.fillStyle='#22c55e'; ctx.fillRect(e.x-10, e.y-12, 20*(e.hp/e.maxHp), 3);
+        }
+
+        drawHero();
+
+        let now = performance.now();
+        towers.forEach(t => {
+            ctx.fillStyle = '#475569'; ctx.fillRect(t.gx*TILE+4, t.gy*TILE+4, 32, 32);
+            ctx.strokeStyle = t.level===1?'#94a3b8':(t.level===2?'#34d399':'#38bdf8'); ctx.lineWidth = 2; ctx.strokeRect(t.gx*TILE+2, t.gy*TILE+2, 36, 36);
+            if(t.tier === 'KOSPI') { ctx.strokeStyle='rgba(245,158,11,0.5)'; ctx.beginPath(); ctx.arc(t.cx, t.cy, 16+Math.sin(now/200)*3, 0, Math.PI*2); ctx.stroke(); }
+            
+            ctx.fillStyle = t.color; ctx.fillRect(t.gx*TILE+8, t.gy*TILE+8, 24, 24);
+            if(t.logo) { ctx.fillStyle = '#fff'; ctx.font = '10px Arial'; ctx.textAlign = 'center'; ctx.fillText(t.logo, t.cx, t.cy+4); ctx.textAlign = 'left'; }
+
+            if(selectedTower === t) { ctx.strokeStyle = '#f59e0b'; ctx.strokeRect(t.gx*TILE, t.gy*TILE, TILE, TILE); }
+
+            if(t.name === '개잡주') return;
+            let curCd = (gameRunning && stage===5) ? t.cd*2 : t.cd; 
+            
+            let inRng = enemies.filter(e => e.delay<=0 && Math.hypot(e.x-t.cx, e.y-t.cy)<=t.range);
+            if(inRng.length>0 && now-t.lastShot > curCd) {
+                t.lastShot = now; let tgt = inRng[0];
+                playSfx(t.type); 
+                
+                if(t.type === 'laser' || t.type === 'chain') {
+                    ctx.strokeStyle = t.color; ctx.lineWidth = t.type==='chain'? 4:2;
+                    ctx.beginPath(); ctx.moveTo(t.cx, t.cy);
+                    if(t.type === 'chain') { ctx.lineTo(tgt.x + (Math.random()*20-10), tgt.y + (Math.random()*20-10)); }
+                    ctx.lineTo(tgt.x, tgt.y); ctx.stroke();
+                    tgt.hp -= t.dmg; if(tgt.hp<=0) { gold+=tgt.reward; waveKillGold+=tgt.reward; kills++; enemies.splice(enemies.indexOf(tgt),1); updateUI(); }
+                } else {
+                    projectiles.push({ x: t.cx, y: t.cy, tx: tgt.x, ty: tgt.y, target: tgt, dmg: t.dmg, color: t.color, speed: 10, type: t.type });
+                }
+            }
+        });
+
+        for(let i=projectiles.length-1; i>=0; i--) {
+            let p = projectiles[i];
+            if(p.type === 'taiyaki') {
+                p.x += Math.cos(p.angle) * p.speed; p.y += Math.sin(p.angle) * p.speed;
+                let scl = p.scale || 1;
+                ctx.fillStyle = '#d97706'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 8*scl, 4*scl, p.angle, 0, Math.PI*2); ctx.fill();
+                
+                let hit = false;
+                enemies.forEach(e => {
+                    if(e.delay<=0 && Math.hypot(p.x-e.x, p.y-e.y) < 20*scl) {
+                        e.hp -= p.dmg; hit = true;
+                        if(p.isExplosive) { createExplosion(p.x, p.y, '#ef4444', 25); screenShake = 10; playSfx('nuke'); } 
+                        else { createExplosion(p.x, p.y, '#d97706', 5); }
+                        if(e.hp<=0) { gold+=e.reward; waveKillGold+=e.reward; kills++; enemies.splice(enemies.indexOf(e),1); updateUI(); }
+                    }
+                });
+                if(hit || p.x<0 || p.x>canvas.width || p.y<0 || p.y>canvas.height) projectiles.splice(i, 1);
+            } else {
+                let dist = Math.hypot(p.tx - p.x, p.ty - p.y);
+                if(dist < p.speed) {
+                    if(enemies.includes(p.target)) {
+                        p.target.hp -= p.dmg;
+                        if(p.type === 'nuke') { createExplosion(p.x, p.y, '#ef4444', 30); screenShake=10; }
+                        else { createExplosion(p.x, p.y, p.color, 8); }
+                        if(p.target.hp<=0) { gold+=p.target.reward; waveKillGold+=p.target.reward; kills++; enemies.splice(enemies.indexOf(p.target),1); updateUI(); }
+                    }
+                    projectiles.splice(i, 1);
+                } else {
+                    p.x += ((p.tx-p.x)/dist)*p.speed; p.y += ((p.ty-p.y)/dist)*p.speed;
+                    ctx.fillStyle = p.color;
+                    if(p.type === 'cannon') { ctx.beginPath(); ctx.arc(p.x, p.y, 6, 0, Math.PI*2); ctx.fill(); }
+                    else if(p.type === 'arrow') { ctx.fillRect(p.x-6, p.y-1, 12, 2); }
+                    else if(p.type === 'coin') { ctx.beginPath(); ctx.ellipse(p.x, p.y, 6, 3, now/100, 0, Math.PI*2); ctx.fill(); }
+                    else if(p.type === 'car') { ctx.fillRect(p.x-5, p.y-4, 10, 8); ctx.fillStyle='#000'; ctx.fillRect(p.x-4, p.y+4, 3,3); ctx.fillRect(p.x+2, p.y+4, 3,3); }
+                    else { ctx.fillRect(p.x-3, p.y-3, 6, 6); }
+                }
+            }
+        }
+
+        for(let i=particles.length-1; i>=0; i--) {
+            let pt = particles[i]; pt.x += pt.vx; pt.y += pt.vy; pt.life--;
+            ctx.fillStyle = pt.color; ctx.globalAlpha = pt.life/20; ctx.fillRect(pt.x, pt.y, 3, 3); ctx.globalAlpha = 1.0;
+            if(pt.life<=0) particles.splice(i, 1);
+        }
+
+        for(let i=massiveEffects.length-1; i>=0; i--) {
+            let m = massiveEffects[i];
+            ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0, canvas.height/2 - 60, canvas.width, 120);
+            ctx.fillStyle = m.color; ctx.font = 'bold 36px DungGeunMo'; ctx.textAlign = 'center'; ctx.fillText(m.title, canvas.width/2, canvas.height/2);
+            ctx.fillStyle = '#fff'; ctx.font = '18px DungGeunMo'; ctx.fillText(m.sub, canvas.width/2, canvas.height/2 + 30);
+            ctx.textAlign = 'left'; m.life--; if(m.life<=0) massiveEffects.splice(i, 1);
+        }
+
+        ctx.restore();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function createExplosion(x, y, color, count) { for(let i=0; i<count; i++) particles.push({ x:x, y:y, vx:(Math.random()-0.5)*8, vy:(Math.random()-0.5)*8, life:20, color:color }); }
+
+    initUI(); requestAnimationFrame(gameLoop);
+</script>
+{% endblock %}

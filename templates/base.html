@@ -10,29 +10,83 @@
 </head>
 <body id="body-bg" class="{% block body_class %}bg-default{% endblock %} text-white min-h-screen flex flex-col transition-all duration-500 font-sans">
     
-    <main class="flex-grow flex items-center justify-center relative z-10 w-full">
+    <!-- 로그인/회원가입 페이지가 아닐 때만 공통 상단 헤더 출력 -->
+    {% if request.endpoint not in ['index', 'signup'] %}
+    <header class="w-full bg-[#121824]/90 backdrop-blur-md border-b border-gray-800 sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <span class="text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
+            </div>
+            <nav class="hidden md:flex space-x-2 items-center">
+                <!-- request.endpoint를 통해 현재 페이지 인식 후 색상 자동 변경 -->
+                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-sm transition {% if request.endpoint == 'dashboard' %}bg-gray-800 text-white font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">홈</a>
+                <a href="{{ url_for('trade') }}" class="px-4 py-2 rounded-lg text-sm transition {% if request.endpoint == 'trade' %}bg-gray-800 text-white font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">주문/차트</a>
+                <a href="{{ url_for('portfolio') }}" class="px-4 py-2 rounded-lg text-sm transition {% if request.endpoint == 'portfolio' %}bg-gray-800 text-white font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">내 주식</a>
+                <a href="{{ url_for('ranking') }}" class="px-4 py-2 rounded-lg text-sm transition {% if request.endpoint == 'ranking' %}bg-gray-800 text-white font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">랭킹</a>
+                <a href="{{ url_for('simulation') }}" class="px-4 py-2 rounded-lg text-sm transition {% if request.endpoint == 'simulation' %}bg-gray-800 text-white font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">만약에</a>
+                <a href="{{ url_for('ai_page') }}" class="px-4 py-2 rounded-lg text-sm transition {% if request.endpoint == 'ai_page' %}bg-gray-800 text-white font-medium{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">NCS AI</a>
+                
+                <!-- 🆕 신규 추가: 주랜타디 게임 메뉴 -->
+                <a href="{{ url_for('game') }}" class="px-4 py-2 rounded-lg text-sm transition {% if request.endpoint == 'game' %}bg-purple-900/50 text-purple-300 font-bold border border-purple-800/50{% else %}text-gray-400 hover:text-white hover:bg-gray-800{% endif %}">🎮 게임</a>
+
+                {% if session.get('username') == 'admin' %}
+                <a href="{{ url_for('admin') }}" class="px-4 py-2 rounded-lg transition text-sm font-bold border {% if request.endpoint == 'admin' %}bg-red-800 text-white border-red-700{% else %}bg-red-900/50 text-red-400 hover:text-white hover:bg-red-800 border-red-800/50{% endif %}">관리자</a>
+                {% endif %}
+                <div class="w-px h-4 bg-gray-700 mx-2"></div>
+                <a href="{{ url_for('logout') }}" class="text-gray-500 hover:text-red-400 text-sm font-medium transition">로그아웃</a>
+            </nav>
+            <a href="{{ url_for('logout') }}" class="md:hidden text-gray-400 hover:text-red-400 text-xs font-medium bg-gray-800/50 px-3 py-1.5 rounded-full">로그아웃</a>
+        </div>
+    </header>
+    {% endif %}
+
+    <main class="flex-grow flex items-center justify-center relative z-10 w-full {% if request.endpoint not in ['index', 'signup'] %}items-start{% endif %}">
         {% block content %}{% endblock %}
     </main>
 
     {% block footer %}
-    <!-- 배경 투명도를 bg-gray-900/10으로 낮추고 블러 효과를 줄여 배경이 더 잘 보이게 설정했습니다. -->
+    <!-- 로그인/회원가입에서만 푸터 노출 -->
+    {% if request.endpoint in ['index', 'signup'] %}
     <footer class="w-full bg-gray-900/10 backdrop-blur-sm text-gray-400 py-4 px-6 flex justify-center items-center relative z-10 border-t border-white/5">
         <div class="text-xs sm:text-sm drop-shadow-md">
             <p>Email: joamoon7@ncc.re.kr</p>
         </div>
     </footer>
+    {% endif %}
     {% endblock %}
+
+    <!-- 로그인/회원가입 페이지가 아닐 때만 공통 하단 모바일 네비게이션 출력 -->
+    {% if request.endpoint not in ['index', 'signup'] %}
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-[#121824]/95 backdrop-blur-lg border-t border-gray-800 flex overflow-x-auto items-center h-[68px] z-50 px-2 shadow-[0_-10px_20px_rgba(0,0,0,0.3)] pb-safe no-scrollbar space-x-2">
+        <a href="{{ url_for('dashboard') }}" class="flex-none w-14 flex flex-col items-center justify-center transition-colors {% if request.endpoint == 'dashboard' %}text-white{% else %}text-gray-500 hover:text-white{% endif %}">
+            <span class="text-2xl mb-1 {% if request.endpoint != 'dashboard' %}opacity-60{% endif %}">🏠</span><span class="text-[9px] {% if request.endpoint == 'dashboard' %}font-bold{% else %}font-medium{% endif %}">홈</span>
+        </a>
+        <a href="{{ url_for('trade') }}" class="flex-none w-14 flex flex-col items-center justify-center transition-colors {% if request.endpoint == 'trade' %}text-white{% else %}text-gray-500 hover:text-white{% endif %}">
+            <span class="text-2xl mb-1 {% if request.endpoint != 'trade' %}opacity-60{% endif %}">📈</span><span class="text-[9px] {% if request.endpoint == 'trade' %}font-bold{% else %}font-medium{% endif %}">주문</span>
+        </a>
+        <!-- 필요에 따라 포트폴리오, 랭킹 등 생략 없이 동일한 패턴으로 추가 -->
+        
+        <!-- 🆕 신규 추가: 주랜타디 게임 모바일 메뉴 -->
+        <a href="{{ url_for('game') }}" class="flex-none w-14 flex flex-col items-center justify-center transition-colors {% if request.endpoint == 'game' %}text-purple-300{% else %}text-gray-500 hover:text-white{% endif %}">
+            <span class="text-2xl mb-1 {% if request.endpoint != 'game' %}opacity-60{% endif %}">🎮</span><span class="text-[9px] {% if request.endpoint == 'game' %}font-bold{% else %}font-medium{% endif %}">게임</span>
+        </a>
+
+        {% if session.get('username') == 'admin' %}
+        <a href="{{ url_for('admin') }}" class="flex-none w-14 flex flex-col items-center justify-center text-red-500 hover:text-red-400 transition-colors">
+            <span class="text-2xl mb-1 opacity-80">🛡️</span><span class="text-[9px] font-bold">관리자</span>
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     
-    <!-- 보안: 관리자가 아닐 경우 우클릭 및 개발자도구 차단 -->
     {% if session.get('username') != 'admin' %}
     <script>
-        document.addEventListener('contextmenu', event => event.preventDefault()); // 우클릭 방지
-        document.addEventListener('dragstart', event => event.preventDefault()); // 드래그 방지
-        document.addEventListener('selectstart', event => event.preventDefault()); // 텍스트 선택 방지
+        document.addEventListener('contextmenu', event => event.preventDefault()); 
+        document.addEventListener('dragstart', event => event.preventDefault()); 
+        document.addEventListener('selectstart', event => event.preventDefault()); 
         document.addEventListener('keydown', function(e) {
-            // F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U 방지
             if (e.key === 'F12' || 
                 (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) || 
                 (e.ctrlKey && (e.key === 'U' || e.key === 'u'))) {
