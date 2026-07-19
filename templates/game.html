@@ -342,6 +342,8 @@
         }
     }
 
+    function initUI() { updateUI(); }
+
     function updateUI() {
         document.getElementById('baseHp').innerText = Math.max(0, baseHp);
         document.getElementById('baseHpBar').style.width = Math.max(0, baseHp) + '%';

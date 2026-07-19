@@ -688,7 +688,7 @@ def api_ai_analyze_stock():
     
     data = request.json
     news_text = "\n".join([f"- {n['title']} ({n['provider']})" for n in get_stock_news_scraped(data.get('code'))[:3]])
-    prompt = f"당신은 NCS STOCK의 수석 주식 애널리스트입니다. 아래 실시간 종목 데이터를 바탕으로 한국어로 주식 전망을 300자 이내로 명쾌하고 논리적으로 요약해주세요.\n[데이터]\n종목명: {data.get('name')} ({data.get('code')})\n현재가: {data.get('price')}원\n등락률: {data.get('change_rate')}%\n[최근 이슈]\n{news_text}"
+    prompt = f"당신은 NCS STOCK의 수석 주식 애널리스트입니다. 아래 실시간 종목 데이터를 바탕으로 한국어로 주식 전망을 600자 이내로 명쾌하고 논리적으로 요약해주세요.\n[데이터]\n종목명: {data.get('name')} ({data.get('code')})\n현재가: {data.get('price')}원\n등락률: {data.get('change_rate')}%\n[최근 이슈]\n{news_text}"
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     payload = {"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
