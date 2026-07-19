@@ -19,38 +19,6 @@
     <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full mix-blend-screen filter blur-[100px] opacity-50 pointer-events-none"></div>
     <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-screen filter blur-[100px] opacity-50 pointer-events-none"></div>
 
-    <header class="w-full bg-[#050810]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-40">
-        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-            
-            <!-- 상단 로고 (모바일/데스크탑 분기) -->
-            <div class="flex items-center space-x-2">
-                <!-- 데스크탑에서는 NCC STOCK -->
-                <span class="hidden md:inline text-xl font-black text-white tracking-tighter">NCC <span class="text-red-500">STOCK</span></span>
-                
-                <!-- 모바일에서는 (로고) NCS AI -->
-                <span class="md:hidden flex items-center space-x-1.5 text-white font-bold text-lg">
-                    <svg class="w-5 h-5 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
-                    <span>NCS AI</span>
-                </span>
-                
-                <!-- 데스크탑 전용 뱃지 -->
-                <span class="hidden md:inline-block text-xs font-bold text-indigo-400 bg-indigo-900/30 px-2 py-1 rounded border border-indigo-800/50">NCS AI</span>
-            </div>
-            
-            <nav class="hidden md:flex space-x-2 items-center">
-                <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition text-sm">홈</a>
-                <a href="{{ url_for('trade') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition text-sm">주문/차트</a>
-                <a href="{{ url_for('portfolio') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition text-sm">내 주식</a>
-                <a href="{{ url_for('ranking') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition text-sm">랭킹</a>
-                <a href="{{ url_for('simulation') }}" class="px-4 py-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition text-sm">만약에</a>
-                <a href="{{ url_for('ai_page') }}" class="px-4 py-2 rounded-lg bg-white/10 text-white font-medium text-sm">NCS AI</a>
-                {% if session.get('username') == 'admin' %}
-                <a href="{{ url_for('admin') }}" class="px-4 py-2 rounded-lg text-red-400 hover:text-white hover:bg-red-900/50 transition text-sm font-bold">관리자</a>
-                {% endif %}
-            </nav>
-        </div>
-    </header>
-
     <div class="flex-grow w-full max-w-4xl mx-auto flex flex-col relative pt-4 pb-[130px] md:pb-32 px-4 overflow-y-auto no-scrollbar" id="chat-container">
         
         <div class="flex justify-center mb-4 md:mb-8 sticky top-0 z-30 pt-2">
