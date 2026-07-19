@@ -146,9 +146,10 @@
     const sndEnd = new Audio('/static/bgm/end.wav');
     const sndReward = new Audio('/static/bgm/reward.wav');
     const sndUpgrade = new Audio('/static/bgm/upgrade.wav');
+    const sndDead = new Audio('/static/bgm/dead.mp3');
 
     // 배경 이미지 로드 (없어도 그려지도록 처리)
-    const bgImg = new Image(); bgImg.src = '/static/ima/bg.png';
+    const bgImg = new Image(); bgImg.src = '/static/img/bg.png';
     let bgLoaded = false; bgImg.onload = () => { bgLoaded = true; };
 
     // Web Audio API 합성음
@@ -335,9 +336,9 @@
 
     function changeWeapon() { hero.wpnType = document.getElementById('heroWeapon').value; }
     function upgradeHero() {
-        if(gold >= 200 && hero.wpnLevel < 3) {
+        if(gold >= 200 && hero.wpnLevel < 10) {
             gold -= 200; hero.wpnLevel++; sndUpgrade.play().catch(e=>{});
-            document.getElementById('heroUpBtn').innerText = hero.wpnLevel >= 3 ? "무기 MAX" : `무기 강화 Lv.${hero.wpnLevel+1} (200냥)`;
+            document.getElementById('heroUpBtn').innerText = hero.wpnLevel >= 10 ? "무기 MAX" : `무기 강화 Lv.${hero.wpnLevel+1} (200냥)`;
             updateUI();
         }
     }
@@ -660,7 +661,7 @@
                     ctx.beginPath(); ctx.moveTo(t.cx, t.cy);
                     if(t.type === 'chain') { ctx.lineTo(tgt.x + (Math.random()*20-10), tgt.y + (Math.random()*20-10)); }
                     ctx.lineTo(tgt.x, tgt.y); ctx.stroke();
-                    tgt.hp -= t.dmg; if(tgt.hp<=0) { gold+=tgt.reward; waveKillGold+=tgt.reward; kills++; enemies.splice(enemies.indexOf(tgt),1); updateUI(); }
+                    tgt.hp -= t.dmg; if(tgt.hp<=0) {sndDead.currentTime = 0;sndDead.play().catch(e=>{}); gold+=tgt.reward; waveKillGold+=tgt.reward; kills++; enemies.splice(enemies.indexOf(tgt),1); updateUI(); }
                 } else {
                     projectiles.push({ x: t.cx, y: t.cy, tx: tgt.x, ty: tgt.y, target: tgt, dmg: t.dmg, color: t.color, speed: 10, type: t.type });
                 }
@@ -680,7 +681,7 @@
                         e.hp -= p.dmg; hit = true;
                         if(p.isExplosive) { createExplosion(p.x, p.y, '#ef4444', 25); screenShake = 10; playSfx('nuke'); } 
                         else { createExplosion(p.x, p.y, '#d97706', 5); }
-                        if(e.hp<=0) { gold+=e.reward; waveKillGold+=e.reward; kills++; enemies.splice(enemies.indexOf(e),1); updateUI(); }
+                        if(e.hp<=0) {sndDead.currentTime = 0;sndDead.play().catch(e=>{}); gold+=e.reward; waveKillGold+=e.reward; kills++; enemies.splice(enemies.indexOf(e),1); updateUI(); }
                     }
                 });
                 if(hit || p.x<0 || p.x>canvas.width || p.y<0 || p.y>canvas.height) projectiles.splice(i, 1);
