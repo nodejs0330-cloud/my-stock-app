@@ -148,7 +148,7 @@
     const sndUpgrade = new Audio('/static/bgm/upgrade.wav');
 
     // 배경 이미지 로드 (없어도 그려지도록 처리)
-    const bgImg = new Image(); bgImg.src = '/static/images/bg.png';
+    const bgImg = new Image(); bgImg.src = '/static/ima/bg.png';
     let bgLoaded = false; bgImg.onload = () => { bgLoaded = true; };
 
     // Web Audio API 합성음
@@ -423,12 +423,14 @@
         
         let spec = TOWER_DB[tName];
         Object.assign(selectedTower, spec);
+        selectedTower.name = tName;
         
         if(spec.tier === 'KOSPI') {
             playSfx('fanfare'); screenShake = 20; screenFlash = 15; flashColor = 'rgba(255, 215, 0, 0.6)';
             addMassiveEffect(`[영웅] ${tName} 상장!!`, '#ffd700');
         } else { sndBuild.play().catch(e=>{}); }
-        updateUI(); checkHiddenMissions();
+        selectedTower.lastShot = performance.now(); // 상장 직후 쿨타임 초기화
+        updateUI();checkHiddenMissions();
     }
 
     function upgradeTower() {
