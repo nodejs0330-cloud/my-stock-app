@@ -13,10 +13,8 @@
     
     .left-panel { display: flex; flex-direction: column; width: 680px; position: relative; }
     
-    /* Phaser가 마운트될 컨테이너 */
     #phaser-game-container { width: 680px; height: 480px; background-color: #111827; border: 4px solid #0f172a; border-radius: 4px; box-shadow: inset 0 0 30px #000; outline: none; padding: 0; margin: 0; overflow: hidden; cursor: crosshair; }
     
-    /* 팝업 모달창 (리포트 & 컷씬) */
     .modal { display: none; position: absolute; top: 80px; left: 140px; width: 400px; background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; z-index: 100; text-align: center; box-shadow: 0 0 30px rgba(245,158,11,0.5); }
     .modal-title { color: #f59e0b; font-size: 24px; margin-bottom: 15px; border-bottom: 2px dashed #f59e0b; padding-bottom: 10px; }
     .modal-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 16px; color: #e2e8f0; }
@@ -56,10 +54,8 @@
 <div class="game-wrapper pt-6 md:pt-10">
     <div id="main-container">
         <div class="left-panel">
-            <!-- 기존 Canvas를 대체한 Phaser 렌더링 영역 -->
             <div id="phaser-game-container"></div>
             
-            <!-- 결산 리포트 -->
             <div id="reportModal" class="modal">
                 <div class="modal-title" id="reportTitle">제 1분기 결산 보고서</div>
                 <div class="modal-row"><span>🐜 방어 성과 (Kills):</span> <span id="repKills" style="color:#34d399"></span></div>
@@ -98,7 +94,6 @@
                 <div class="status-row"><span>보유 자금:</span> <span id="uiGold" style="color:#f59e0b; font-weight:bold;">500</span> 냥</div>
             </div>
 
-            <!-- 영웅 무기 관리창 -->
             <div class="hero-box">
                 <div style="color:#8b5cf6; font-size:14px; margin-bottom:8px; border-bottom:1px solid #475569; padding-bottom:4px;">🗡️ 붕어빵 영웅 무기</div>
                 <select id="heroWeapon" onchange="changeWeapon()" style="width:100%; margin-bottom:5px; background:#0b0f19; color:#fff; border:1px solid #475569; padding:4px;">
@@ -109,7 +104,6 @@
                 <button class="btn" id="heroUpBtn" style="width:100%; font-size:12px;" onclick="upgradeHero()">무기 강화 (200냥)</button>
             </div>
 
-            <!-- 타워 상호작용창 -->
             <div class="action-box" id="actionPanel">
                 <div class="action-title" id="actName">개잡주</div>
                 <div style="font-size: 13px; margin-bottom: 10px; color:#cbd5e1;" id="actStats">-</div>
@@ -133,33 +127,25 @@
     </div>
 </div>
 
-<!-- Phaser 3 라이브러리 로드 -->
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-
 <script>
-    // ========================================================
-    // 1. 전역 상태 및 에셋 매핑 데이터
-    // ========================================================
     let gameState = {
         gold: 500, baseHp: 100, stage: 1, kills: 0,
         isBuilding: false, gameRunning: false,
         waveKillGold: 0, investAmt: 0, investType: 'none',
         heroWpnType: 'scalping', heroWpnLevel: 1,
-        selectedTower: null,
-        guaranteedTickets: {}
+        selectedTower: null, guaranteedTickets: {}
     };
 
     const TILE = 40; 
     const COLS = 17, ROWS = 12;
     const PATH = [ {x:0, y:1}, {x:12, y:1}, {x:12, y:5}, {x:3, y:5}, {x:3, y:10}, {x:16, y:10} ];
 
-    // 에셋 랜덤 선택 유틸리티 함수
     function getRandomAsset(prefix, maxCount) {
         let num = Math.floor(Math.random() * maxCount) + 1;
         return `${prefix}${num}`;
     }
 
-    // 타워별 에셋 매핑 테이블
     const TOWER_ASSET_MAP = {
         '삼성전자': () => getRandomAsset('tower_samsung', 1),
         'SK하이닉스': () => getRandomAsset('tower_hynix', 2),
@@ -193,7 +179,6 @@
         '두산로보틱스': () => getRandomAsset('tower_robot', 2),
     };
 
-    // 타워 스탯 DB
     const TOWER_DB = {
         '알테오젠': { tier: 'KOSDAQ', dmg: 12, range: 100, cd: 800, type: 'basic', logo: 'ALT' },
         '에코프로비엠': { tier: 'KOSDAQ', dmg: 22, range: 85, cd: 1200, type: 'big', logo: 'EBM' },
@@ -227,32 +212,29 @@
         '카카오': { tier: 'KOSPI', dmg: 32, range: 160, cd: 950, type: 'basic', logo: 'KAK' }
     };
 
-    let phaserScene = null; // HTML과 통신하기 위한 참조
+    let phaserScene = null;
 
-    // ========================================================
-    // 2. Phaser Scene 구현
-    // ========================================================
     class MainScene extends Phaser.Scene {
         constructor() { super({ key: 'MainScene' }); }
 
         preload() {
-            // 편의를 위해 파일 로드 헬퍼 함수 작성
-            const loadImg = (key) => this.load.image(key, `/static/img/${key}.jpeg`);
+            // 경로 및 확장자 세팅
+            const loadImg = (key) => this.load.image(key, `/static/img/tower/${key}.png`);
             
-            // 1. 영웅
+            // 영웅
             loadImg('hero'); loadImg('hero_attack'); loadImg('hero_fish'); loadImg('hero_canon');
-            // 2. 무기
+            // 무기
             loadImg('golden_fish1'); loadImg('fork1'); loadImg('canon1'); 
-            // 3. 보스 및 몬스터
+            // 보스 및 몬스터
             loadImg('boss_ant1'); loadImg('boss_ant2'); loadImg('boss_bear1');
             loadImg('boss_whale1'); loadImg('boss_whale2'); loadImg('boss_whale3');
             loadImg('ant1'); loadImg('antfly1'); loadImg('antfly2'); loadImg('antfly3');
-            // 4. 이펙트
+            // 이펙트
             for(let i=1; i<=4; i++) { loadImg('basic_asset'+i); loadImg('big_asset'+i); loadImg('bolt'+i); }
             loadImg('poison1'); loadImg('poison2');
-            // 5. 타워 베이스
+            // 타워 베이스
             loadImg('tower1'); loadImg('tower2');
-            // 6. 특수 타워들
+            // 특수 타워들
             for(let i=1; i<=10; i++) loadImg('tower_bio'+i);
             loadImg('tower_enter1'); loadImg('tower_enter2');
             loadImg('tower_robot1'); loadImg('tower_robot2');
@@ -267,49 +249,49 @@
             loadImg('tower_samsungbio1'); loadImg('tower_samsungbio2');
             loadImg('tower_kia1'); loadImg('tower_kia2');
             loadImg('tower_samsung1');
-            // 7. 타일
+            // 타일
             for(let i=1; i<=4; i++) {
                 loadImg('temple_stone'+i);
                 loadImg('tile_stone'+i);
+                loadImg('grass'+i); 
             }
+            for(let i=1; i<=3; i++) loadImg('dirt_path'+i); 
+            for(let i=1; i<=4; i++) loadImg('Obsidian_floor'+i); 
         }
 
         create() {
-            phaserScene = this; // 외부 접근 허용
+            phaserScene = this; 
             this.towers = [];
             this.enemies = [];
             this.projectiles = [];
             
             this.drawMap();
             
-            // 건설 하이라이트 그래픽
             this.buildMarker = this.add.graphics();
             this.buildMarker.lineStyle(2, 0x10b981, 1);
             this.buildMarker.strokeRect(0, 0, TILE, TILE);
             this.buildMarker.setVisible(false);
-            this.buildMarker.setDepth(10); // 타워보다 위에 표시
+            this.buildMarker.setDepth(10);
 
-            // 영웅 설정
+            // [크기 조정 1] 영웅 크기 설정 (40x40 픽셀)
             this.hero = this.add.sprite(340, 350, 'hero').setDisplaySize(40, 40);
             this.hero.setDepth(5);
             this.hero.charging = false;
             this.hero.power = 0;
             
-            // 입력 설정
             this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
             this.mouseX = 340; this.mouseY = 350;
 
             this.input.on('pointermove', (pointer) => {
                 this.mouseX = pointer.x; this.mouseY = pointer.y;
-                // 건설 모드 마커 업데이트
                 if(gameState.isBuilding) {
                     let gx = Math.floor(pointer.x / TILE);
                     let gy = Math.floor(pointer.y / TILE);
                     this.buildMarker.setPosition(gx * TILE, gy * TILE);
                     this.buildMarker.setVisible(true);
                     
-                    if(this.isValidGrid(gx, gy)) this.buildMarker.lineStyle(2, 0x10b981, 1); // Green
-                    else this.buildMarker.lineStyle(2, 0xef4444, 1); // Red
+                    if(this.isValidGrid(gx, gy)) this.buildMarker.lineStyle(2, 0x10b981, 1);
+                    else this.buildMarker.lineStyle(2, 0xef4444, 1);
                     this.buildMarker.strokeRect(0, 0, TILE, TILE);
                 } else {
                     this.buildMarker.setVisible(false);
@@ -326,6 +308,7 @@
                         gameState.isBuilding = false;
                         
                         let baseTexture = getRandomAsset('tower', 2);
+                        // [크기 조정 2] 개잡주 기본 타워 크기 (36x36 픽셀)
                         let spr = this.add.sprite(gx * TILE + TILE/2, gy * TILE + TILE/2, baseTexture);
                         spr.setDisplaySize(36, 36);
                         
@@ -339,19 +322,16 @@
                         updateUI();
                     }
                 } else {
-                    // 타워 선택 로직
                     gameState.selectedTower = this.towers.find(t => t.gx === gx && t.gy === gy) || null;
                     updateUI();
                 }
             });
 
-            // 스페이스바 (공격 차지)
             this.input.keyboard.on('keydown-SPACE', () => {
                 if(!this.hero.charging && gameState.gameRunning) {
                     this.hero.charging = true;
                     this.hero.power = 0;
                     
-                    // 영웅 폼 변경
                     if(gameState.heroWpnType === 'scalping') this.hero.setTexture('hero_attack');
                     else if(gameState.heroWpnType === 'quant') this.hero.setTexture('hero_fish');
                     else if(gameState.heroWpnType === 'value') this.hero.setTexture('hero_canon');
@@ -361,18 +341,18 @@
             this.input.keyboard.on('keyup-SPACE', () => {
                 if(this.hero.charging && gameState.gameRunning) {
                     this.hero.charging = false;
-                    this.hero.setTexture('hero'); // 원래 폼 복귀
+                    this.hero.setTexture('hero');
                     let angle = Phaser.Math.Angle.Between(this.hero.x, this.hero.y, this.mouseX, this.mouseY);
                     
-                    if(gameState.heroWpnType === 'scalping') { // 단검(포크) 즉발 다중
+                    if(gameState.heroWpnType === 'scalping') { 
                         for(let i=0; i<gameState.heroWpnLevel; i++) {
                             this.time.delayedCall(i*80, () => {
                                 this.fireProjectile(this.hero.x, this.hero.y, null, angle + (Math.random()*0.2-0.1), 12, 8 + gameState.heroWpnLevel*2, 'fork1', 'basic', false);
                             });
                         }
-                    } else if(gameState.heroWpnType === 'value') { // 대포(광역)
+                    } else if(gameState.heroWpnType === 'value') { 
                         this.fireProjectile(this.hero.x, this.hero.y, null, angle, 5 + (this.hero.power/30), 20 + this.hero.power*2 * gameState.heroWpnLevel, 'canon1', 'big', true);
-                    } else if(gameState.heroWpnType === 'quant') { // 금붕어(유도)
+                    } else if(gameState.heroWpnType === 'quant') { 
                         let inRng = this.enemies.filter(en => en.delay<=0 && Phaser.Math.Distance.Between(en.sprite.x, en.sprite.y, this.hero.x, this.hero.y) <= 250);
                         if(inRng.length > 0) {
                             let tgts = inRng.slice(0, gameState.heroWpnLevel);
@@ -389,23 +369,19 @@
         }
 
         update(time, delta) {
-            // 영웅 이동
             const speed = 4;
             if (this.keys.A.isDown) this.hero.x -= speed;
             else if (this.keys.D.isDown) this.hero.x += speed;
             if (this.keys.W.isDown) this.hero.y -= speed;
             else if (this.keys.S.isDown) this.hero.y += speed;
             
-            // 화면 밖 제한 (수동)
             this.hero.x = Phaser.Math.Clamp(this.hero.x, 20, 660);
             this.hero.y = Phaser.Math.Clamp(this.hero.y, 20, 460);
             
-            // 차지 게이지 증가
             if(this.hero.charging && gameState.heroWpnType === 'value') {
                 this.hero.power = Math.min(100, this.hero.power + 1.0);
             }
 
-            // 타워 공격 로직
             if(gameState.gameRunning) {
                 let now = this.time.now;
                 this.towers.forEach(t => {
@@ -415,10 +391,9 @@
                         t.lastShot = now;
                         let tgt = inRng[0];
                         
-                        // 발사체 텍스처 결정
-                        let pTex = 'fork1'; // 기본
+                        let pTex = 'fork1'; 
                         if(t.type === 'big') pTex = 'canon1';
-                        else if(t.type === 'bolt') pTex = 'bolt1'; // 이펙트 돌려쓰기
+                        else if(t.type === 'bolt') pTex = 'bolt1'; 
                         else if(t.type === 'poison') pTex = 'poison1';
                         
                         this.fireProjectile(t.cx, t.cy, tgt, 0, 10, t.dmg, pTex, t.type, false);
@@ -426,10 +401,9 @@
                 });
             }
 
-            // 발사체 이동 로직 (수동 처리)
             for(let i=this.projectiles.length-1; i>=0; i--) {
                 let p = this.projectiles[i];
-                if(p.target) { // 유도탄
+                if(p.target) {
                     if(!this.enemies.includes(p.target)) {
                         p.sprite.destroy(); this.projectiles.splice(i, 1); continue;
                     }
@@ -442,7 +416,7 @@
                         this.hitEnemy(p.target, p.dmg, p.hitType, p.isExplosive);
                         p.sprite.destroy(); this.projectiles.splice(i, 1);
                     }
-                } else { // 직사탄
+                } else { 
                     p.sprite.rotation = p.angle;
                     p.sprite.x += Math.cos(p.angle) * p.speed;
                     p.sprite.y += Math.sin(p.angle) * p.speed;
@@ -460,14 +434,13 @@
                 }
             }
 
-            // 적 이동 로직
             for(let i=this.enemies.length-1; i>=0; i--) {
                 let e = this.enemies[i];
                 if(e.delay > 0) { e.delay--; continue; }
                 if(!e.sprite.visible) { e.sprite.setVisible(true); e.hpBarBg.setVisible(true); e.hpBar.setVisible(true); }
                 
                 let nx = PATH[e.pIdx+1];
-                if(!nx) { // 기지 도달
+                if(!nx) { 
                     gameState.baseHp -= e.isBoss ? 25 : 5;
                     this.cameras.main.shake(200, 0.02);
                     e.sprite.destroy(); e.hpBarBg.destroy(); e.hpBar.destroy();
@@ -488,7 +461,6 @@
                     e.sprite.y += Math.sin(angle) * e.speed;
                 }
                 
-                // 체력바 위치 업데이트
                 e.hpBarBg.setPosition(e.sprite.x - 15, e.sprite.y - 20);
                 e.hpBar.setPosition(e.sprite.x - 15, e.sprite.y - 20);
                 e.hpBar.clear();
@@ -497,17 +469,14 @@
             }
         }
 
-        // --- Helper Methods ---
-
         drawMap() {
-            // 배경: 고대신전 타일 랜덤 배치
             for(let y=0; y<ROWS; y++) {
                 for(let x=0; x<COLS; x++) {
                     let tex = getRandomAsset('temple_stone', 4);
+                    // [크기 조정 3] 맵 타일 크기 (40x40 픽셀)
                     this.add.image(x*TILE+TILE/2, y*TILE+TILE/2, tex).setDisplaySize(TILE, TILE).setDepth(0);
                 }
             }
-            // 길: 돌길 타일 랜덤 배치
             for(let i=0; i<PATH.length-1; i++) {
                 let x1 = Math.min(PATH[i].x, PATH[i+1].x);
                 let x2 = Math.max(PATH[i].x, PATH[i+1].x);
@@ -520,7 +489,6 @@
                     }
                 }
             }
-            // 본진 표시 (간단한 그래픽)
             let lx = PATH[PATH.length-1].x * TILE + TILE/2;
             let ly = PATH[PATH.length-1].y * TILE + TILE/2;
             this.add.text(lx, ly, 'KRX', { fontSize: '14px', fill: '#fff', backgroundColor: '#0f172a' }).setOrigin(0.5).setDepth(2);
@@ -528,33 +496,33 @@
 
         isValidGrid(gx, gy) {
             if(gx<0||gx>=COLS||gy<0||gy>=ROWS) return false;
-            // 길 위 건설 금지
             for(let i=0; i<PATH.length-1; i++) {
                 let x1 = Math.min(PATH[i].x, PATH[i+1].x), x2 = Math.max(PATH[i].x, PATH[i+1].x);
                 let y1 = Math.min(PATH[i].y, PATH[i+1].y), y2 = Math.max(PATH[i].y, PATH[i+1].y);
                 if(gx>=x1 && gx<=x2 && gy>=y1 && gy<=y2) return false;
             }
-            // 기존 타워 겹침 금지
             if(this.towers.some(t => t.gx === gx && t.gy === gy)) return false;
             return true;
         }
 
         fireProjectile(sx, sy, target, angle, speed, dmg, tex, hitType, isExplosive) {
-            let spr = this.add.sprite(sx, sy, tex).setDisplaySize(20, 20).setDepth(6);
+            // [크기 조정 4] 투사체 크기: 대포 등 큰 투사체는 24x24, 나머지는 16x16
+            let pSize = hitType === 'big' ? 24 : 16;
+            let spr = this.add.sprite(sx, sy, tex).setDisplaySize(pSize, pSize).setDepth(6);
             this.projectiles.push({ sprite: spr, target: target, angle: angle, speed: speed, dmg: dmg, hitType: hitType, isExplosive: isExplosive });
         }
 
         hitEnemy(enemy, dmg, hitType, isExplosive) {
             enemy.hp -= dmg;
             
-            // 이펙트 발생
             let effTex = 'basic_asset1';
             if(hitType === 'big') effTex = getRandomAsset('big_asset', 4);
             else if(hitType === 'bolt') effTex = getRandomAsset('bolt', 4);
             else if(hitType === 'poison') effTex = getRandomAsset('poison', 2);
             else effTex = getRandomAsset('basic_asset', 4);
 
-            let eff = this.add.sprite(enemy.sprite.x, enemy.sprite.y, effTex).setDisplaySize(32, 32).setDepth(7);
+            // [크기 조정 5] 기본 이펙트 36x36, 광역 폭발 80x80
+            let eff = this.add.sprite(enemy.sprite.x, enemy.sprite.y, effTex).setDisplaySize(36, 36).setDepth(7);
             if(isExplosive) { eff.setDisplaySize(80, 80); this.cameras.main.shake(100, 0.01); }
             
             this.tweens.add({
@@ -573,7 +541,7 @@
                 
                 if(this.enemies.length === 0 && gameState.gameRunning) {
                     gameState.gameRunning = false;
-                    endWave(); // HTML 측 함수 호출
+                    endWave(); 
                 }
             }
         }
@@ -590,7 +558,10 @@
                 else tex = Math.random() < 0.3 ? getRandomAsset('antfly', 3) : 'ant1';
 
                 let spr = this.add.sprite(PATH[0].x*TILE+TILE/2, PATH[0].y*TILE+TILE/2, tex);
-                spr.setDisplaySize(isBoss ? 56 : 32, isBoss ? 56 : 32).setDepth(4).setVisible(false);
+                
+                // [크기 조정 6] 적 크기: 일반 32x32, 보스 64x64
+                let eSize = isBoss ? 64 : 32;
+                spr.setDisplaySize(eSize, eSize).setDepth(4).setVisible(false);
                 
                 let bg = this.add.graphics().fillStyle(0x000000, 1).fillRect(0, 0, 30, 4).setVisible(false).setDepth(8);
                 let bar = this.add.graphics().setVisible(false).setDepth(8);
@@ -611,33 +582,26 @@
             Object.assign(towerObj, spec);
             towerObj.sprite.setTexture(tex);
             
-            // 타워 크기 조정 (코스피는 좀 더 크게)
-            if(spec.tier === 'KOSPI') towerObj.sprite.setDisplaySize(44, 44);
-            else towerObj.sprite.setDisplaySize(36, 36);
+            // [크기 조정 7] 타워 크기: KOSPI는 타일을 약간 벗어나는 48x48, 나머지는 40x40
+            let tSize = spec.tier === 'KOSPI' ? 48 : 40;
+            towerObj.sprite.setDisplaySize(tSize, tSize);
             
-            // 승급 이펙트
             let eff = this.add.sprite(towerObj.cx, towerObj.cy, 'big_asset1').setDisplaySize(50, 50).setDepth(7);
             this.tweens.add({ targets: eff, alpha: 0, scale: 2, duration: 400, onComplete: () => eff.destroy() });
         }
     }
 
-    // ========================================================
-    // 3. Phaser 설정 및 인스턴스
-    // ========================================================
     const config = {
         type: Phaser.AUTO,
         width: 680,
         height: 480,
         parent: 'phaser-game-container',
-        pixelArt: false, // Jpeg 이미지를 부드럽게 렌더링하기 위해 false (도트 최적화는 png일때 true 권장)
+        pixelArt: true,
         scene: [MainScene]
     };
     const game = new Phaser.Game(config);
 
 
-    // ========================================================
-    // 4. HTML <-> Phaser 브릿지 함수 (UI 컨트롤)
-    // ========================================================
     function updateUI() {
         document.getElementById('baseHp').innerText = Math.max(0, gameState.baseHp);
         document.getElementById('baseHpBar').style.width = Math.max(0, gameState.baseHp) + '%';
@@ -725,7 +689,7 @@
         let t = gameState.selectedTower;
         if(!t) return;
         gameState.gold += Math.floor(t.cost * 0.6);
-        t.sprite.destroy(); // 화면에서 그래픽 제거
+        t.sprite.destroy(); 
         phaserScene.towers = phaserScene.towers.filter(tw => tw !== t);
         gameState.selectedTower = null;
         updateUI();
