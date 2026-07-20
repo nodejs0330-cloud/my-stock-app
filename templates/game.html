@@ -83,7 +83,7 @@
                 </div>
                 <div id="investNotice">대기 중... 투자할 금액을 입력하고 [투자 확정]을 누르세요.</div>
             </div>
-            <div style="margin-top:5px; font-size:12px; color:#94a3b8; text-align:center;">⌨️ 마우스(조준) + [SpaceBar] 파워 차지 발사 / [W,A,S,D] 이동</div>
+            <div style="margin-top:5px; font-size:12px; color:#94a3b8; text-align:center;">⌨️ 마우스(조준) + [SpaceBar] 파워 차지 발사 / [W,A,S,D] 및 방향키 이동</div>
         </div>
 
         <div class="right-panel">
@@ -115,7 +115,7 @@
             </div>
 
             <div class="dict-wrapper">
-                <div class="dict-header">📊 내 포트폴리오 및 확정권</div>
+                <div class="dict-header">📊 내 포트폴리오 및 도감</div>
                 <div class="dict-content">
                     <div class="dict-list" id="dictList"></div>
                     <div class="dict-detail" id="dictDetail">
@@ -129,6 +129,58 @@
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
+    // ========================================================
+    // 0. 오디오 및 사운드 세팅 복구
+    // ========================================================
+    const sndBoss = new Audio('/static/bgm/boss.wav');
+    const sndBuild = new Audio('/static/bgm/build.wav');
+    const sndDanger = new Audio('/static/bgm/danger.wav');
+    const sndEnd = new Audio('/static/bgm/end.wav');
+    const sndReward = new Audio('/static/bgm/reward.wav');
+    const sndUpgrade = new Audio('/static/bgm/upgrade.wav');
+    const sndDead = new Audio('/static/bgm/dead.mp3');
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSfx(type) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+
+        switch(type) {
+            case 'basic':
+            case 'cannon':
+                osc.type = 'square'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(10, now+0.2);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
+                osc.start(now); osc.stop(now+0.2); break;
+            case 'bolt':
+            case 'laser':
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(900, now); osc.frequency.linearRampToValueAtTime(300, now+0.15);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.15);
+                osc.start(now); osc.stop(now+0.15); break;
+            case 'poison':
+            case 'magic':
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(800, now+0.2);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
+                osc.start(now); osc.stop(now+0.2); break;
+            case 'big':
+            case 'nuke':
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(80, now); osc.frequency.linearRampToValueAtTime(20, now+0.5);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now+0.5);
+                osc.start(now); osc.stop(now+0.5); break;
+            case 'fanfare':
+                [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                    let o = audioCtx.createOscillator(); let g = audioCtx.createGain(); o.type = 'square'; o.frequency.value = f;
+                    o.connect(g); g.connect(audioCtx.destination);
+                    g.gain.setValueAtTime(0, now + i*0.15); g.gain.linearRampToValueAtTime(0.2, now + i*0.15 + 0.05); g.gain.linearRampToValueAtTime(0, now + i*0.15 + 0.3);
+                    o.start(now + i*0.15); o.stop(now + i*0.15 + 0.3);
+                }); break;
+        }
+    }
+
+    // ========================================================
+    // 1. 전역 상태 및 에셋 매핑 데이터
+    // ========================================================
     let gameState = {
         gold: 500, baseHp: 100, stage: 1, kills: 0,
         isBuilding: false, gameRunning: false,
@@ -180,45 +232,47 @@
     };
 
     const TOWER_DB = {
-        '알테오젠': { tier: 'KOSDAQ', dmg: 12, range: 100, cd: 800, type: 'basic', logo: 'ALT' },
-        '에코프로비엠': { tier: 'KOSDAQ', dmg: 22, range: 85, cd: 1200, type: 'big', logo: 'EBM' },
-        '에코프로': { tier: 'KOSDAQ', dmg: 14, range: 110, cd: 900, type: 'bolt', logo: 'ECO' },
-        'HLB': { tier: 'KOSDAQ', dmg: 9, range: 105, cd: 600, type: 'basic', logo: 'HLB' },
-        '리가켐바이오': { tier: 'KOSDAQ', dmg: 16, range: 95, cd: 1000, type: 'poison', logo: 'LCB' },
-        '엔켐': { tier: 'KOSDAQ', dmg: 11, range: 90, cd: 750, type: 'poison', logo: 'ENC' },
-        '휴젤': { tier: 'KOSDAQ', dmg: 19, range: 130, cd: 1100, type: 'basic', logo: 'HJL' },
-        '클래시스': { tier: 'KOSDAQ', dmg: 13, range: 95, cd: 850, type: 'bolt', logo: 'CLS' },
-        '삼천당제약': { tier: 'KOSDAQ', dmg: 15, range: 115, cd: 1000, type: 'basic', logo: 'SCD' },
-        '실리콘투': { tier: 'KOSDAQ', dmg: 25, range: 95, cd: 1350, type: 'big', logo: 'SI2' },
-        '리노공업': { tier: 'KOSDAQ', dmg: 18, range: 100, cd: 950, type: 'big', logo: 'LNO' },
-        'JYP Ent.': { tier: 'KOSDAQ', dmg: 10, range: 120, cd: 650, type: 'basic', logo: 'JYP' },
-        '에스엠': { tier: 'KOSDAQ', dmg: 11, range: 110, cd: 700, type: 'basic', logo: 'SM' },
-        '와이지엔터': { tier: 'KOSDAQ', dmg: 14, range: 105, cd: 800, type: 'basic', logo: 'YG' },
-        '펄어비스': { tier: 'KOSDAQ', dmg: 20, range: 115, cd: 1150, type: 'basic', logo: 'PA' },
-        '카카오게임즈': { tier: 'KOSDAQ', dmg: 17, range: 110, cd: 1050, type: 'basic', logo: 'KG' },
-        '레인보우로보': { tier: 'KOSDAQ', dmg: 24, range: 100, cd: 1300, type: 'bolt', logo: 'RR' },
-        '두산로보틱스': { tier: 'KOSDAQ', dmg: 26, range: 90, cd: 1400, type: 'big', logo: 'DR' },
-        '솔브레인': { tier: 'KOSDAQ', dmg: 13, range: 95, cd: 800, type: 'poison', logo: 'SLB' },
-        'HPSP': { tier: 'KOSDAQ', dmg: 16, range: 100, cd: 900, type: 'bolt', logo: 'HPS' },
-        '삼성전자': { tier: 'KOSPI', dmg: 85, range: 190, cd: 1400, type: 'big', logo: 'SEC' },
-        'SK하이닉스': { tier: 'KOSPI', dmg: 40, range: 160, cd: 750, type: 'bolt', logo: 'HYN' },
-        'LG엔솔': { tier: 'KOSPI', dmg: 28, range: 140, cd: 900, type: 'bolt', logo: 'ENS' },
-        '삼바': { tier: 'KOSPI', dmg: 24, range: 145, cd: 550, type: 'poison', logo: 'BIO' },
-        '현대차': { tier: 'KOSPI', dmg: 50, range: 210, cd: 1100, type: 'basic', logo: 'HD' },
-        '기아': { tier: 'KOSPI', dmg: 45, range: 165, cd: 1050, type: 'basic', logo: 'KIA' },
-        '셀트리온': { tier: 'KOSPI', dmg: 33, range: 150, cd: 850, type: 'poison', logo: 'CEL' },
-        'KB금융': { tier: 'KOSPI', dmg: 65, range: 175, cd: 1300, type: 'big', logo: 'KB' },
-        '네이버': { tier: 'KOSPI', dmg: 26, range: 180, cd: 650, type: 'bolt', logo: 'NVR' },
-        '카카오': { tier: 'KOSPI', dmg: 32, range: 160, cd: 950, type: 'basic', logo: 'KAK' }
+        '알테오젠': { tier: 'KOSDAQ', dmg: 12, range: 100, cd: 800, type: 'basic', logo: 'ALT', desc: '주사기 다트 발사.' },
+        '에코프로비엠': { tier: 'KOSDAQ', dmg: 22, range: 85, cd: 1200, type: 'big', logo: 'EBM', desc: '배터리 이온탄.' },
+        '에코프로': { tier: 'KOSDAQ', dmg: 14, range: 110, cd: 900, type: 'bolt', logo: 'ECO', desc: '레이저 빔 타격.' },
+        'HLB': { tier: 'KOSDAQ', dmg: 9, range: 105, cd: 600, type: 'basic', logo: 'HLB', desc: '의료 다트 고속 발사.' },
+        '리가켐바이오': { tier: 'KOSDAQ', dmg: 16, range: 95, cd: 1000, type: 'poison', logo: 'LCB', desc: '화학 유도탄.' },
+        '엔켐': { tier: 'KOSDAQ', dmg: 11, range: 90, cd: 750, type: 'poison', logo: 'ENC', desc: '전해액 구체.' },
+        '휴젤': { tier: 'KOSDAQ', dmg: 19, range: 130, cd: 1100, type: 'basic', logo: 'HJL', desc: '장거리 톡신 스나이핑.' },
+        '클래시스': { tier: 'KOSDAQ', dmg: 13, range: 95, cd: 850, type: 'bolt', logo: 'CLS', desc: '초음파 단일 빔.' },
+        '삼천당제약': { tier: 'KOSDAQ', dmg: 15, range: 115, cd: 1000, type: 'basic', logo: 'SCD', desc: '다트 연사.' },
+        '실리콘투': { tier: 'KOSDAQ', dmg: 25, range: 95, cd: 1350, type: 'big', logo: 'SI2', desc: '거대 박스 폭탄 투척.' },
+        '리노공업': { tier: 'KOSDAQ', dmg: 18, range: 100, cd: 950, type: 'big', logo: 'LNO', desc: '견고한 반도체 포탄.' },
+        'JYP Ent.': { tier: 'KOSDAQ', dmg: 10, range: 120, cd: 650, type: 'basic', logo: 'JYP', desc: '음파 공격.' },
+        '에스엠': { tier: 'KOSDAQ', dmg: 11, range: 110, cd: 700, type: 'basic', logo: 'SM', desc: '고속 마법 구체.' },
+        '와이지엔터': { tier: 'KOSDAQ', dmg: 14, range: 105, cd: 800, type: 'basic', logo: 'YG', desc: '강력한 음파 구체.' },
+        '펄어비스': { tier: 'KOSDAQ', dmg: 20, range: 115, cd: 1150, type: 'basic', logo: 'PA', desc: '검은 사막의 검기 관통.' },
+        '카카오게임즈': { tier: 'KOSDAQ', dmg: 17, range: 110, cd: 1050, type: 'basic', logo: 'KG', desc: '게임 특수 효과 발사.' },
+        '레인보우로보': { tier: 'KOSDAQ', dmg: 24, range: 100, cd: 1300, type: 'bolt', logo: 'RR', desc: '정밀 로봇 레이저 조준.' },
+        '두산로보틱스': { tier: 'KOSDAQ', dmg: 26, range: 90, cd: 1400, type: 'big', logo: 'DR', desc: '중장비 부품 타격.' },
+        '솔브레인': { tier: 'KOSDAQ', dmg: 13, range: 95, cd: 800, type: 'poison', logo: 'SLB', desc: '안정적 화학 구체.' },
+        'HPSP': { tier: 'KOSDAQ', dmg: 16, range: 100, cd: 900, type: 'bolt', logo: 'HPS', desc: '고속 레이저 사격.' },
+        '삼성전자': { tier: 'KOSPI', dmg: 85, range: 190, cd: 1400, type: 'big', logo: 'SEC', desc: '[최종병기] 웨이퍼 광역 폭발 빔.' },
+        'SK하이닉스': { tier: 'KOSPI', dmg: 40, range: 160, cd: 750, type: 'bolt', logo: 'HYN', desc: '체인 라이트닝 선 레이저 다중 전이.' },
+        'LG엔솔': { tier: 'KOSPI', dmg: 28, range: 140, cd: 900, type: 'bolt', logo: 'ENS', desc: '전기장을 터뜨려 적 둔화.' },
+        '삼바': { tier: 'KOSPI', dmg: 24, range: 145, cd: 550, type: 'poison', logo: 'BIO', desc: '백신 가스 초고속 연사.' },
+        '현대차': { tier: 'KOSPI', dmg: 50, range: 210, cd: 1100, type: 'basic', logo: 'HD', desc: '관통 판정을 지닌 고속 자동차 직사 발사.' },
+        '기아': { tier: 'KOSPI', dmg: 45, range: 165, cd: 1050, type: 'basic', logo: 'KIA', desc: '자동차 투사 파편 스플래시.' },
+        '셀트리온': { tier: 'KOSPI', dmg: 33, range: 150, cd: 850, type: 'poison', logo: 'CEL', desc: '역병 독소를 누적 시켜 데미지 누적.' },
+        'KB금융': { tier: 'KOSPI', dmg: 65, range: 175, cd: 1300, type: 'big', logo: 'KB', desc: '거대 황금 동전을 던져 즉사급 물리 딜링.' },
+        '네이버': { tier: 'KOSPI', dmg: 26, range: 180, cd: 650, type: 'bolt', logo: 'NVR', desc: '그린 서치 빔으로 방어력 무력화.' },
+        '카카오': { tier: 'KOSPI', dmg: 32, range: 160, cd: 950, type: 'basic', logo: 'KAK', desc: '노란빛 골드 파도 이펙트 봉쇄.' }
     };
 
     let phaserScene = null;
 
+    // ========================================================
+    // 2. Phaser Scene 구현
+    // ========================================================
     class MainScene extends Phaser.Scene {
         constructor() { super({ key: 'MainScene' }); }
 
         preload() {
-            // 경로 및 확장자 세팅
             const loadImg = (key) => this.load.image(key, `/static/img/tower/${key}.png`);
             
             // 영웅
@@ -249,14 +303,8 @@
             loadImg('tower_samsungbio1'); loadImg('tower_samsungbio2');
             loadImg('tower_kia1'); loadImg('tower_kia2');
             loadImg('tower_samsung1');
-            // 타일
-            for(let i=1; i<=4; i++) {
-                loadImg('temple_stone'+i);
-                loadImg('tile_stone'+i);
-                loadImg('grass'+i); 
-            }
-            for(let i=1; i<=3; i++) loadImg('dirt_path'+i); 
-            for(let i=1; i<=4; i++) loadImg('Obsidian_floor'+i); 
+            // 타일 (잔디와 흙길만 사용)
+            for(let i=1; i<=3; i++) { loadImg('grass'+i); loadImg('dirt_path'+i); }
         }
 
         create() {
@@ -264,6 +312,12 @@
             this.towers = [];
             this.enemies = [];
             this.projectiles = [];
+            
+            // 일반 타워용 도트 발사체 텍스처 동적 생성
+            let gBullet = this.make.graphics({x:0, y:0, add:false});
+            gBullet.fillStyle(0x38bdf8, 1);
+            gBullet.fillCircle(4, 4, 4);
+            gBullet.generateTexture('dot_bullet', 8, 8);
             
             this.drawMap();
             
@@ -273,17 +327,21 @@
             this.buildMarker.setVisible(false);
             this.buildMarker.setDepth(10);
 
-            // [크기 조정 1] 영웅 크기 설정 (40x40 픽셀)
             this.hero = this.add.sprite(340, 350, 'hero').setDisplaySize(40, 40);
             this.hero.setDepth(5);
             this.hero.charging = false;
             this.hero.power = 0;
             
-            this.keys = this.input.keyboard.addKeys('W,A,S,D,SPACE');
+            // 방향키 추가 지원
+            this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,SPACE');
             this.mouseX = 340; this.mouseY = 350;
 
             this.input.on('pointermove', (pointer) => {
                 this.mouseX = pointer.x; this.mouseY = pointer.y;
+                
+                // 자연스러운 좌우 반전 (마우스가 왼쪽에 있으면 flipX)
+                this.hero.setFlipX(this.mouseX < this.hero.x);
+                
                 if(gameState.isBuilding) {
                     let gx = Math.floor(pointer.x / TILE);
                     let gy = Math.floor(pointer.y / TILE);
@@ -306,16 +364,18 @@
                     if (gameState.gold >= 100 && this.isValidGrid(gx, gy)) {
                         gameState.gold -= 100;
                         gameState.isBuilding = false;
+                        sndBuild.play().catch(e=>{});
                         
                         let baseTexture = getRandomAsset('tower', 2);
-                        // [크기 조정 2] 개잡주 기본 타워 크기 (36x36 픽셀)
+                        // 개잡주 타워 크기 확대 (44x44)
                         let spr = this.add.sprite(gx * TILE + TILE/2, gy * TILE + TILE/2, baseTexture);
-                        spr.setDisplaySize(36, 36);
+                        spr.setDisplaySize(44, 44);
+                        spr.setDepth(2);
                         
                         let tObj = { 
                             sprite: spr, name: '개잡주', tier: 'NONE', type: 'none', 
                             gx: gx, gy: gy, cx: spr.x, cy: spr.y, 
-                            dmg: 0, range: 0, cd: 99999, level: 1, lastShot: 0, cost: 100 
+                            dmg: 0, range: 0, cd: 99999, level: 1, lastShot: 0, cost: 100, aura: null 
                         };
                         this.towers.push(tObj);
                         gameState.selectedTower = tObj;
@@ -331,7 +391,6 @@
                 if(!this.hero.charging && gameState.gameRunning) {
                     this.hero.charging = true;
                     this.hero.power = 0;
-                    
                     if(gameState.heroWpnType === 'scalping') this.hero.setTexture('hero_attack');
                     else if(gameState.heroWpnType === 'quant') this.hero.setTexture('hero_fish');
                     else if(gameState.heroWpnType === 'value') this.hero.setTexture('hero_canon');
@@ -347,17 +406,17 @@
                     if(gameState.heroWpnType === 'scalping') { 
                         for(let i=0; i<gameState.heroWpnLevel; i++) {
                             this.time.delayedCall(i*80, () => {
-                                this.fireProjectile(this.hero.x, this.hero.y, null, angle + (Math.random()*0.2-0.1), 12, 8 + gameState.heroWpnLevel*2, 'fork1', 'basic', false);
+                                this.fireProjectile(this.hero.x, this.hero.y, null, angle + (Math.random()*0.2-0.1), 12, 8 + gameState.heroWpnLevel*2, 'fork1', 'basic', false, true);
                             });
                         }
                     } else if(gameState.heroWpnType === 'value') { 
-                        this.fireProjectile(this.hero.x, this.hero.y, null, angle, 5 + (this.hero.power/30), 20 + this.hero.power*2 * gameState.heroWpnLevel, 'canon1', 'big', true);
+                        this.fireProjectile(this.hero.x, this.hero.y, null, angle, 5 + (this.hero.power/30), 20 + this.hero.power*2 * gameState.heroWpnLevel, 'canon1', 'big', true, true);
                     } else if(gameState.heroWpnType === 'quant') { 
                         let inRng = this.enemies.filter(en => en.delay<=0 && Phaser.Math.Distance.Between(en.sprite.x, en.sprite.y, this.hero.x, this.hero.y) <= 250);
                         if(inRng.length > 0) {
                             let tgts = inRng.slice(0, gameState.heroWpnLevel);
                             tgts.forEach(tgt => {
-                                this.fireProjectile(this.hero.x, this.hero.y, tgt, 0, 10, 15 * gameState.heroWpnLevel, 'golden_fish1', 'basic', false);
+                                this.fireProjectile(this.hero.x, this.hero.y, tgt, 0, 10, 15 * gameState.heroWpnLevel, 'golden_fish1', 'basic', false, true);
                             });
                         }
                     }
@@ -369,11 +428,12 @@
         }
 
         update(time, delta) {
+            // 영웅 이동 (WASD 및 방향키 지원)
             const speed = 4;
-            if (this.keys.A.isDown) this.hero.x -= speed;
-            else if (this.keys.D.isDown) this.hero.x += speed;
-            if (this.keys.W.isDown) this.hero.y -= speed;
-            else if (this.keys.S.isDown) this.hero.y += speed;
+            if (this.keys.A.isDown || this.keys.LEFT.isDown) this.hero.x -= speed;
+            else if (this.keys.D.isDown || this.keys.RIGHT.isDown) this.hero.x += speed;
+            if (this.keys.W.isDown || this.keys.UP.isDown) this.hero.y -= speed;
+            else if (this.keys.S.isDown || this.keys.DOWN.isDown) this.hero.y += speed;
             
             this.hero.x = Phaser.Math.Clamp(this.hero.x, 20, 660);
             this.hero.y = Phaser.Math.Clamp(this.hero.y, 20, 460);
@@ -391,16 +451,24 @@
                         t.lastShot = now;
                         let tgt = inRng[0];
                         
-                        let pTex = 'fork1'; 
-                        if(t.type === 'big') pTex = 'canon1';
-                        else if(t.type === 'bolt') pTex = 'bolt1'; 
-                        else if(t.type === 'poison') pTex = 'poison1';
+                        // 발사체 최적화 (코스피 or 3레벨만 이미지 투사체 렌더링)
+                        let useImage = (t.tier === 'KOSPI' || t.level >= 3);
+                        let pTex = 'dot_bullet'; 
                         
-                        this.fireProjectile(t.cx, t.cy, tgt, 0, 10, t.dmg, pTex, t.type, false);
+                        if(useImage) {
+                            pTex = 'fork1'; 
+                            if(t.type === 'big') pTex = 'canon1';
+                            else if(t.type === 'bolt') pTex = 'bolt1'; 
+                            else if(t.type === 'poison') pTex = 'poison1';
+                        }
+                        
+                        this.fireProjectile(t.cx, t.cy, tgt, 0, 10, t.dmg, pTex, t.type, false, useImage);
+                        playSfx(t.type); // 효과음 재생
                     }
                 });
             }
 
+            // 발사체 렌더링 로직
             for(let i=this.projectiles.length-1; i>=0; i--) {
                 let p = this.projectiles[i];
                 if(p.target) {
@@ -408,7 +476,7 @@
                         p.sprite.destroy(); this.projectiles.splice(i, 1); continue;
                     }
                     let angle = Phaser.Math.Angle.Between(p.sprite.x, p.sprite.y, p.target.sprite.x, p.target.sprite.y);
-                    p.sprite.rotation = angle;
+                    if(p.useImage) p.sprite.rotation = angle;
                     p.sprite.x += Math.cos(angle) * p.speed;
                     p.sprite.y += Math.sin(angle) * p.speed;
                     
@@ -417,7 +485,7 @@
                         p.sprite.destroy(); this.projectiles.splice(i, 1);
                     }
                 } else { 
-                    p.sprite.rotation = p.angle;
+                    if(p.useImage) p.sprite.rotation = p.angle;
                     p.sprite.x += Math.cos(p.angle) * p.speed;
                     p.sprite.y += Math.sin(p.angle) * p.speed;
                     
@@ -434,6 +502,7 @@
                 }
             }
 
+            // 몬스터 이동 로직
             for(let i=this.enemies.length-1; i>=0; i--) {
                 let e = this.enemies[i];
                 if(e.delay > 0) { e.delay--; continue; }
@@ -443,10 +512,11 @@
                 if(!nx) { 
                     gameState.baseHp -= e.isBoss ? 25 : 5;
                     this.cameras.main.shake(200, 0.02);
+                    sndDanger.play().catch(er=>{});
                     e.sprite.destroy(); e.hpBarBg.destroy(); e.hpBar.destroy();
                     this.enemies.splice(i, 1); updateUI();
                     
-                    if(gameState.baseHp <= 0) { alert("파산! 한국거래소 자산이 붕괴되었습니다."); location.reload(); }
+                    if(gameState.baseHp <= 0) { sndEnd.play().catch(er=>{}); alert("파산! 한국거래소 자산이 붕괴되었습니다."); location.reload(); }
                     continue;
                 }
                 
@@ -467,16 +537,25 @@
                 e.hpBar.fillStyle(0x22c55e, 1);
                 e.hpBar.fillRect(0, 0, 30 * (e.hp/e.maxHp), 4);
             }
+
+            // 웨이브 정상 종료 체크 (버그 해결: 메인 루프에서 감시)
+            if(gameState.gameRunning && this.enemies.length === 0) {
+                gameState.gameRunning = false;
+                endWave(); 
+            }
         }
 
+        // --- Helper Methods ---
+
         drawMap() {
+            // 잔디 바닥
             for(let y=0; y<ROWS; y++) {
                 for(let x=0; x<COLS; x++) {
-                    let tex = getRandomAsset('temple_stone', 4);
-                    // [크기 조정 3] 맵 타일 크기 (40x40 픽셀)
+                    let tex = getRandomAsset('grass', 3);
                     this.add.image(x*TILE+TILE/2, y*TILE+TILE/2, tex).setDisplaySize(TILE, TILE).setDepth(0);
                 }
             }
+            // 흙길 이동 경로
             for(let i=0; i<PATH.length-1; i++) {
                 let x1 = Math.min(PATH[i].x, PATH[i+1].x);
                 let x2 = Math.max(PATH[i].x, PATH[i+1].x);
@@ -484,7 +563,7 @@
                 let y2 = Math.max(PATH[i].y, PATH[i+1].y);
                 for(let y=y1; y<=y2; y++) {
                     for(let x=x1; x<=x2; x++) {
-                        let tex = getRandomAsset('tile_stone', 4);
+                        let tex = getRandomAsset('dirt_path', 3);
                         this.add.image(x*TILE+TILE/2, y*TILE+TILE/2, tex).setDisplaySize(TILE, TILE).setDepth(1);
                     }
                 }
@@ -505,11 +584,11 @@
             return true;
         }
 
-        fireProjectile(sx, sy, target, angle, speed, dmg, tex, hitType, isExplosive) {
-            // [크기 조정 4] 투사체 크기: 대포 등 큰 투사체는 24x24, 나머지는 16x16
+        fireProjectile(sx, sy, target, angle, speed, dmg, tex, hitType, isExplosive, useImage) {
             let pSize = hitType === 'big' ? 24 : 16;
+            if(!useImage) pSize = 8; // 단순 도트 그래픽일 경우 더 작게
             let spr = this.add.sprite(sx, sy, tex).setDisplaySize(pSize, pSize).setDepth(6);
-            this.projectiles.push({ sprite: spr, target: target, angle: angle, speed: speed, dmg: dmg, hitType: hitType, isExplosive: isExplosive });
+            this.projectiles.push({ sprite: spr, target: target, angle: angle, speed: speed, dmg: dmg, hitType: hitType, isExplosive: isExplosive, useImage: useImage });
         }
 
         hitEnemy(enemy, dmg, hitType, isExplosive) {
@@ -521,7 +600,6 @@
             else if(hitType === 'poison') effTex = getRandomAsset('poison', 2);
             else effTex = getRandomAsset('basic_asset', 4);
 
-            // [크기 조정 5] 기본 이펙트 36x36, 광역 폭발 80x80
             let eff = this.add.sprite(enemy.sprite.x, enemy.sprite.y, effTex).setDisplaySize(36, 36).setDepth(7);
             if(isExplosive) { eff.setDisplaySize(80, 80); this.cameras.main.shake(100, 0.01); }
             
@@ -534,15 +612,11 @@
                 gameState.gold += enemy.reward;
                 gameState.waveKillGold += enemy.reward;
                 gameState.kills++;
+                sndDead.currentTime = 0; sndDead.play().catch(er=>{});
                 
                 enemy.sprite.destroy(); enemy.hpBarBg.destroy(); enemy.hpBar.destroy();
                 this.enemies.splice(this.enemies.indexOf(enemy), 1);
                 updateUI();
-                
-                if(this.enemies.length === 0 && gameState.gameRunning) {
-                    gameState.gameRunning = false;
-                    endWave(); 
-                }
             }
         }
 
@@ -550,7 +624,7 @@
             let isBoss = (gameState.stage % 5 === 0);
             let eCount = isBoss ? 1 : 12 + gameState.stage * 2;
             let hpVal = 50 + gameState.stage * gameState.stage * 20;
-            if(isBoss) hpVal *= 7;
+            if(isBoss) { hpVal *= 7; sndBoss.play().catch(er=>{}); }
 
             for(let i=0; i<eCount; i++) {
                 let tex = 'ant1';
@@ -558,8 +632,6 @@
                 else tex = Math.random() < 0.3 ? getRandomAsset('antfly', 3) : 'ant1';
 
                 let spr = this.add.sprite(PATH[0].x*TILE+TILE/2, PATH[0].y*TILE+TILE/2, tex);
-                
-                // [크기 조정 6] 적 크기: 일반 32x32, 보스 64x64
                 let eSize = isBoss ? 64 : 32;
                 spr.setDisplaySize(eSize, eSize).setDepth(4).setVisible(false);
                 
@@ -575,19 +647,57 @@
             }
         }
 
-        upgradeTower(towerObj) {
+        // 상장(IPO) 애니메이션 (커지는 바운스 효과)
+        playIpoAnimation(towerObj) {
+            sndBuild.play().catch(e=>{});
+            this.tweens.add({
+                targets: towerObj.sprite,
+                displayWidth: { from: 20, to: towerObj.sprite.displayWidth },
+                displayHeight: { from: 20, to: towerObj.sprite.displayHeight },
+                duration: 500,
+                ease: 'Bounce.easeOut'
+            });
+        }
+
+        // 코스피 3성 타워 금빛 아우라 연출
+        addGoldenAura(towerObj) {
+            if(towerObj.aura) return; // 이미 있으면 패스
+            let aura = this.add.graphics({x: towerObj.cx, y: towerObj.cy});
+            aura.fillStyle(0xffd700, 0.4);
+            aura.fillCircle(0, 0, 24);
+            aura.setDepth(1); // 타워 아래에 위치
+            
+            this.tweens.add({
+                targets: aura,
+                scaleX: 1.3, scaleY: 1.3, alpha: 0.1,
+                yoyo: true, repeat: -1, duration: 1000
+            });
+            towerObj.aura = aura;
+        }
+
+        upgradeTower(towerObj, isIpo = false) {
             let spec = TOWER_DB[towerObj.name];
             let tex = TOWER_ASSET_MAP[towerObj.name] ? TOWER_ASSET_MAP[towerObj.name]() : 'tower1';
             
             Object.assign(towerObj, spec);
             towerObj.sprite.setTexture(tex);
             
-            // [크기 조정 7] 타워 크기: KOSPI는 타일을 약간 벗어나는 48x48, 나머지는 40x40
-            let tSize = spec.tier === 'KOSPI' ? 48 : 40;
+            // 타워 크기 확대 세팅 (일반 48, 코스피 56)
+            let tSize = spec.tier === 'KOSPI' ? 56 : 48;
             towerObj.sprite.setDisplaySize(tSize, tSize);
             
-            let eff = this.add.sprite(towerObj.cx, towerObj.cy, 'big_asset1').setDisplaySize(50, 50).setDepth(7);
-            this.tweens.add({ targets: eff, alpha: 0, scale: 2, duration: 400, onComplete: () => eff.destroy() });
+            if(isIpo) {
+                this.playIpoAnimation(towerObj);
+            } else {
+                sndUpgrade.play().catch(e=>{});
+                let eff = this.add.sprite(towerObj.cx, towerObj.cy, 'big_asset1').setDisplaySize(60, 60).setDepth(7);
+                this.tweens.add({ targets: eff, alpha: 0, scale: 2, duration: 400, onComplete: () => eff.destroy() });
+                
+                // 3단계 코스피 체크 및 아우라 추가
+                if(spec.tier === 'KOSPI' && towerObj.level >= 3) {
+                    this.addGoldenAura(towerObj);
+                }
+            }
         }
     }
 
@@ -602,6 +712,9 @@
     const game = new Phaser.Game(config);
 
 
+    // ========================================================
+    // 4. HTML <-> Phaser 브릿지 함수 (UI 컨트롤)
+    // ========================================================
     function updateUI() {
         document.getElementById('baseHp').innerText = Math.max(0, gameState.baseHp);
         document.getElementById('baseHpBar').style.width = Math.max(0, gameState.baseHp) + '%';
@@ -610,6 +723,29 @@
         document.getElementById('uiKills').innerText = gameState.kills;
         document.getElementById('buildBtn').disabled = (gameState.gold < 100);
         
+        // 1. 도감 렌더링 복구
+        const dictList = document.getElementById('dictList'); 
+        dictList.innerHTML = '';
+        let counts = {}; 
+        if(phaserScene) {
+            phaserScene.towers.forEach(t => { if(t.name !== '개잡주') counts[t.name] = (counts[t.name]||0)+1; });
+        }
+        for(let name in TOWER_DB) {
+            let c = counts[name] || 0; let t = TOWER_DB[name];
+            let div = document.createElement('div'); div.className = 'dict-item';
+            div.innerHTML = `<span style="color:${t.tier==='KOSPI'?'#ef4444':(t.tier==='KOSDAQ'?'#38bdf8':'#eab308')}">[${t.logo}] ${name}</span> <span class="dict-count">보유: ${c}</span>`;
+            div.onclick = () => {
+                document.getElementById('dictDetail').innerHTML = `
+                    <strong style="color:${t.tier==='KOSPI'?'#ef4444':'#38bdf8'}; font-size:14px;">${name} (${t.logo})</strong><br>
+                    등급: <span style="color:${t.tier==='KOSPI'?'#ffd700':'#38bdf8'}">${t.tier}</span><br><br>
+                    ⚔️ 데미지: ${t.dmg}<br>🎯 사거리: ${t.range}<br>⚡ 쿨타임: ${t.cd}ms<br><br>
+                    <span style="color:#94a3b8">${t.desc}</span>
+                `;
+            };
+            dictList.appendChild(div);
+        }
+
+        // 2. 타워 선택 패널 렌더링
         const ipoB = document.getElementById('ipoBtn'); 
         const upB = document.getElementById('upgradeBtn');
         const actPanel = document.getElementById('actionPanel');
@@ -655,6 +791,7 @@
     function upgradeHero() {
         if(gameState.gold >= 200 && gameState.heroWpnLevel < 10) {
             gameState.gold -= 200; gameState.heroWpnLevel++;
+            sndUpgrade.play().catch(e=>{});
             document.getElementById('heroUpBtn').innerText = gameState.heroWpnLevel >= 10 ? "무기 MAX" : `무기 강화 Lv.${gameState.heroWpnLevel+1} (200냥)`;
             updateUI();
         }
@@ -669,8 +806,11 @@
         let tName = pool[Math.floor(Math.random() * pool.length)]; 
         
         t.name = tName;
-        phaserScene.upgradeTower(t);
+        phaserScene.upgradeTower(t, true); // true = 상장 애니메이션 재생
         t.lastShot = phaserScene.time.now;
+        
+        if(isKospi) playSfx('fanfare');
+        
         updateUI();
     }
 
@@ -681,6 +821,7 @@
         if(gameState.gold >= cost) {
             gameState.gold -= cost; t.cost += cost; t.level++;
             t.dmg = Math.floor(t.dmg * 1.5); t.range += 20;
+            phaserScene.upgradeTower(t, false); // 레벨업 이펙트(아우라 체크 포함)
             updateUI();
         }
     }
@@ -689,6 +830,7 @@
         let t = gameState.selectedTower;
         if(!t) return;
         gameState.gold += Math.floor(t.cost * 0.6);
+        if(t.aura) { t.aura.destroy(); } // 아우라도 함께 파괴
         t.sprite.destroy(); 
         phaserScene.towers = phaserScene.towers.filter(tw => tw !== t);
         gameState.selectedTower = null;
@@ -722,6 +864,7 @@
 
     function endWave() {
         document.getElementById('waveBtn').disabled = false;
+        sndReward.play().catch(er=>{});
         
         let investProfit = 0;
         if(gameState.investAmt > 0) {
@@ -742,6 +885,7 @@
         document.getElementById('repTotal').style.color = total >= 0 ? '#34d399' : '#ef4444';
         
         document.getElementById('reportModal').style.display = 'block';
+        playSfx('coin'); // 결산 효과음
         gameState.investAmt = 0; document.getElementById('investAmtInput').value = 0;
     }
 
@@ -752,3 +896,4 @@
     }
 </script>
 {% endblock %}
+```eof
