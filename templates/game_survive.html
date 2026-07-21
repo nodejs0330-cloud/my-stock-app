@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NCS SURVIVE - {{ username }}님</title>
+    <!-- Phaser 3 최신 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <script>
+        //        // ==========================================
+        // 0. Preload Scene (이미지 등 리소스 로드)
+        // ==========================================
+        class PreloadScene extends Phaser.Scene {
+            constructor() { super({ key: 'PreloadScene' }); }
+
+            preload() {
+                this.add.text(this.scale.width / 2, this.scale.height / 2, '로딩 중...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
+
+                // [경로 수정] static 폴더 기준으로 경로 설정
+                this.load.image('main_bg', '/static/img/survive/MAIN.jpg'); 
+                
+                // 직접 만드신 버튼 이미지 로드
+                this.load.image('btn_start', '/static/img/survive/game_start.png');
+                this.load.image('btn_upgrade', '/static/img/survive/game_upgrade.png');
+
+                this.load.image('hero_1', '/static/img/survive/hero/hero_1.png');
+                this.load.image('hero_2', '/static/img/survive/hero/hero_2.png');
+                this.load.image('grass1', '/static/img/survive/tile/grass1.png');
+                this.load.image('grass2', '/static/img/survive/tile/grass2.png');
+                this.load.image('grass3', '/static/img/survive/tile/grass3.png');
+                this.load.image('grass4', '/static/img/survive/tile/grass4.png');
+                this.load.image('grass5', '/static/img/survive/tile/grass5.png');
+                
+                this.load.image('rock1', '/static/img/survive/tile/rock1.png');
+                this.load.image('rock2', '/static/img/survive/tile/rock2.png');
+                this.load.image('rock3', '/static/img/survive/tile/rock3.png');
+                this.load.image('tree1', '/static/img/survive/tile/tree1.png');
+                this.load.image('tree2', '/static/img/survive/tile/tree2.png');
+                
+                // 예비용 에셋 로드 (오류 방지를 위해 임시로 grass/rock 활용, 실제 이미지 추가시 변경)
+                this.load.image('branch', '/static/img/survive/tile/grass2.png'); // branch.png가 없을 경우를 대비한 Fallback
+                this.load.image('mushroom', '/static/img/survive/tile/grass3.png'); // mushroom.png Fallback
+            }
+            create() { this.scene.start('TitleScene'); }
+        }
+
+        //        // ==========================================
+        // 1. Title Scene (메인 화면: 시작, 강화)
+        // ==========================================
+        class TitleScene extends Phaser.Scene {
+            constructor() { super({ key: 'TitleScene' }); }
+
+            create() {
+                // 메인 배경 이미지 출력 (화면 크기에 맞게 스케일 조정)
+                let bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'main_bg');
+                bg.setDisplaySize(this.scale.width, this.scale.height);
+
+                // --- [시작 버튼 영역 (제작된 이미지 적용)] ---
+                let startBtn = this.add.image(this.scale.width / 2 - 150, this.scale.height - 150, 'btn_start').setInteractive();
+                startBtn.setDisplaySize(150, 150); // 500x500 이미지를 150x150으로 축소
+                
+                // 마우스 오버/아웃 효과
+                startBtn.on('pointerover', () => startBtn.setTint(0xcccccc)); // 마우스를 올리면 살짝 어두워짐
+                startBtn.on('pointerout', () => startBtn.clearTint()); // 마우스 떼면 원상복구
+                startBtn.on('pointerdown', () => this.scene.start('StageSelectScene'));
+
+                // --- [강화 버튼 영역 (제작된 이미지 적용)] ---
+                let upgradeBtn = this.add.image(this.scale.width / 2 + 150, this.scale.height - 150, 'btn_upgrade').setInteractive();
+                upgradeBtn.setDisplaySize(150, 150); // 500x500 이미지를 150x150으로 축소
+                
+                // 마우스 오버/아웃 효과
+                upgradeBtn.on('pointerover', () => upgradeBtn.setTint(0xcccccc));
+                upgradeBtn.on('pointerout', () => upgradeBtn.clearTint());
+                upgradeBtn.on('pointerdown', () => this.scene.start('UpgradeScene'));
+            }
+        }
+
+        // ==========================================
+        // 2. Upgrade Scene (무기 강화 화면)
+        // ==========================================
+        class UpgradeScene extends Phaser.Scene {
+            constructor() { super({ key: 'UpgradeScene' }); }
+
+            create() {
+                this.add.text(this.scale.width / 2, 100, '무기 강화소', { fontSize: '48px', fill: '#ffcc00' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 300, '구현 예정 (골드 소모하여 영구 스탯 증가)', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
+
+                let backBtn = this.add.text(this.scale.width / 2, 500, '뒤로가기', {
+                    fontSize: '32px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 }
+                }).setOrigin(0.5).setInteractive();
+
+                backBtn.on('pointerdown', () => this.scene.start('TitleScene'));
+            }
+        }
+
+        //        // ==========================================
+        // 3. Stage Select Scene
+        // ==========================================
+        class StageSelectScene extends Phaser.Scene {
+            constructor() { super({ key: 'StageSelectScene' }); }
+
+            create() {
+                this.add.text(this.scale.width / 2, 80, '스테이지 선택', { fontSize: '48px', fill: '#fff' }).setOrigin(0.5);
+
+                const stages = [
+                    { id: 1, name: 'Stage 1: 평온한 숲', time: 600 },
+                    { id: 2, name: 'Stage 2: 어둠의 묘지', time: 720 },
+                    { id: 3, name: 'Stage 3: 작열하는 화산', time: 900 },
+                    { id: 4, name: 'Stage 4: 심연의 끝', time: 1020 },
+                    { id: 5, name: 'Stage 5: 잊혀진 신전', time: 1200 },
+                    { id: 6, name: 'Stage 6: 종말의 차원', time: 1800 }
+                ];
+
+                stages.forEach((stage, index) => {
+                    let col = index % 3;
+                    let row = Math.floor(index / 3);
+                    let cardX = (this.scale.width / 2) - 300 + (col * 300);
+                    let cardY = 280 + (row * 200); 
+
+                    let bossPlaceholder = this.add.rectangle(cardX, cardY - 40, 100, 100, 0x666666).setStrokeStyle(2, 0xffffff);
+                    let infoText = this.add.text(cardX, cardY + 40, `${stage.name}\n(보스: ${stage.time / 60}분)`, {
+                        fontSize: '20px', fill: '#0f0', align: 'center'
+                    }).setOrigin(0.5);
+
+                    let hitBox = this.add.rectangle(cardX, cardY, 220, 180, 0x333333, 0.8).setStrokeStyle(2, 0xaaaaaa);
+                    hitBox.setInteractive();
+                    
+                    this.add.container(0, 0, [hitBox, bossPlaceholder, infoText]);
+
+                    hitBox.on('pointerover', () => hitBox.setFillStyle(0x555555));
+                    hitBox.on('pointerout', () => hitBox.setFillStyle(0x333333));
+                    hitBox.on('pointerdown', () => this.scene.start('GameScene', { stageData: stage }));
+                });
+
+                let backBtn = this.add.text(this.scale.width / 2, this.scale.height - 80, '메인 메뉴로', {
+                    fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 }
+                }).setOrigin(0.5).setInteractive();
+
+                backBtn.on('pointerdown', () => this.scene.start('TitleScene'));
+            }
+        }
+
+        //        // ==========================================
+        // 4. Game Scene (인게임 화면 - 잔디맵 & 주인공 4방향 적용)
+        // ==========================================
+        class GameScene extends Phaser.Scene {
+            constructor() { super({ key: 'GameScene' }); }
+
+            init(data) {
+                this.stageData = data.stageData;
+                this.elapsedTime = 0;
+                
+                this.playerStats = { hp: 50, maxHp: 50, speed: 200, damage: 1 };
+                this.enemyBaseHp = 1; 
+            }
+
+            create() {
+                this.physics.world.setBounds(0, 0, 4000, 4000);
+
+                if (this.stageData.id === 1) {
+                    // --- 스테이지 1: 평온한 숲 맵 구성 ---
+                    
+                    // 1. 기본 잔디 바닥 (grass1 이미지를 4000x4000 영역에 타일링)
+                    this.add.tileSprite(2000, 2000, 4000, 4000, 'grass1').setDepth(0);
+
+                    //                    // 2. 장식용 텍스처 흩뿌리기 (충돌 없는 풀, 길, 꽃 등)
+                    const decoKeys = ['grass2', 'grass3', 'grass4', 'grass5', 'branch', 'mushroom'];
+                    for (let i = 0; i < 400; i++) {
+                        let rx = Phaser.Math.Between(0, 4000);
+                        let ry = Phaser.Math.Between(0, 4000);
+                        let key = Phaser.Utils.Array.GetRandom(decoKeys);
+                        let deco = this.add.image(rx, ry, key).setDepth(1);
+                        deco.setScale(1.5); // 데코레이션 크기 살짝 확대
+                    }
+
+                    //                    // 3. 물리 충돌이 있는 장애물 (나무, 바위) 생성
+                    this.obstacles = this.physics.add.staticGroup();
+                    const obstacleKeys = ['tree1', 'tree2', 'rock1', 'rock2', 'rock3'];
+                    
+                    for (let i = 0; i < 150; i++) {
+                        let rx = Phaser.Math.Between(100, 3900); 
+                        let ry = Phaser.Math.Between(100, 3900);
+                        
+                        // 시작지점(2000, 2000) 반경 300px 이내는 안전구역 처리
+                        if (Math.abs(rx - 2000) < 300 && Math.abs(ry - 2000) < 300) continue;
+
+                        let key = Phaser.Utils.Array.GetRandom(obstacleKeys);
+                        let obs = this.obstacles.create(rx, ry, key);
+                        
+                        obs.setScale(1.5);
+                        obs.refreshBody();
+                        // 자연스러운 겹침(Y-Sorting)을 위해 장애물의 y좌표를 depth로 설정
+                        obs.setDepth(obs.y); 
+                    }
+                } else {
+                    // 다른 스테이지의 임시 배경
+                    this.add.grid(2000, 2000, 4000, 4000, 64, 64, 0x222222).setAltFillStyle(0x2a2a2a).setOutlineStyle();
+                }
+
+                //                // 주인공 생성 (기본은 아래를 바라보는 hero_1)
+                this.player = this.physics.add.sprite(2000, 2000, 'hero_1');
+                this.player.setScale(1.2); 
+                this.player.setCollideWorldBounds(true);
+                
+                // 장애물과 충돌 설정
+                if (this.stageData.id === 1) {
+                    this.physics.add.collider(this.player, this.obstacles);
+                }
+
+                this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
+                // UI 설정
+                this.timerText = this.add.text(this.scale.width / 2, 30, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 })
+                    .setOrigin(0.5).setScrollFactor(0).setDepth(9999);
+                this.stageText = this.add.text(20, 20, this.stageData.name, { fontSize: '24px', fill: '#fff', stroke: '#000', strokeThickness: 3 })
+                    .setScrollFactor(0).setDepth(9999);
+
+                // 키보드 입력
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.wasd = this.input.keyboard.addKeys({
+                    up: Phaser.Input.Keyboard.KeyCodes.W,
+                    down: Phaser.Input.Keyboard.KeyCodes.S,
+                    left: Phaser.Input.Keyboard.KeyCodes.A,
+                    right: Phaser.Input.Keyboard.KeyCodes.D
+                });
+
+                // 게임 로직 타이머
+                this.time.addEvent({ delay: 1000, callback: this.updateGameLogic, callbackScope: this, loop: true });
+            }
+
+            //            update() {
+                let velocityX = 0;
+                let velocityY = 0;
+
+                if (this.cursors.left.isDown || this.wasd.left.isDown) { velocityX = -1; }
+                else if (this.cursors.right.isDown || this.wasd.right.isDown) { velocityX = 1; }
+
+                if (this.cursors.up.isDown || this.wasd.up.isDown) { velocityY = -1; }
+                else if (this.cursors.down.isDown || this.wasd.down.isDown) { velocityY = 1; }
+
+                // 대각선 이동 속도 보정
+                if (velocityX !== 0 && velocityY !== 0) {
+                    velocityX *= Math.SQRT1_2;
+                    velocityY *= Math.SQRT1_2;
+                }
+
+                this.player.body.setVelocity(velocityX * this.playerStats.speed, velocityY * this.playerStats.speed);
+
+                // === 4방향 이동 이미지 변경 ===
+                if (velocityY > 0) {
+                    this.player.setTexture('hero_1'); // 아래
+                } else if (velocityY < 0) {
+                    this.player.setTexture('hero_2'); // 위
+                } else if (velocityX < 0) {
+                    this.player.setTexture('hero_3'); // 왼쪽
+                } else if (velocityX > 0) {
+                    this.player.setTexture('hero_4'); // 오른쪽
+                }
+
+                // 2D 입체감 (Y-Sorting): 플레이어가 나무 앞/뒤를 자연스럽게 지나가도록 설정
+                this.player.setDepth(this.player.y);
+            }
+
+            //            updateGameLogic() {
+                this.elapsedTime++;
+
+                let mins = Math.floor(this.elapsedTime / 60);
+                let secs = this.elapsedTime % 60;
+                this.timerText.setText(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+
+                let currentEnemyHp = this.enemyBaseHp + Math.floor(this.elapsedTime / 60);
+
+                if (this.elapsedTime === this.stageData.time) {
+                    this.spawnBoss();
+                }
+            }
+
+            spawnBoss() {
+                let bossWarning = this.add.text(this.scale.width / 2, this.scale.height / 2, '⚠ 보스 출현 ⚠', { fontSize: '64px', fill: '#ff0000', fontStyle: 'bold', stroke: '#fff', strokeThickness: 6 })
+                    .setOrigin(0.5).setScrollFactor(0).setDepth(9999);
+                this.time.delayedCall(3000, () => bossWarning.destroy(), [], this);
+            }
+        }
+
+        //        // ==========================================
+        // Phaser 설정 및 초기화
+        // ==========================================
+        const config = {
+            type: Phaser.AUTO,
+            parent: 'game-container',
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH,
+                width: 1280,
+                height: 720
+            },
+            physics: {
+                default: 'arcade',
+                arcade: { debug: false } // 개발 완료 후 false 유지
+            },
+            scene: [PreloadScene, TitleScene, UpgradeScene, StageSelectScene, GameScene]
+        };
+
+        const game = new Phaser.Game(config);
+    </script>
+</body>
+</html>
