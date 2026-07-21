@@ -41,7 +41,7 @@
     .weapon-up-btn { background: #8b5cf6; border: none; color: white; font-family: 'DungGeunMo'; font-size: 11px; padding: 4px 8px; border-radius: 3px; cursor: pointer; border-bottom: 2px solid #6d28d9; width: 100%; margin-top: 5px; }
     .weapon-up-btn:active { transform: translateY(1px); border-bottom: 1px solid #6d28d9; }
 
-    /* 7강 이상 무기 아우라 이펙트 클래스들 */
+    /* 무기 강화 7단계 이상 은은한 아우라 */
     .aura-white { box-shadow: 0 0 10px 2px #ffffff; }
     .aura-blue { box-shadow: 0 0 12px 3px #3b82f6; }
     .aura-purple { box-shadow: 0 0 14px 4px #a855f7; }
@@ -60,12 +60,14 @@
     .dict-wrapper { flex: 1; display: flex; flex-direction: column; background: #0f172a; border: 1px solid #334155; border-radius: 6px; min-height: 200px; }
     .dict-header { background: #1e293b; padding: 8px; font-size: 14px; text-align: center; color: #f59e0b; border-bottom: 1px solid #334155; }
     
+    /* 아코디언 메뉴 스타일 */
     .acc-btn { background: #1e293b; color: #e2e8f0; width: 100%; text-align: left; padding: 8px; font-family: 'DungGeunMo'; border: none; border-bottom: 1px solid #334155; cursor: pointer; outline: none; }
     .acc-btn:hover { background: #334155; }
     .acc-content { padding: 0; display: none; background: #0f172a; overflow-y: auto; max-height: 150px; }
     .dict-item { font-size: 12px; padding: 6px 10px; border-bottom: 1px dashed #334155; cursor: pointer; color: #cbd5e1; display: flex; justify-content: space-between; }
     .dict-item:hover { background: #1e293b; color: #fff; }
 
+    /* 모바일 가상 조이패드 */
     .mobile-controls { display: none; justify-content: space-between; align-items: flex-end; margin-top: 10px; padding: 10px; background: #1e293b; border-radius: 8px; border: 2px solid #475569; }
     .dpad { display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 5px; }
     .dpad-btn { background: #334155; border: 2px solid #475569; border-radius: 8px; color: white; font-size: 20px; font-weight: bold; user-select: none; }
@@ -121,7 +123,6 @@
                     <button class="btn btn-build" id="buildBtn" onclick="toggleBuildMode()">개잡주 건설 (30냥)</button>
                 </div>
                 
-                <!-- 신규 무기 시스템 패널 -->
                 <div class="weapon-panel">
                     <div class="weapon-slot active" id="slot_scalping" onclick="selectWeapon('scalping')">
                         <img src="/static/img/tower/fork1.png">
@@ -168,6 +169,10 @@
 
             <div class="dict-wrapper">
                 <div class="dict-header">📊 내 포트폴리오 및 도감</div>
+                
+                <button class="acc-btn" onclick="toggleAcc('missionList')">▼ 📜 특수 조합 미션 (히든)</button>
+                <div id="missionList" class="acc-content" style="display:block;"></div>
+                
                 <button class="acc-btn" onclick="toggleAcc('kospiList')">▼ KOSPI (우량주 합병)</button>
                 <div id="kospiList" class="acc-content"></div>
                 
@@ -201,6 +206,9 @@
         el.style.display = (el.style.display === 'block') ? 'none' : 'block';
     }
 
+    // ========================================================
+    // 0. 오디오 및 가상 조이패드 세팅
+    // ========================================================
     const sndBoss = new Audio('/static/bgm/boss.wav');
     const sndBuild = new Audio('/static/bgm/build.wav');
     const sndDanger = new Audio('/static/bgm/danger.wav');
@@ -295,9 +303,16 @@
         'IT': 'IT/엔터'
     };
 
-    // 타워별 에셋 고정 (난수 제거, 일반회사 추가)
+    // 특수 조합 미션 (히든 시스템 부활)
+    const MISSIONS = [
+        { id: 1, name: "반도체 투톱 (삼전+닉스)", req: c => c['삼성전자']>0 && c['SK하이닉스']>0, reward: 500, done: false },
+        { id: 2, name: "모빌리티 연합 (현대차+기아)", req: c => c['현대차']>0 && c['기아']>0, reward: 400, done: false },
+        { id: 3, name: "K-바이오 (알테+셀트+HLB)", req: c => c['알테오젠']>0 && c['셀트리온']>0 && c['HLB']>0, reward: 600, done: false },
+        { id: 4, name: "플랫폼 양대산맥 (네이버+카카오)", req: c => c['네이버']>0 && c['카카오']>0, reward: 400, done: false }
+    ];
+
     const TOWER_ASSET_MAP = {
-        '일반회사': () => Math.random() > 0.5 ? 'tower_normal1' : 'tower_normal2',
+        '일반회사': () => 'tower_normal2',
         
         '알테오젠': () => 'tower_bio1', 'HLB': () => 'tower_bio2', '리가켐바이오': () => 'tower_bio3', '휴젤': () => 'tower_bio4', '삼천당제약': () => 'tower_bio5', '클래시스': () => 'tower_bio6',
         '에코프로비엠': () => 'tower_bio7', '에코프로': () => 'tower_bio8', '엔켐': () => 'tower_bio9', '솔브레인': () => 'tower_bio10',
@@ -309,7 +324,6 @@
         '네이버': () => 'tower_naver1', '카카오': () => 'tower_kakao1', '셀트리온': () => 'tower_bio1', '삼바': () => 'tower_samsungbio1'
     };
 
-    // 데미지 5배 이상 상향 및 계열 분류 적용
     const TOWER_DB = {
         '일반회사': { tier: 'NORMAL', sector: 'NONE', dmg: 150, range: 80, cd: 1000, type: 'basic', logo: 'NML', desc: '합병을 기다리는 일반 상장사' },
         
@@ -370,7 +384,7 @@
             loadImg('tower_normal1'); loadImg('tower_normal2');
             
             loadImg('golden_fish_detail'); loadImg('fork1'); loadImg('canon_detail'); 
-            loadImg('golden_fish1'); loadImg('fork1'); loadImg('canon1'); 
+            loadImg('golden_fish1'); loadImg('canon1'); 
             
             loadImg('boss_ant1'); loadImg('boss_ant2'); loadImg('boss_bear1');
             loadImg('boss_whale1'); loadImg('boss_whale2'); loadImg('boss_whale3');
@@ -460,14 +474,14 @@
                         let cx = gx * TILE + TILE/2;
                         let cy = gy * TILE + TILE/2;
                         let spr = this.add.sprite(cx, cy, baseTexture);
-                        spr.setOrigin(0.5, 0.7); // 하단 기준 렌더링
+                        spr.setOrigin(0.5, 0.7); 
                         spr.setDisplaySize(52, 52); 
                         spr.setDepth(2);
                         
                         let tObj = { 
                             sprite: spr, name: '개잡주', tier: 'NONE', sector: 'NONE', type: 'none', 
                             textureKey: baseTexture, 
-                            gx: gx, gy: gy, cx: cx, cy: cy - 10, // 조준/사거리 기준점 약간 위로
+                            gx: gx, gy: gy, cx: cx, cy: cy - 10, 
                             dmg: 0, range: 0, cd: 99999, level: 1, lastShot: 0, cost: 30, aura: null 
                         };
                         this.towers.push(tObj);
@@ -512,7 +526,8 @@
                     tObj.cx = gx * TILE + TILE/2;
                     tObj.cy = gy * TILE + TILE/2 - 10;
                 }
-                gameObject.setPosition(gx * TILE + TILE/2, gy * TILE + TILE/2);
+                // 버그 수정: 항상 tObj의 유효한 위치로 다시 복귀시킴
+                gameObject.setPosition(tObj.cx, tObj.cy + 15);
                 if(tObj.aura) tObj.aura.setPosition(tObj.cx, tObj.cy);
                 
                 gameState.selectedTower = tObj;
@@ -771,7 +786,6 @@
             if(gameState.gameRunning && this.enemies.length === 0 && !this.isChestCutsceneActive) {
                 gameState.gameRunning = false;
                 
-                // 7스테이지 마다 상자 미니게임
                 if(gameState.stage > 0 && gameState.stage % 7 === 0) {
                     this.showHiddenBoxes();
                 } else {
@@ -984,6 +998,22 @@
             }
         }
 
+        checkHiddenMissions() {
+            let counts = {};
+            this.towers.forEach(t => { if(t.name !== '개잡주' && t.name !== '일반회사') counts[t.name] = (counts[t.name]||0)+1; });
+            
+            MISSIONS.forEach(m => {
+                if(!m.done && m.req(counts)) {
+                    m.done = true;
+                    gameState.gold += m.reward;
+                    playSfx('fanfare');
+                    this.cameras.main.flash(300, 16, 185, 129); 
+                    this.showFloatingText(`✨미션 달성: ${m.name}✨\n+${m.reward}냥 획득!`, '#34d399', 340, 240, true);
+                    updateUI();
+                }
+            });
+        }
+
         showFloatingText(msg, color, x, y, isMassive = false, customDur = null) {
             let size = isMassive ? '30px' : '18px';
             let txt = this.add.text(x, y - 30, msg, {
@@ -1022,17 +1052,25 @@
         upgradeTower(towerObj, isIpo = false) {
             let spec = TOWER_DB[towerObj.name];
             
+            let tex = towerObj.textureKey;
+            if (towerObj.name === '일반회사') tex = 'tower_normal2';
+            else if (TOWER_ASSET_MAP[towerObj.name]) tex = TOWER_ASSET_MAP[towerObj.name]();
+            
+            towerObj.textureKey = tex; 
+            towerObj.sprite.setTexture(tex);
+            
             if(isIpo) {
-                let tex = TOWER_ASSET_MAP[towerObj.name] ? TOWER_ASSET_MAP[towerObj.name]() : 'tower1';
-                towerObj.textureKey = tex; 
-                towerObj.sprite.setTexture(tex);
+                if(!isMuted) sndUpgrade.play().catch(e=>{}); 
             } else {
                 if(!isMuted) sndUpgrade.play().catch(e=>{});
             }
             
             Object.assign(towerObj, spec);
             
-            let tSize = spec.tier === 'KOSPI' ? 96 : 84;
+            let tSize = 52;
+            if(spec.tier === 'KOSPI') tSize = 96;
+            else if(spec.tier === 'KOSDAQ') tSize = 84;
+            
             towerObj.sprite.setDisplaySize(tSize, tSize);
             
             this.tweens.add({
@@ -1042,6 +1080,8 @@
             });
             
             if(towerObj.level >= 3) this.addGoldenAura(towerObj, spec.tier);
+
+            this.checkHiddenMissions();
         }
     }
 
@@ -1067,8 +1107,21 @@
         
         const kospiList = document.getElementById('kospiList'); 
         const kosdaqList = document.getElementById('kosdaqList');
-        kospiList.innerHTML = ''; kosdaqList.innerHTML = '';
+        const missionList = document.getElementById('missionList');
         
+        kospiList.innerHTML = ''; kosdaqList.innerHTML = ''; missionList.innerHTML = '';
+        
+        // 미션 UI 렌더링
+        MISSIONS.forEach(m => {
+            let div = document.createElement('div'); 
+            div.className = 'dict-item';
+            let color = m.done ? '#34d399' : '#cbd5e1';
+            let icon = m.done ? '✅' : '🔒';
+            let strike = m.done ? 'text-decoration: line-through;' : '';
+            div.innerHTML = `<span style="color:${color}; ${strike}">${icon} ${m.name}</span> <span style="color:#f59e0b">+${m.reward}</span>`;
+            missionList.appendChild(div);
+        });
+
         let counts = {}; 
         if(phaserScene) {
             phaserScene.towers.forEach(t => { if(t.name !== '개잡주' && t.name !== '일반회사') counts[t.name] = (counts[t.name]||0)+1; });
@@ -1107,6 +1160,7 @@
                 let normals = phaserScene.towers.filter(tw => tw.tier === 'NORMAL');
                 if(normals.length >= 3) {
                     mgB.style.display = 'inline-block';
+                    mgB.className = 'btn btn-success';
                     mgB.innerText = '일반 합병 (랜덤 KOSDAQ)';
                 } else {
                     mgB.style.display = 'inline-block';
@@ -1152,7 +1206,6 @@
             actPanel.style.display = 'none';
         }
 
-        // 무기 UI 업데이트
         ['scalping', 'quant', 'value'].forEach(k => {
             let w = gameState.weapons[k];
             document.getElementById(`lvl_${k}`).innerText = w.level >= 15 ? 'MAX' : `Lv.${w.level}`;
@@ -1164,7 +1217,6 @@
             let slot = document.getElementById(`slot_${k}`);
             slot.className = `weapon-slot ${gameState.activeWeapon === k ? 'active' : ''}`;
             
-            // 아우라 추가
             slot.classList.remove('aura-white', 'aura-blue', 'aura-purple', 'aura-red', 'aura-gold');
             if(w.level >= 15) slot.classList.add('aura-gold');
             else if(w.level >= 13) slot.classList.add('aura-red');
@@ -1194,7 +1246,7 @@
     }
 
     function upgradeWeapon(wType, e) {
-        e.stopPropagation(); // 슬롯 선택 방지
+        e.stopPropagation(); 
         let w = gameState.weapons[wType];
         let cost = w.level * 30;
         
@@ -1211,7 +1263,7 @@
 
             if(isSuccess) {
                 w.level++;
-                w.mult *= 2; // 데미지 2배 폭증
+                w.mult *= 2; 
                 
                 if(w.level > 9) {
                     playSfx('fanfare');
@@ -1239,6 +1291,7 @@
         }
         gameState.gold -= 20;
         t.name = '일반회사';
+        t.tier = 'NORMAL';
         phaserScene.upgradeTower(t, true); 
         t.lastShot = phaserScene.time.now;
         updateUI();
@@ -1262,12 +1315,10 @@
             playSfx('fail'); phaserScene.showFloatingText(countMsg, '#ef4444', t.cx, t.cy, false); return;
         }
 
-        // 거리순 정렬 후 2개 파괴
         poolList.sort((a,b) => Phaser.Math.Distance.Between(t.cx, t.cy, a.cx, a.cy) - Phaser.Math.Distance.Between(t.cx, t.cy, b.cx, b.cy));
         sellTowerDirect(poolList[0], true);
         sellTowerDirect(poolList[1], true);
 
-        // 새로운 종목 선택
         let targetTier = t.tier === 'NORMAL' ? 'KOSDAQ' : 'KOSPI';
         let namePool = Object.keys(TOWER_DB).filter(k => TOWER_DB[k].tier === targetTier);
         t.name = namePool[Math.floor(Math.random() * namePool.length)];
@@ -1320,8 +1371,6 @@
 
     function endWave() {
         document.getElementById('waveBtn').disabled = false;
-        
-        // 보스는 특수음 내지 않고 일반음. 상자깡에서만 특수보상음.
         playSfx('coin');
         
         let tax = Math.floor(gameState.gold * 0.05); 
@@ -1329,14 +1378,12 @@
 
         document.getElementById('reportTitle').innerText = `제 ${gameState.stage}분기 결산`;
         document.getElementById('repKills').innerText = `+${gameState.waveKillGold} 냥`;
-        document.getElementById('repInvest').innerText = `투자 시스템 종료됨`;
         document.getElementById('repTax').innerText = `-${tax} 냥`;
         let total = gameState.waveKillGold - tax;
         document.getElementById('repTotal').innerText = `${total >= 0 ? '+'+total : total} 냥`;
         document.getElementById('repTotal').style.color = total >= 0 ? '#34d399' : '#ef4444';
         
         document.getElementById('reportModal').style.display = 'block';
-        playSfx('coin'); 
     }
 
     function closeReport() {
