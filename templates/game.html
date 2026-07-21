@@ -14,7 +14,14 @@
     
     #phaser-game-container { width: 100%; max-width: 680px; aspect-ratio: 680/480; background-color: #111827; border: 4px solid #0f172a; border-radius: 4px; box-shadow: inset 0 0 30px #000; outline: none; padding: 0; margin: 0; overflow: hidden; cursor: crosshair; position: relative; }
     
-    .modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 400px; background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; z-index: 1000; text-align: center; box-shadow: 0 0 30px rgba(245,158,11,0.5); }
+    /* BGM 토글 버튼 */
+    #muteBtn { position: absolute; top: 10px; right: 10px; background: rgba(15,23,42,0.8); border: 2px solid #475569; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; color: white; cursor: pointer; z-index: 10; display: flex; justify-content: center; align-items: center; }
+    
+    /* 시작 오버레이 */
+    #startScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    
+    /* 결산창 PC 화면 중앙 고정 */
+    .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 400px; background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; border-radius: 8px; padding: 20px; z-index: 1000; text-align: center; box-shadow: 0 0 30px rgba(245,158,11,0.5); }
     .modal-title { color: #f59e0b; font-size: 24px; margin-bottom: 15px; border-bottom: 2px dashed #f59e0b; padding-bottom: 10px; }
     .modal-row { display: flex; justify-content: space-between; margin: 10px 0; font-size: 16px; color: #e2e8f0; }
     
@@ -30,7 +37,7 @@
     .investment-panel input { width: 80px; text-align: right; }
     #investNotice { color: #34d399; font-size: 13px; font-weight: bold; margin-top: 2px; }
 
-    .right-panel { width: 360px; display: flex; flex-direction: column; gap: 10px; height: auto; }
+    .right-panel { width: 360px; display: flex; flex-direction: column; gap: 10px; height: 100%; max-height: 680px; }
     .info-box { background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #334155; }
     .status-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 15px; }
     .bar-container { width: 100%; background: #334155; height: 16px; border-radius: 3px; position: relative; margin-top: 4px; border: 1px solid #1e293b; }
@@ -40,13 +47,16 @@
     .hero-box { background: #1e293b; border: 1px solid #8b5cf6; padding: 10px; border-radius: 4px; }
     .action-box { background: #1e293b; border: 1px solid #f59e0b; padding: 10px; border-radius: 4px; display: none; }
     
-    .dict-wrapper { flex: 1; display: flex; flex-direction: column; background: #0f172a; border: 1px solid #334155; border-radius: 6px; min-height: 200px; }
+    .dict-wrapper { flex: 1; display: flex; flex-direction: column; background: #0f172a; border: 1px solid #334155; border-radius: 6px; overflow: hidden; }
     .dict-header { background: #1e293b; padding: 8px; font-size: 14px; text-align: center; color: #f59e0b; border-bottom: 1px solid #334155; }
-    .dict-content { display: flex; flex: 1; overflow: hidden; }
-    .dict-list { flex: 1; overflow-y: auto; padding: 8px; border-right: 1px solid #334155; }
-    .dict-detail { width: 150px; padding: 10px; font-size: 12px; background: #0b0f19; overflow-y: auto; }
-    .dict-item { font-size: 12px; padding: 6px; border-bottom: 1px dashed #334155; cursor: pointer; color: #cbd5e1; display: flex; justify-content: space-between; }
     
+    /* 아코디언 메뉴 스타일 */
+    .acc-btn { background: #1e293b; color: #e2e8f0; width: 100%; text-align: left; padding: 8px; font-family: 'DungGeunMo'; border: none; border-bottom: 1px solid #334155; cursor: pointer; outline: none; }
+    .acc-btn:hover { background: #334155; }
+    .acc-content { padding: 0; display: none; background: #0f172a; overflow-y: auto; max-height: 150px; }
+    .dict-item { font-size: 12px; padding: 6px 10px; border-bottom: 1px dashed #334155; cursor: pointer; color: #cbd5e1; display: flex; justify-content: space-between; }
+    .dict-item:hover { background: #1e293b; color: #fff; }
+
     /* 모바일 가상 조이패드 */
     .mobile-controls { display: none; justify-content: space-between; align-items: flex-end; margin-top: 10px; padding: 10px; background: #1e293b; border-radius: 8px; border: 2px solid #475569; }
     .dpad { display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); gap: 5px; }
@@ -55,19 +65,31 @@
     .action-btn-large { width: 80px; height: 80px; border-radius: 50%; background: #ef4444; border: 4px solid #b91c1c; color: white; font-family: 'DungGeunMo'; font-size: 16px; user-select: none; }
     .action-btn-large:active { background: #dc2626; transform: scale(0.95); }
 
-    /* 반응형 레이아웃 */
     @media (max-width: 1024px) {
         #main-container { flex-direction: column; }
-        .right-panel { width: 100%; height: auto; }
+        .right-panel { width: 100%; height: auto; max-height: none; }
         .mobile-controls { display: flex; }
         .game-wrapper { padding-bottom: 20px; }
     }
 </style>
 
+<!-- 게임 시작 오버레이 -->
+<div id="startScreen">
+    <h1 style="color:#f59e0b; font-size:40px; margin-bottom:10px; font-family:'DungGeunMo'; text-align:center;">NCS STOCK DEFENSE</h1>
+    <p style="color:#94a3b8; font-family:'DungGeunMo'; margin-bottom:30px; font-size:16px;">이어폰/스피커 볼륨을 확인해 주세요.</p>
+    <button class="btn btn-success" style="font-size:24px; padding:15px 40px;" onclick="initGame()">게임 시작</button>
+</div>
+
+<!-- BGM 오디오 -->
+<audio id="bgmAudio" src="/static/bgm/main.wav" loop></audio>
+
 <div class="game-wrapper pt-6 md:pt-10">
     <div id="main-container">
         <div class="left-panel">
-            <div id="phaser-game-container"></div>
+            <div id="phaser-game-container">
+                <!-- 음소거 토글 버튼 -->
+                <button id="muteBtn" onclick="toggleMute()">🔊</button>
+            </div>
             
             <!-- 모바일용 가상 조이패드 -->
             <div class="mobile-controls" id="mobileControls">
@@ -107,6 +129,7 @@
                 </div>
                 <div id="investNotice">대기 중... 투자할 금액을 입력하고 [투자 확정]을 누르세요.</div>
             </div>
+            <div style="margin-top:5px; font-size:12px; color:#94a3b8; text-align:center;">⌨️ 방향키(이동) / 마우스(조준/타워드래그) / [SpaceBar] 무기 차지 발사</div>
         </div>
 
         <div class="right-panel">
@@ -139,12 +162,12 @@
 
             <div class="dict-wrapper">
                 <div class="dict-header">📊 내 포트폴리오 및 도감</div>
-                <div class="dict-content">
-                    <div class="dict-list" id="dictList"></div>
-                    <div class="dict-detail" id="dictDetail">
-                        <span style="color:#94a3b8;">목록을 클릭하여 상세 정보를 확인하세요.</span>
-                    </div>
-                </div>
+                <!-- 아코디언 메뉴 구성 -->
+                <button class="acc-btn" onclick="toggleAcc('kospiList')">▼ KOSPI (우량주)</button>
+                <div id="kospiList" class="acc-content"></div>
+                
+                <button class="acc-btn" onclick="toggleAcc('kosdaqList')">▼ KOSDAQ (테마주)</button>
+                <div id="kosdaqList" class="acc-content"></div>
             </div>
         </div>
     </div>
@@ -152,6 +175,28 @@
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
 <script>
+    // 시작 및 브금 컨트롤
+    let isMuted = false;
+    const bgmAudio = document.getElementById('bgmAudio');
+    bgmAudio.volume = 0.3;
+
+    function initGame() {
+        document.getElementById('startScreen').style.display = 'none';
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        bgmAudio.play().catch(e=>console.log(e));
+    }
+    
+    function toggleMute() {
+        isMuted = !isMuted;
+        bgmAudio.muted = isMuted;
+        document.getElementById('muteBtn').innerText = isMuted ? '🔇' : '🔊';
+    }
+
+    function toggleAcc(id) {
+        let el = document.getElementById(id);
+        el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+    }
+
     // ========================================================
     // 0. 오디오 및 가상 조이패드 세팅
     // ========================================================
@@ -165,32 +210,35 @@
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSfx(type) {
+        if(isMuted) return;
         if(audioCtx.state === 'suspended') audioCtx.resume();
         const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
         osc.connect(gain); gain.connect(audioCtx.destination);
 
         switch(type) {
-            case 'basic':
+            case 'basic': // 경쾌한 레이저음으로 변경
+                osc.type = 'triangle'; 
+                osc.frequency.setValueAtTime(800, now); 
+                osc.frequency.exponentialRampToValueAtTime(200, now+0.1);
+                gain.gain.setValueAtTime(0.15, now); 
+                gain.gain.exponentialRampToValueAtTime(0.01, now+0.1);
+                osc.start(now); osc.stop(now+0.1); break;
             case 'cannon':
-                osc.type = 'square'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(10, now+0.2);
+            case 'big':
+                osc.type = 'square'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(40, now+0.2);
                 gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
                 osc.start(now); osc.stop(now+0.2); break;
             case 'bolt':
             case 'laser':
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(900, now); osc.frequency.linearRampToValueAtTime(300, now+0.15);
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(1200, now); osc.frequency.linearRampToValueAtTime(400, now+0.15);
                 gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.15);
                 osc.start(now); osc.stop(now+0.15); break;
             case 'poison':
             case 'magic':
-                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.linearRampToValueAtTime(800, now+0.2);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.linearRampToValueAtTime(1000, now+0.2);
                 gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
                 osc.start(now); osc.stop(now+0.2); break;
-            case 'big':
-            case 'nuke':
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(80, now); osc.frequency.linearRampToValueAtTime(20, now+0.5);
-                gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now+0.5);
-                osc.start(now); osc.stop(now+0.5); break;
             case 'coin':
                 osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.setValueAtTime(1800, now+0.1);
                 gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now+0.2);
@@ -209,10 +257,7 @@
         }
     }
 
-    // 모바일 터치 이벤트용 플래그
     let mKeys = { up: false, down: false, left: false, right: false, space: false };
-    
-    // 모바일 버튼 바인딩 헬퍼
     function bindTouch(id, keyName) {
         let el = document.getElementById(id);
         if(!el) return;
@@ -237,13 +282,6 @@
     const TILE = 40; 
     const COLS = 17, ROWS = 12;
     const PATH = [ {x:0, y:1}, {x:12, y:1}, {x:12, y:5}, {x:3, y:5}, {x:3, y:10}, {x:16, y:10} ];
-
-    const MISSIONS = [
-        { id: 1, name: "반도체 투톱 (삼전+닉스)", req: c => c['삼성전자']>0 && c['SK하이닉스']>0, reward: 500, done: false },
-        { id: 2, name: "모빌리티 연합 (현대차+기아)", req: c => c['현대차']>0 && c['기아']>0, reward: 400, done: false },
-        { id: 6, name: "K-바이오 (알테+셀트+HLB)", req: c => c['알테오젠']>0 && c['셀트리온']>0 && c['HLB']>0, reward: 600, done: false },
-        { id: 11, name: "단일 종목 몰빵 (코스닥 3개)", req: c => Object.keys(c).some(k=> TOWER_DB[k].tier==='KOSDAQ' && c[k]>=3), reward: 300, done: false }
-    ];
 
     function getRandomAsset(prefix, maxCount) {
         let num = Math.floor(Math.random() * maxCount) + 1;
@@ -283,39 +321,39 @@
         '두산로보틱스': () => getRandomAsset('tower_robot', 2),
     };
 
-    // 타워 데미지 상향 및 마법(magic) 속성 추가
+    // 데미지 기존대비 대략 5배수 이상 폭상향 적용
     const TOWER_DB = {
-        '알테오젠': { tier: 'KOSDAQ', dmg: 48, range: 100, cd: 800, type: 'basic', logo: 'ALT', desc: '주사기 다트 발사.' },
-        '에코프로비엠': { tier: 'KOSDAQ', dmg: 88, range: 85, cd: 1200, type: 'big', logo: 'EBM', desc: '배터리 이온탄.' },
-        '에코프로': { tier: 'KOSDAQ', dmg: 56, range: 110, cd: 900, type: 'bolt', logo: 'ECO', desc: '레이저 빔 타격.' },
-        'HLB': { tier: 'KOSDAQ', dmg: 36, range: 105, cd: 600, type: 'basic', logo: 'HLB', desc: '의료 다트 고속 발사.' },
-        '리가켐바이오': { tier: 'KOSDAQ', dmg: 64, range: 95, cd: 1000, type: 'poison', logo: 'LCB', desc: '화학 유도탄.' },
-        '엔켐': { tier: 'KOSDAQ', dmg: 44, range: 90, cd: 750, type: 'poison', logo: 'ENC', desc: '전해액 구체.' },
-        '휴젤': { tier: 'KOSDAQ', dmg: 76, range: 130, cd: 1100, type: 'basic', logo: 'HJL', desc: '장거리 톡신 스나이핑.' },
-        '클래시스': { tier: 'KOSDAQ', dmg: 52, range: 95, cd: 850, type: 'bolt', logo: 'CLS', desc: '초음파 단일 빔.' },
-        '삼천당제약': { tier: 'KOSDAQ', dmg: 60, range: 115, cd: 1000, type: 'basic', logo: 'SCD', desc: '다트 연사.' },
-        '실리콘투': { tier: 'KOSDAQ', dmg: 100, range: 95, cd: 1350, type: 'big', logo: 'SI2', desc: '거대 박스 폭탄 투척.' },
-        '리노공업': { tier: 'KOSDAQ', dmg: 72, range: 100, cd: 950, type: 'big', logo: 'LNO', desc: '견고한 반도체 포탄.' },
-        'JYP Ent.': { tier: 'KOSDAQ', dmg: 40, range: 120, cd: 650, type: 'basic', logo: 'JYP', desc: '음파 공격.' },
-        '에스엠': { tier: 'KOSDAQ', dmg: 44, range: 110, cd: 700, type: 'basic', logo: 'SM', desc: '고속 마법 구체.' },
-        '와이지엔터': { tier: 'KOSDAQ', dmg: 56, range: 105, cd: 800, type: 'basic', logo: 'YG', desc: '강력한 음파 구체.' },
-        '펄어비스': { tier: 'KOSDAQ', dmg: 80, range: 115, cd: 1150, type: 'basic', logo: 'PA', desc: '검은 사막의 검기 관통.' },
-        '카카오게임즈': { tier: 'KOSDAQ', dmg: 68, range: 110, cd: 1050, type: 'basic', logo: 'KG', desc: '게임 특수 효과 발사.' },
-        '레인보우로보': { tier: 'KOSDAQ', dmg: 96, range: 100, cd: 1300, type: 'bolt', logo: 'RR', desc: '정밀 로봇 레이저 조준.' },
-        '두산로보틱스': { tier: 'KOSDAQ', dmg: 104, range: 90, cd: 1400, type: 'big', logo: 'DR', desc: '중장비 부품 타격.' },
-        '솔브레인': { tier: 'KOSDAQ', dmg: 52, range: 95, cd: 800, type: 'poison', logo: 'SLB', desc: '안정적 화학 구체.' },
-        'HPSP': { tier: 'KOSDAQ', dmg: 64, range: 100, cd: 900, type: 'bolt', logo: 'HPS', desc: '고속 레이저 사격.' },
-        // 코스피 (마법 효과 추가)
-        '삼성전자': { tier: 'KOSPI', dmg: 340, range: 190, cd: 1400, type: 'big', logo: 'SEC', magic: { type:'ignite', dur: 5000 }, desc: '[최종병기] 웨이퍼 광역 폭발 + [점화🔥]' },
-        'SK하이닉스': { tier: 'KOSPI', dmg: 160, range: 160, cd: 750, type: 'bolt', logo: 'HYN', magic: { type:'slow', dur: 3000 }, desc: '체인 라이트닝 레이저 + [둔화🐌]' },
-        'LG엔솔': { tier: 'KOSPI', dmg: 112, range: 140, cd: 900, type: 'bolt', logo: 'ENS', magic: { type:'freeze', dur: 2000 }, desc: '전기장을 터뜨려 적 둔화 + [빙결❄️]' },
-        '삼바': { tier: 'KOSPI', dmg: 96, range: 145, cd: 550, type: 'poison', logo: 'BIO', magic: { type:'ignite', dur: 5000 }, desc: '백신 가스 초고속 연사 + [점화🔥]' },
-        '현대차': { tier: 'KOSPI', dmg: 200, range: 210, cd: 1100, type: 'basic', logo: 'HD', magic: { type:'armor_break', dur: 3000 }, desc: '고속 자동차 직사 발사 + [방깎💔]' },
-        '기아': { tier: 'KOSPI', dmg: 180, range: 165, cd: 1050, type: 'basic', logo: 'KIA', magic: { type:'armor_break', dur: 3000 }, desc: '자동차 투사 파편 스플래시 + [방깎💔]' },
-        '셀트리온': { tier: 'KOSPI', dmg: 132, range: 150, cd: 850, type: 'poison', logo: 'CEL', magic: { type:'ignite', dur: 5000 }, desc: '역병 독소를 누적 시켜 데미지 + [점화🔥]' },
-        'KB금융': { tier: 'KOSPI', dmg: 260, range: 175, cd: 1300, type: 'big', logo: 'KB', magic: { type:'ignite', dur: 5000 }, desc: '거대 황금 동전을 던져 딜링 + [점화🔥]' },
-        '네이버': { tier: 'KOSPI', dmg: 104, range: 180, cd: 650, type: 'bolt', logo: 'NVR', magic: { type:'freeze', dur: 2000 }, desc: '그린 서치 빔으로 방어 무력화 + [빙결❄️]' },
-        '카카오': { tier: 'KOSPI', dmg: 128, range: 160, cd: 950, type: 'basic', logo: 'KAK', magic: { type:'slow', dur: 3000 }, desc: '노란빛 골드 파도 이펙트 + [둔화🐌]' }
+        '알테오젠': { tier: 'KOSDAQ', dmg: 240, range: 100, cd: 800, type: 'basic', logo: 'ALT', desc: '주사기 다트 발사.' },
+        '에코프로비엠': { tier: 'KOSDAQ', dmg: 440, range: 85, cd: 1200, type: 'big', logo: 'EBM', desc: '배터리 이온탄.' },
+        '에코프로': { tier: 'KOSDAQ', dmg: 280, range: 110, cd: 900, type: 'bolt', logo: 'ECO', desc: '레이저 빔 타격.' },
+        'HLB': { tier: 'KOSDAQ', dmg: 180, range: 105, cd: 600, type: 'basic', logo: 'HLB', desc: '의료 다트 고속 발사.' },
+        '리가켐바이오': { tier: 'KOSDAQ', dmg: 320, range: 95, cd: 1000, type: 'poison', logo: 'LCB', desc: '화학 유도탄.' },
+        '엔켐': { tier: 'KOSDAQ', dmg: 220, range: 90, cd: 750, type: 'poison', logo: 'ENC', desc: '전해액 구체.' },
+        '휴젤': { tier: 'KOSDAQ', dmg: 380, range: 130, cd: 1100, type: 'basic', logo: 'HJL', desc: '장거리 톡신 스나이핑.' },
+        '클래시스': { tier: 'KOSDAQ', dmg: 260, range: 95, cd: 850, type: 'bolt', logo: 'CLS', desc: '초음파 단일 빔.' },
+        '삼천당제약': { tier: 'KOSDAQ', dmg: 300, range: 115, cd: 1000, type: 'basic', logo: 'SCD', desc: '다트 연사.' },
+        '실리콘투': { tier: 'KOSDAQ', dmg: 500, range: 95, cd: 1350, type: 'big', logo: 'SI2', desc: '거대 박스 폭탄 투척.' },
+        '리노공업': { tier: 'KOSDAQ', dmg: 360, range: 100, cd: 950, type: 'big', logo: 'LNO', desc: '견고한 반도체 포탄.' },
+        'JYP Ent.': { tier: 'KOSDAQ', dmg: 200, range: 120, cd: 650, type: 'basic', logo: 'JYP', desc: '음파 공격.' },
+        '에스엠': { tier: 'KOSDAQ', dmg: 220, range: 110, cd: 700, type: 'basic', logo: 'SM', desc: '고속 마법 구체.' },
+        '와이지엔터': { tier: 'KOSDAQ', dmg: 280, range: 105, cd: 800, type: 'basic', logo: 'YG', desc: '강력한 음파 구체.' },
+        '펄어비스': { tier: 'KOSDAQ', dmg: 400, range: 115, cd: 1150, type: 'basic', logo: 'PA', desc: '검은 사막의 검기 관통.' },
+        '카카오게임즈': { tier: 'KOSDAQ', dmg: 340, range: 110, cd: 1050, type: 'basic', logo: 'KG', desc: '게임 특수 효과 발사.' },
+        '레인보우로보': { tier: 'KOSDAQ', dmg: 480, range: 100, cd: 1300, type: 'bolt', logo: 'RR', desc: '정밀 로봇 레이저 조준.' },
+        '두산로보틱스': { tier: 'KOSDAQ', dmg: 520, range: 90, cd: 1400, type: 'big', logo: 'DR', desc: '중장비 부품 타격.' },
+        '솔브레인': { tier: 'KOSDAQ', dmg: 260, range: 95, cd: 800, type: 'poison', logo: 'SLB', desc: '안정적 화학 구체.' },
+        'HPSP': { tier: 'KOSDAQ', dmg: 320, range: 100, cd: 900, type: 'bolt', logo: 'HPS', desc: '고속 레이저 사격.' },
+        // 코스피 (마법 포함 및 데미지 폭증)
+        '삼성전자': { tier: 'KOSPI', dmg: 1700, range: 190, cd: 1400, type: 'big', logo: 'SEC', magic: { type:'ignite', dur: 5000 }, desc: '[최종병기] 웨이퍼 광역 폭발 + [점화🔥]' },
+        'SK하이닉스': { tier: 'KOSPI', dmg: 800, range: 160, cd: 750, type: 'bolt', logo: 'HYN', magic: { type:'slow', dur: 3000 }, desc: '체인 라이트닝 레이저 + [둔화🐌]' },
+        'LG엔솔': { tier: 'KOSPI', dmg: 560, range: 140, cd: 900, type: 'bolt', logo: 'ENS', magic: { type:'freeze', dur: 2000 }, desc: '전기장을 터뜨려 적 둔화 + [빙결❄️]' },
+        '삼바': { tier: 'KOSPI', dmg: 480, range: 145, cd: 550, type: 'poison', logo: 'BIO', magic: { type:'ignite', dur: 5000 }, desc: '백신 가스 초고속 연사 + [점화🔥]' },
+        '현대차': { tier: 'KOSPI', dmg: 1000, range: 210, cd: 1100, type: 'basic', logo: 'HD', magic: { type:'armor_break', dur: 3000 }, desc: '고속 자동차 직사 발사 + [방깎💔]' },
+        '기아': { tier: 'KOSPI', dmg: 900, range: 165, cd: 1050, type: 'basic', logo: 'KIA', magic: { type:'armor_break', dur: 3000 }, desc: '자동차 투사 파편 스플래시 + [방깎💔]' },
+        '셀트리온': { tier: 'KOSPI', dmg: 660, range: 150, cd: 850, type: 'poison', logo: 'CEL', magic: { type:'ignite', dur: 5000 }, desc: '역병 독소를 누적 시켜 데미지 + [점화🔥]' },
+        'KB금융': { tier: 'KOSPI', dmg: 1300, range: 175, cd: 1300, type: 'big', logo: 'KB', magic: { type:'ignite', dur: 5000 }, desc: '거대 황금 동전을 던져 딜링 + [점화🔥]' },
+        '네이버': { tier: 'KOSPI', dmg: 520, range: 180, cd: 650, type: 'bolt', logo: 'NVR', magic: { type:'freeze', dur: 2000 }, desc: '그린 서치 빔으로 방어 무력화 + [빙결❄️]' },
+        '카카오': { tier: 'KOSPI', dmg: 640, range: 160, cd: 950, type: 'basic', logo: 'KAK', magic: { type:'slow', dur: 3000 }, desc: '노란빛 골드 파도 이펙트 + [둔화🐌]' }
     };
 
     let phaserScene = null;
@@ -371,6 +409,13 @@
             
             this.drawCleanMap();
             
+            // 맵 중앙 상단 스테이지 텍스트
+            this.stageTopText = this.add.text(340, 20, 'STAGE 1', { fontFamily: 'DungGeunMo', fontSize: '24px', fill: '#f59e0b', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(20);
+            
+            // 타워 사거리 원 (Range Circle)
+            this.rangeCircle = this.add.circle(0, 0, 100, 0xffffff, 0.1).setDepth(3).setVisible(false);
+            this.rangeCircle.setStrokeStyle(2, 0xffffff, 0.5);
+            
             this.buildMarker = this.add.graphics();
             this.buildMarker.lineStyle(2, 0x10b981, 1);
             this.buildMarker.strokeRect(0, 0, TILE, TILE);
@@ -410,37 +455,134 @@
                     if (gameState.gold >= 100 && this.isValidGrid(gx, gy)) {
                         gameState.gold -= 100;
                         gameState.isBuilding = false;
-                        sndBuild.play().catch(e=>{});
+                        if(!isMuted) sndUpgrade.play().catch(e=>{}); 
                         
                         let baseTexture = getRandomAsset('tower', 2);
-                        // 개잡주 타워 크기 확대 (78px)
-                        let spr = this.add.sprite(gx * TILE + TILE/2, gy * TILE + TILE/2, baseTexture);
+                        // 개잡주 타워 크기 확대 (78px), y축 오프셋을 두어 바닥에 붙어보이게
+                        let cx = gx * TILE + TILE/2;
+                        let cy = gy * TILE + TILE/2 - 10; 
+                        let spr = this.add.sprite(cx, cy + 15, baseTexture);
+                        spr.setOrigin(0.5, 0.7);
                         spr.setDisplaySize(78, 78); 
                         spr.setDepth(2);
                         
                         let tObj = { 
                             sprite: spr, name: '개잡주', tier: 'NONE', type: 'none', 
-                            textureKey: baseTexture, // 현재 외형 저장
-                            gx: gx, gy: gy, cx: spr.x, cy: spr.y, 
+                            textureKey: baseTexture, 
+                            gx: gx, gy: gy, cx: cx, cy: cy, 
                             dmg: 0, range: 0, cd: 99999, level: 1, lastShot: 0, cost: 100, aura: null 
                         };
                         this.towers.push(tObj);
+                        this.enableTowerDrag(tObj); // 드래그 앤 드롭 활성화
                         gameState.selectedTower = tObj;
+                        this.updateRangeCircle(tObj);
                         updateUI();
                     }
                 } else {
-                    gameState.selectedTower = this.towers.find(t => t.gx === gx && t.gy === gy) || null;
+                    // 빈 공간 클릭 시 선택 해제
+                    let clickedTower = this.towers.find(t => t.gx === gx && t.gy === gy);
+                    gameState.selectedTower = clickedTower || null;
+                    if(gameState.selectedTower) this.updateRangeCircle(gameState.selectedTower);
+                    else this.rangeCircle.setVisible(false);
                     updateUI();
+                }
+            });
+            
+            // 드래그 로직 세팅
+            this.input.on('dragstart', (pointer, gameObject) => {
+                if(gameState.isBuilding) return;
+                gameObject.setAlpha(0.5);
+                this.rangeCircle.setVisible(false);
+            });
+            this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+                if(gameState.isBuilding) return;
+                gameObject.x = dragX;
+                gameObject.y = dragY;
+            });
+            this.input.on('dragend', (pointer, gameObject) => {
+                if(gameState.isBuilding) return;
+                gameObject.setAlpha(1);
+                let tObj = gameObject.towerRef;
+                if(!tObj) return;
+                
+                // 마우스 포인터 기준으로 새 그리드 계산
+                let gx = Math.floor(pointer.x / TILE);
+                let gy = Math.floor(pointer.y / TILE);
+                
+                if(this.isValidGridForMove(gx, gy, tObj)) {
+                    tObj.gx = gx; tObj.gy = gy;
+                    tObj.cx = gx * TILE + TILE/2;
+                    tObj.cy = gy * TILE + TILE/2 - 10;
+                }
+                // 이동 반영 (실패 시 원래 자리로 돌아감)
+                gameObject.setPosition(tObj.cx, tObj.cy + 15);
+                if(tObj.aura) tObj.aura.setPosition(tObj.cx, tObj.cy);
+                
+                gameState.selectedTower = tObj;
+                this.updateRangeCircle(tObj);
+                updateUI();
+            });
+
+            this.input.keyboard.on('keydown-SPACE', () => {
+                if(!this.hero.charging && gameState.gameRunning && !this.isChestCutsceneActive) {
+                    this.hero.charging = true;
+                    this.hero.power = 0;
+                    if(gameState.heroWpnType === 'scalping') this.hero.setTexture('hero_attack');
+                    else if(gameState.heroWpnType === 'quant') this.hero.setTexture('hero_fish');
+                    else if(gameState.heroWpnType === 'value') this.hero.setTexture('hero_canon');
+                }
+            });
+
+            this.input.keyboard.on('keyup-SPACE', () => {
+                if(this.hero.charging && gameState.gameRunning && !this.isChestCutsceneActive) {
+                    this.hero.charging = false;
+                    this.hero.setTexture('hero');
+                    let angle = Phaser.Math.Angle.Between(this.hero.x, this.hero.y, this.mouseX, this.mouseY);
+                    
+                    let dmgMult = gameState.heroWpnDmgMult;
+
+                    if(gameState.heroWpnType === 'scalping') { 
+                        for(let i=0; i<Math.min(15, gameState.heroWpnLevel); i++) {
+                            this.time.delayedCall(i*60, () => {
+                                this.fireProjectile(this.hero.x, this.hero.y, null, angle + (Math.random()*0.3-0.15), 14, 8 + (2 * dmgMult), 'fork1', 'basic', false, true, false, null);
+                            });
+                        }
+                    } else if(gameState.heroWpnType === 'value') { 
+                        this.fireProjectile(this.hero.x, this.hero.y, null, angle, 6 + (this.hero.power/25), 20 + (this.hero.power * 1.5 * dmgMult), 'canon1', 'big', true, true, true, null);
+                    } else if(gameState.heroWpnType === 'quant') { 
+                        let inRng = this.enemies.filter(en => en.delay<=0 && Phaser.Math.Distance.Between(en.sprite.x, en.sprite.y, this.hero.x, this.hero.y) <= 300);
+                        if(inRng.length > 0) {
+                            let tgts = inRng.slice(0, Math.min(10, gameState.heroWpnLevel));
+                            tgts.forEach(tgt => {
+                                this.fireProjectile(this.hero.x, this.hero.y, tgt, 0, 11, 15 * dmgMult, 'golden_fish1', 'basic', false, true, false, null);
+                            });
+                        }
+                    }
+                    this.hero.power = 0;
                 }
             });
 
             updateUI();
         }
 
+        enableTowerDrag(tObj) {
+            tObj.sprite.setInteractive({ draggable: true });
+            tObj.sprite.towerRef = tObj;
+        }
+        
+        updateRangeCircle(tObj) {
+            if(tObj.range > 0) {
+                this.rangeCircle.setPosition(tObj.cx, tObj.cy);
+                this.rangeCircle.setRadius(tObj.range);
+                this.rangeCircle.setVisible(true);
+            } else {
+                this.rangeCircle.setVisible(false); // 개잡주
+            }
+        }
+
         update(time, delta) {
             let dt = delta || 16.6;
 
-            // 키보드 & 모바일 가상 조이패드 입력 동시 처리
             let isUp = this.keys.W.isDown || this.keys.UP.isDown || mKeys.up;
             let isDown = this.keys.S.isDown || this.keys.DOWN.isDown || mKeys.down;
             let isLeft = this.keys.A.isDown || this.keys.LEFT.isDown || mKeys.left;
@@ -463,7 +605,6 @@
             this.hero.x = Phaser.Math.Clamp(this.hero.x, 20, 660);
             this.hero.y = Phaser.Math.Clamp(this.hero.y, 20, 460);
             
-            // 무기 차지 및 발사 로직 통합 처리 (모바일 호환)
             if(isSpace && gameState.gameRunning && !this.isChestCutsceneActive) {
                 this.spaceJustPressed = true;
                 this.hero.charging = true;
@@ -509,19 +650,21 @@
                         t.lastShot = now;
                         let tgt = inRng[0];
                         
-                        let useImage = (t.tier === 'KOSPI' || t.level >= 3);
+                        // [이펙트 조건] 코스피 3성(MAX) 일때만 이미지 투사체, 아닐경우 dot
+                        let isMaxKospi = (t.tier === 'KOSPI' && t.level >= 3);
                         let pTex = 'dot_bullet'; 
+                        let useImage = false;
                         
-                        if(useImage) {
+                        if(isMaxKospi) {
+                            useImage = true;
                             pTex = 'fork1'; 
                             if(t.type === 'big') pTex = 'canon1';
                             else if(t.type === 'bolt') pTex = 'bolt1'; 
                             else if(t.type === 'poison') pTex = 'poison1';
                         }
                         
-                        // 마법 전달
                         let pMagic = t.magic ? Object.assign({}, t.magic) : null;
-                        this.fireProjectile(t.cx, t.cy, tgt, 0, 10, t.dmg, pTex, t.type, false, useImage, false, pMagic);
+                        this.fireProjectile(t.cx, t.cy, tgt, 0, 10, t.dmg, pTex, t.type, false, useImage, false, pMagic, isMaxKospi);
                         playSfx(t.type); 
                     }
                 });
@@ -539,7 +682,7 @@
                     p.sprite.y += Math.sin(angle) * p.speed;
                     
                     if(Phaser.Math.Distance.Between(p.sprite.x, p.sprite.y, p.target.sprite.x, p.target.sprite.y) < p.speed) {
-                        this.hitEnemy(p.target, p.dmg, p.hitType, p.isExplosive, p.magicPayload);
+                        this.hitEnemy(p.target, p.dmg, p.hitType, p.isExplosive, p.magicPayload, p.isMaxKospi);
                         p.sprite.destroy(); this.projectiles.splice(i, 1);
                     }
                 } else { 
@@ -552,7 +695,7 @@
                     let hit = false;
                     for(let e of this.enemies) {
                         if(e.delay<=0 && Phaser.Math.Distance.Between(p.sprite.x, p.sprite.y, e.sprite.x, e.sprite.y) < 20) {
-                            this.hitEnemy(e, p.dmg, p.hitType, p.isExplosive, p.magicPayload);
+                            this.hitEnemy(e, p.dmg, p.hitType, p.isExplosive, p.magicPayload, p.isMaxKospi);
                             hit = true; break;
                         }
                     }
@@ -569,7 +712,6 @@
                     e.sprite.setVisible(true); e.hpBarBg.setVisible(true); e.hpBar.setVisible(true); e.statusText.setVisible(true); 
                 }
                 
-                // 마법(상태 이상) 틱 및 스피드 연산
                 let curSpeed = e.baseSpeed;
                 let statusStr = "";
                 let dmgMult = 1.0;
@@ -581,25 +723,25 @@
                     e.status.ignite -= dt; statusStr += "🔥"; 
                     e.status.igniteTick += dt;
                     if(e.status.igniteTick >= 1000) {
-                        e.hp -= (e.maxHp * 0.02); // 1초당 2% 도트 데미지
+                        e.hp -= (e.maxHp * 0.02); 
                         e.status.igniteTick = 0;
                         this.showFloatingText("-🔥", '#ef4444', e.sprite.x, e.sprite.y - 10, false, 800);
-                        if(e.hp <= 0) this.killEnemy(e, i); // 도트뎀으로 사망 처리
+                        if(e.hp <= 0) this.killEnemy(e, i); 
                     }
                 }
                 e.curDmgMult = dmgMult;
                 e.statusText.setText(statusStr);
                 
-                if(e.hp <= 0) continue; // 이미 죽었으면 스킵
+                if(e.hp <= 0) continue;
 
                 let nx = PATH[e.pIdx+1];
                 if(!nx) { 
                     gameState.baseHp -= e.isBoss ? 25 : 5;
                     this.cameras.main.shake(200, 0.02);
-                    sndDanger.play().catch(er=>{});
+                    if(!isMuted) sndDanger.play().catch(er=>{});
                     this.destroyEnemyAssets(e);
                     this.enemies.splice(i, 1); updateUI();
-                    if(gameState.baseHp <= 0) { sndEnd.play().catch(er=>{}); alert("파산! 한국거래소 자산이 붕괴되었습니다."); location.reload(); }
+                    if(gameState.baseHp <= 0) { if(!isMuted) sndEnd.play().catch(er=>{}); alert("파산! 한국거래소 자산이 붕괴되었습니다."); location.reload(); }
                     continue;
                 }
                 
@@ -630,7 +772,13 @@
 
             if(gameState.gameRunning && this.enemies.length === 0 && !this.isChestCutsceneActive) {
                 gameState.gameRunning = false;
-                endWave(); 
+                
+                // 매 7스테이지 마다 상자 미니게임 호출
+                if(gameState.stage > 0 && gameState.stage % 7 === 0) {
+                    this.showHiddenBoxes();
+                } else {
+                    endWave(); 
+                }
             }
         }
 
@@ -648,7 +796,7 @@
                     }
                 }
             }
-            // KRX 본진 이미지 3배 확대 적용 (180x180)
+            // KRX 본진
             let lx = PATH[PATH.length-1].x * TILE + TILE/2;
             let ly = PATH[PATH.length-1].y * TILE + TILE/2;
             this.add.image(lx, ly - 50, 'krx').setDisplaySize(180, 180).setDepth(2);
@@ -664,39 +812,49 @@
             if(this.towers.some(t => t.gx === gx && t.gy === gy)) return false;
             return true;
         }
+        
+        isValidGridForMove(gx, gy, currentTower) {
+            if(gx<0||gx>=COLS||gy<0||gy>=ROWS) return false;
+            for(let i=0; i<PATH.length-1; i++) {
+                let x1 = Math.min(PATH[i].x, PATH[i+1].x), x2 = Math.max(PATH[i].x, PATH[i+1].x);
+                let y1 = Math.min(PATH[i].y, PATH[i+1].y), y2 = Math.max(PATH[i].y, PATH[i+1].y);
+                if(gx>=x1 && gx<=x2 && gy>=y1 && gy<=y2) return false;
+            }
+            if(this.towers.some(t => t !== currentTower && t.gx === gx && t.gy === gy)) return false;
+            return true;
+        }
 
-        fireProjectile(sx, sy, target, angle, speed, dmg, tex, hitType, isExplosive, useImage, isThrown, magicPayload) {
+        fireProjectile(sx, sy, target, angle, speed, dmg, tex, hitType, isExplosive, useImage, isThrown, magicPayload, isMaxKospi) {
             let pSize = hitType === 'big' ? 32 : 16;
             if(!useImage) pSize = 8;
             let spr = this.add.sprite(sx, sy, tex).setDisplaySize(pSize, pSize).setDepth(6);
-            this.projectiles.push({ sprite: spr, target: target, angle: angle, speed: speed, dmg: dmg, hitType: hitType, isExplosive: isExplosive, useImage: useImage, isThrown: isThrown, magicPayload: magicPayload });
+            this.projectiles.push({ sprite: spr, target: target, angle: angle, speed: speed, dmg: dmg, hitType: hitType, isExplosive: isExplosive, useImage: useImage, isThrown: isThrown, magicPayload: magicPayload, isMaxKospi: isMaxKospi });
         }
 
-        hitEnemy(enemy, dmg, hitType, isExplosive, magicPayload) {
+        hitEnemy(enemy, dmg, hitType, isExplosive, magicPayload, isMaxKospi) {
             if(enemy.hp <= 0) return;
             
-            // 방깎 적용 연산
             let finalDmg = dmg * enemy.curDmgMult;
             enemy.hp -= finalDmg;
             
-            // 마법 상태 이상 부여
-            if(magicPayload) {
-                enemy.status[magicPayload.type] = magicPayload.dur;
-            }
+            if(magicPayload) enemy.status[magicPayload.type] = magicPayload.dur;
             
-            let effTex = 'basic_asset1';
-            if(hitType === 'big') effTex = getRandomAsset('big_asset', 4);
-            else if(hitType === 'bolt') effTex = getRandomAsset('bolt', 4);
-            else if(hitType === 'poison') effTex = getRandomAsset('poison', 2);
-            else effTex = getRandomAsset('basic_asset', 4);
+            // 코스피 MAX 만 화려한 이펙트
+            if(isMaxKospi || isExplosive) {
+                let effTex = 'basic_asset1';
+                if(hitType === 'big') effTex = getRandomAsset('big_asset', 4);
+                else if(hitType === 'bolt') effTex = getRandomAsset('bolt', 4);
+                else if(hitType === 'poison') effTex = getRandomAsset('poison', 2);
+                else effTex = getRandomAsset('basic_asset', 4);
 
-            let eff = this.add.sprite(enemy.sprite.x, enemy.sprite.y, effTex).setDisplaySize(36, 36).setDepth(7);
-            if(isExplosive) { eff.setDisplaySize(80, 80); this.cameras.main.shake(100, 0.01); }
-            
-            this.tweens.add({
-                targets: eff, alpha: 0, scale: 1.5, duration: 300,
-                onComplete: () => { eff.destroy(); }
-            });
+                let eff = this.add.sprite(enemy.sprite.x, enemy.sprite.y, effTex).setDisplaySize(36, 36).setDepth(7);
+                if(isExplosive) { eff.setDisplaySize(80, 80); this.cameras.main.shake(100, 0.01); }
+                
+                this.tweens.add({
+                    targets: eff, alpha: 0, scale: 1.5, duration: 300,
+                    onComplete: () => { eff.destroy(); }
+                });
+            }
 
             if(enemy.hp <= 0) {
                 let idx = this.enemies.indexOf(enemy);
@@ -708,14 +866,11 @@
             gameState.gold += enemy.reward;
             gameState.waveKillGold += enemy.reward;
             gameState.kills++;
-            sndDead.currentTime = 0; sndDead.play().catch(er=>{});
+            if(!isMuted) { sndDead.currentTime = 0; sndDead.play().catch(er=>{}); }
             
-            let wasBoss = enemy.isBoss;
             this.destroyEnemyAssets(enemy);
             this.enemies.splice(index, 1);
             updateUI();
-            
-            if(wasBoss) this.showChestCutscene();
         }
         
         destroyEnemyAssets(e) {
@@ -726,10 +881,12 @@
         }
 
         spawnWave() {
+            this.stageTopText.setText(`STAGE ${gameState.stage}`);
+            
             let isBoss = (gameState.stage % 5 === 0);
             let eCount = isBoss ? 1 : 12 + gameState.stage * 2;
             let hpVal = 50 + gameState.stage * gameState.stage * 20;
-            if(isBoss) { hpVal *= 7; sndBoss.play().catch(er=>{}); }
+            if(isBoss) { hpVal *= 7; if(!isMuted) sndBoss.play().catch(er=>{}); }
 
             if(isBoss) {
                 this.cameras.main.flash(500, 255, 0, 0); 
@@ -763,7 +920,7 @@
                 }
 
                 let spr = this.add.sprite(PATH[0].x*TILE+TILE/2, PATH[0].y*TILE+TILE/2, tex);
-                let eSize = isBoss ? 64 : 32;
+                let eSize = isBoss ? 80 : 36;
                 spr.setDisplaySize(eSize, eSize).setDepth(4).setVisible(false);
                 
                 let bg = this.add.graphics().fillStyle(0x000000, 1).fillRect(0, 0, 30, 4).setVisible(false).setDepth(8);
@@ -783,52 +940,54 @@
             }
         }
 
-        showChestCutscene() {
-            gameState.gameRunning = false; 
+        // 히든 스테이지 - 3상자 미니게임
+        showHiddenBoxes() {
+            gameState.gameRunning = false;
             this.isChestCutsceneActive = true;
             
-            let overlay = this.add.rectangle(340, 240, 680, 480, 0x000000, 0.7).setDepth(30);
-            let box = this.add.sprite(340, 240, 'box').setDisplaySize(80, 80).setDepth(31);
+            let overlay = this.add.rectangle(340, 240, 680, 480, 0x000000, 0.8).setDepth(100);
+            let title = this.add.text(340, 100, '✨히든 스테이지✨\n보상 상자를 선택하세요!', {fontFamily:'DungGeunMo', fontSize:'30px', fill:'#fde047', align:'center', stroke:'#000', strokeThickness:4}).setOrigin(0.5).setDepth(101);
+            if(!isMuted) sndReward.play().catch(e=>{});
             
-            this.tweens.add({
-                targets: box,
-                x: '+=15', yoyo: true, repeat: 6, duration: 80,
-                onComplete: () => {
-                    this.cameras.main.flash(300, 255, 255, 255);
-                    playSfx('fanfare');
-                    
-                    let rg = 500 * (gameState.stage/5);
-                    gameState.gold += rg;
-                    
-                    let txt1 = this.add.text(340, 150, '보물상자 오픈!', { fontFamily: 'DungGeunMo', fontSize: '40px', fill: '#fde047', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(31);
-                    let txt2 = this.add.text(340, 320, `대박! ${rg}냥 획득!`, { fontFamily: 'DungGeunMo', fontSize: '30px', fill: '#34d399', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(31);
-                    
-                    this.tweens.add({ targets: box, scaleX: 1.5, scaleY: 1.5, alpha: 0, duration: 500 });
+            let baseR = gameState.stage * 100;
+            let rewards = [ Math.floor(Math.random()*baseR + 500), Math.floor(Math.random()*(baseR*2) + 1000), Math.floor(Math.random()*(baseR*3) + 2000) ];
+            Phaser.Utils.Array.Shuffle(rewards); 
+            
+            let boxes = [];
+            for(let i=0; i<3; i++) {
+                let bx = 190 + (i * 150);
+                let box = this.add.sprite(bx, 240, 'box').setDisplaySize(60,60).setDepth(101).setInteractive({useHandCursor:true});
+                let hoverTw = this.tweens.add({ targets: box, y: box.y - 10, yoyo: true, repeat: -1, duration: 500, paused: true });
+                
+                box.on('pointerover', () => hoverTw.play());
+                box.on('pointerout', () => { hoverTw.pause(); box.y = 240; });
+                
+                box.on('pointerdown', () => {
+                    boxes.forEach(b => b.disableInteractive());
+                    for(let j=0; j<3; j++) {
+                        let amt = rewards[j];
+                        let isSel = (i === j);
+                        boxes[j].setAlpha(isSel ? 1 : 0.4);
+                        let col = isSel ? '#34d399' : '#94a3b8';
+                        this.add.text(boxes[j].x, 300, `+${amt}냥`, {fontFamily:'DungGeunMo', fontSize:'24px', fill:col, stroke:'#000', strokeThickness:3}).setOrigin(0.5).setDepth(101);
+                        
+                        if(isSel) {
+                            gameState.gold += amt;
+                            playSfx('fanfare');
+                            this.tweens.add({ targets: boxes[j], scaleX: 1.5, scaleY: 1.5, duration: 300, yoyo: true });
+                        }
+                    }
                     updateUI();
-                    
                     this.time.delayedCall(3000, () => {
-                        overlay.destroy(); box.destroy(); txt1.destroy(); txt2.destroy();
+                        overlay.destroy(); title.destroy();
+                        boxes.forEach(b => b.destroy());
+                        this.children.list.filter(c => c.depth === 101).forEach(c => c.destroy());
                         this.isChestCutsceneActive = false;
-                        endWave(); 
+                        endWave();
                     });
-                }
-            });
-        }
-
-        checkHiddenMissions() {
-            let counts = {};
-            this.towers.forEach(t => { if(t.name !== '개잡주') counts[t.name] = (counts[t.name]||0)+1; });
-            
-            MISSIONS.forEach(m => {
-                if(!m.done && m.req(counts)) {
-                    m.done = true;
-                    gameState.gold += m.reward;
-                    playSfx('fanfare');
-                    this.cameras.main.flash(300, 16, 185, 129); 
-                    this.showFloatingText(`✨히든 달성: ${m.name}✨\n+${m.reward}냥 획득!`, '#34d399', 340, 240, true);
-                    updateUI();
-                }
-            });
+                });
+                boxes.push(box);
+            }
         }
 
         showFloatingText(msg, color, x, y, isMassive = false, customDur = null) {
@@ -847,7 +1006,6 @@
         }
 
         playIpoAnimation(towerObj) {
-            sndUpgrade.play().catch(e=>{}); // 상장 완료 시 사운드 수정
             this.tweens.add({
                 targets: towerObj.sprite,
                 scaleX: 1.3, scaleY: 1.3,
@@ -858,10 +1016,9 @@
         addGoldenAura(towerObj, tier) {
             if(towerObj.aura) return; 
             let aura = this.add.graphics({x: towerObj.cx, y: towerObj.cy});
-            // 코스닥은 푸른빛, 코스피는 금빛 아우라
             let auraColor = tier === 'KOSPI' ? 0xffd700 : 0x38bdf8;
             aura.fillStyle(auraColor, 0.4);
-            aura.fillCircle(0, 0, 32); 
+            aura.fillCircle(0, 0, 40); 
             aura.setDepth(1);
             this.tweens.add({ targets: aura, scaleX: 1.3, scaleY: 1.3, alpha: 0.1, yoyo: true, repeat: -1, duration: 1000 });
             towerObj.aura = aura;
@@ -874,6 +1031,9 @@
                 let tex = TOWER_ASSET_MAP[towerObj.name] ? TOWER_ASSET_MAP[towerObj.name]() : 'tower1';
                 towerObj.textureKey = tex; 
                 towerObj.sprite.setTexture(tex);
+                if(!isMuted) sndUpgrade.play().catch(e=>{}); 
+            } else {
+                if(!isMuted) sndUpgrade.play().catch(e=>{});
             }
             Object.assign(towerObj, spec);
             
@@ -881,30 +1041,20 @@
             let tSize = spec.tier === 'KOSPI' ? 96 : 84;
             towerObj.sprite.setDisplaySize(tSize, tSize);
             
-            if(isIpo) {
-                this.playIpoAnimation(towerObj);
-                this.checkHiddenMissions(); 
-            } else {
-                sndUpgrade.play().catch(e=>{});
-                
-                // 타워 자체가 커지는 연출 적용
-                this.tweens.add({
-                    targets: towerObj.sprite,
-                    scaleX: 1.3, scaleY: 1.3,
-                    yoyo: true, duration: 200, ease: 'Sine.easeInOut'
-                });
-                
-                if(towerObj.level >= 3) this.addGoldenAura(towerObj, spec.tier);
-            }
+            // 타워 자체 바운스 효과
+            this.tweens.add({
+                targets: towerObj.sprite,
+                scaleX: 1.3, scaleY: 1.3,
+                yoyo: true, duration: 200, ease: 'Sine.easeInOut'
+            });
+            
+            if(towerObj.level >= 3) this.addGoldenAura(towerObj, spec.tier);
         }
     }
 
     const config = {
         type: Phaser.AUTO, width: 680, height: 480, parent: 'phaser-game-container', pixelArt: true, scene: [MainScene],
-        scale: {
-            mode: Phaser.Scale.FIT,
-            autoCenter: Phaser.Scale.CENTER_BOTH
-        }
+        scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }
     };
     const game = new Phaser.Game(config);
 
@@ -919,8 +1069,11 @@
         document.getElementById('uiKills').innerText = gameState.kills;
         document.getElementById('buildBtn').disabled = (gameState.gold < 100);
         
-        const dictList = document.getElementById('dictList'); 
-        dictList.innerHTML = '';
+        // 아코디언 도감 리스트 분리 적용
+        const kospiList = document.getElementById('kospiList'); 
+        const kosdaqList = document.getElementById('kosdaqList');
+        kospiList.innerHTML = ''; kosdaqList.innerHTML = '';
+        
         let counts = {}; 
         if(phaserScene) {
             phaserScene.towers.forEach(t => { if(t.name !== '개잡주') counts[t.name] = (counts[t.name]||0)+1; });
@@ -928,16 +1081,9 @@
         for(let name in TOWER_DB) {
             let c = counts[name] || 0; let t = TOWER_DB[name];
             let div = document.createElement('div'); div.className = 'dict-item';
-            div.innerHTML = `<span style="color:${t.tier==='KOSPI'?'#ef4444':(t.tier==='KOSDAQ'?'#38bdf8':'#eab308')}">[${t.logo}] ${name}</span> <span class="dict-count">보유: ${c}</span>`;
-            div.onclick = () => {
-                document.getElementById('dictDetail').innerHTML = `
-                    <strong style="color:${t.tier==='KOSPI'?'#ef4444':'#38bdf8'}; font-size:14px;">${name} (${t.logo})</strong><br>
-                    등급: <span style="color:${t.tier==='KOSPI'?'#ffd700':'#38bdf8'}">${t.tier}</span><br><br>
-                    ⚔️ 데미지: ${t.dmg}<br>🎯 사거리: ${t.range}<br>⚡ 쿨타임: ${t.cd}ms<br><br>
-                    <span style="color:#94a3b8">${t.desc}</span>
-                `;
-            };
-            dictList.appendChild(div);
+            div.innerHTML = `<span style="color:${t.tier==='KOSPI'?'#ef4444':'#38bdf8'}">[${t.logo}] ${name}</span> <span class="dict-count">보유: ${c}</span>`;
+            if(t.tier === 'KOSPI') kospiList.appendChild(div);
+            else kosdaqList.appendChild(div);
         }
 
         const ipoB = document.getElementById('ipoBtn'); 
@@ -980,6 +1126,7 @@
         if(gameState.gold >= 100) {
             gameState.isBuilding = !gameState.isBuilding;
             gameState.selectedTower = null;
+            if(phaserScene) phaserScene.updateRangeCircle({range:0});
             updateUI();
         }
     }
@@ -1007,7 +1154,7 @@
                     playSfx('fanfare');
                     phaserScene.showFloatingText(`강화 성공! (+${gameState.heroWpnLevel})`, '#f59e0b', phaserScene.hero.x, phaserScene.hero.y);
                 } else {
-                    sndUpgrade.play().catch(e=>{});
+                    if(!isMuted) sndUpgrade.play().catch(e=>{});
                     phaserScene.showFloatingText('레벨 업!', '#34d399', phaserScene.hero.x, phaserScene.hero.y);
                 }
             } else {
@@ -1052,6 +1199,7 @@
             gameState.gold -= cost; t.cost += cost; t.level++;
             t.dmg = Math.floor(t.dmg * 1.5); t.range += 20;
             phaserScene.upgradeTower(t, false); 
+            phaserScene.updateRangeCircle(t);
             updateUI();
         }
     }
@@ -1064,6 +1212,7 @@
         t.sprite.destroy(); 
         phaserScene.towers = phaserScene.towers.filter(tw => tw !== t);
         gameState.selectedTower = null;
+        phaserScene.updateRangeCircle({range:0});
         updateUI();
     }
 
@@ -1095,10 +1244,6 @@
     function endWave() {
         document.getElementById('waveBtn').disabled = false;
         
-        // 보스 스테이지(5배수)일 때만 특수 보상음, 나머지는 기본 코인음 재생
-        if (gameState.stage % 5 === 0) sndReward.play().catch(er=>{});
-        else playSfx('coin');
-        
         let investProfit = 0;
         if(gameState.investAmt > 0) {
             if(gameState.investType === 'safe') investProfit = Math.floor(gameState.investAmt * (Math.random()*0.15 - 0.05));
@@ -1118,6 +1263,7 @@
         document.getElementById('repTotal').style.color = total >= 0 ? '#34d399' : '#ef4444';
         
         document.getElementById('reportModal').style.display = 'block';
+        playSfx('coin'); 
         gameState.investAmt = 0; document.getElementById('investAmtInput').value = 0;
     }
 
