@@ -192,8 +192,21 @@
                     let boxX = this.scale.width / 2 - 250 + (i * 250);
                     let boxY = this.scale.height / 2;
 
-                    let box = this.add.image(boxX, boxY, boxImg).setInteractive();
-                    box.setScale(0.8); // 상자 크기 조절
+                    // 보상 결정 로직을 먼저 실행하여 텍스트에 표기
+                    let reward;
+                    if (isRare) {
+                        reward = Math.random() < 0.5 ? { name: '최대 체력 증가\n(Max HP +20)', type: 'max_hp' } : { name: '투사체 개수 증가\n(수리검 +1)', type: 'proj' };
+                    } else {
+                        reward = Math.random() < 0.5 ? { name: '이동 속도 증가\n(Speed Up)', type: 'spd' } : { name: '공격 속도 증가\n(Atk Speed Up)', type: 'atk_spd' };
+                    }
+
+                    let box = this.add.image(boxX, boxY - 30, boxImg).setInteractive();
+                    box.setScale(0.8);
+
+                    // 미리 어떤 보상인지 텍스트로 보여주기
+                    let rewardInfoText = this.add.text(boxX, boxY + 80, reward.name, { 
+                        fontSize: '20px', fill: isRare ? '#ffcc00' : '#ffffff', fontStyle: 'bold', align: 'center', stroke: '#000', strokeThickness: 3 
+                    }).setOrigin(0.5);
 
                     // 마우스 호버 이펙트
                     box.on('pointerover', () => box.setScale(0.9).setTint(0xffffaa));
@@ -203,30 +216,17 @@
                         if (this.selected) return;
                         this.selected = true;
 
-                        // 보상 결정 로직
-                        let reward;
-                        if (isRare) {
-                            reward = Math.random() < 0.5 ? { name: '체력 모두 회복\n(HP 100%)', type: 'heal' } : { name: '투사체 개수 증가\n(수리검 +1)', type: 'proj' };
-                        } else {
-                            reward = Math.random() < 0.5 ? { name: '이동 속도 증가\n(Speed Up)', type: 'spd' } : { name: '공격 속도 증가\n(Atk Speed Up)', type: 'atk_spd' };
-                        }
-
-                        // 이펙트 연출 (선택한 상자 통통 튀며 결과 표시)
+                        // 이펙트 연출
                         this.tweens.add({
-                            targets: box, y: box.y - 50, duration: 200, yoyo: true,
+                            targets: box, y: box.y - 30, duration: 200, yoyo: true,
                             onComplete: () => {
-                                // 보상 텍스트 표시
-                                let rewardText = this.add.text(boxX, boxY + 120, reward.name, { 
-                                    fontSize: '22px', fill: isRare ? '#ffcc00' : '#ffffff', fontStyle: 'bold', align: 'center', stroke: '#000', strokeThickness: 4 
-                                }).setOrigin(0.5);
-                                
                                 // 빛나는 이펙트
-                                let glow = this.add.circle(boxX, boxY, 100, isRare ? 0xffaa00 : 0xffffff, 0.5);
+                                let glow = this.add.circle(boxX, box.y, 100, isRare ? 0xffaa00 : 0xffffff, 0.5);
                                 this.tweens.add({ targets: glow, scale: 2, alpha: 0, duration: 1000 });
 
                                 // 실제 스탯 적용
                                 let pStats = this.gameScene.playerStats;
-                                if (reward.type === 'heal') pStats.hp = pStats.maxHp;
+                                if (reward.type === 'max_hp') { pStats.maxHp += 20; pStats.hp += 20; }
                                 if (reward.type === 'proj') pStats.projectileCount += 1;
                                 if (reward.type === 'spd') pStats.speed += 20;
                                 if (reward.type === 'atk_spd') pStats.fireRate = Math.max(300, pStats.fireRate - 100);
@@ -234,8 +234,8 @@
                                 this.gameScene.updateUI();
                                 this.gameScene.updateFireTimer(); // 공속 변경 적용
 
-                                // 1.5초 후 게임 재개
-                                this.time.delayedCall(1500, () => {
+                                // 1초 후 게임 재개
+                                this.time.delayedCall(1000, () => {
                                     this.scene.resume('GameScene');
                                     this.scene.stop();
                                 });
@@ -243,6 +243,24 @@
                         });
                     });
                 }
+            }
+        }
+
+        // ==========================================
+        // 4-1. Skill Shop Scene (스킬 상점 팝업)
+        // ==========================================
+        class SkillShopScene extends Phaser.Scene {
+            constructor() { super({ key: 'SkillShopScene' }); }
+            create() {
+                this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85);
+                this.add.text(this.scale.width / 2, 120, '스킬 상점', { fontSize: '48px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 300, '구현 준비 중입니다...\n\n(모은 골드를 소모하여 강력한 스킬 사용)', { fontSize: '28px', fill: '#fff', align: 'center', lineHeight: 1.5 }).setOrigin(0.5);
+
+                let closeBtn = this.add.text(this.scale.width / 2, 550, '닫기 (게임 재개)', { fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 } }).setOrigin(0.5).setInteractive();
+                closeBtn.on('pointerdown', () => {
+                    this.scene.stop();
+                    this.scene.resume('GameScene');
+                });
             }
         }
 
@@ -265,46 +283,55 @@
             }
 
             create() {
-                // 1. 넓은 맵 경계 설정 (8000x8000)
-                this.physics.world.setBounds(0, 0, 8000, 8000);
+                // 1. 넓은 맵 경계 설정 (16000x16000 확장)
+                this.physics.world.setBounds(0, 0, 16000, 16000);
 
-                // 2. 바닥 타일 생성 (타일 크기 대폭 축소, 뎁스 최소화)
+                // 2. 바닥 타일 생성 (타일 크기 축소 유지, 뎁스 최소화)
                 if (this.stageData.id === 1) {
-                    this.add.tileSprite(4000, 4000, 8000, 8000, 'grass1')
-                        .setTileScale(0.25, 0.25).setDepth(-10); 
+                    this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1')
+                        .setTileScale(0.5, 0.5).setDepth(-10); 
                     
-                    // 장식용 데코레이션 (충돌 없는 밟고 지나가는 풀, 꽃, 작은 돌)
+                    // 장식용 데코레이션 (충돌 없는 밟고 지나가는 풀, 꽃 등)
                     const decoKeys = ['grass2', 'grass3', 'grass4', 'grass5', 'rock1', 'rock2'];
-                    for (let i = 0; i < 250; i++) {
-                        let rx = Phaser.Math.Between(0, 8000);
-                        let ry = Phaser.Math.Between(0, 8000);
-                        // 크기를 기존 대비 절반으로 축소, 뎁스 낮춤
-                        let deco = this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(-9).setScale(0.15);
+                    for (let i = 0; i < 500; i++) {
+                        let rx = Phaser.Math.Between(0, 16000);
+                        let ry = Phaser.Math.Between(0, 16000);
+                        this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(-9).setScale(0.5);
                     }
 
-                    // 방해물 그룹 (통과 불가능한 나무와 큰 바위만 포함)
+                    // 방해물 그룹 (통과 불가능한 나무와 바위)
                     this.obstacles = this.physics.add.staticGroup();
                     const obsKeys = ['tree1', 'tree2', 'rock3'];
-                    for (let i = 0; i < 60; i++) {
-                        let rx = Phaser.Math.Between(200, 7800);
-                        let ry = Phaser.Math.Between(200, 7800);
+                    for (let i = 0; i < 120; i++) {
+                        let rx = Phaser.Math.Between(200, 15800);
+                        let ry = Phaser.Math.Between(200, 15800);
                         
-                        // 시작 지점(4000, 4000) 주변은 안전 구역
-                        if (Math.abs(rx - 4000) < 300 && Math.abs(ry - 4000) < 300) continue;
+                        // 시작 지점(8000, 8000) 주변은 안전 구역
+                        if (Math.abs(rx - 8000) < 400 && Math.abs(ry - 8000) < 400) continue;
 
-                        let obs = this.obstacles.create(rx, ry, Phaser.Utils.Array.GetRandom(obsKeys));
-                        obs.setScale(0.2); // 장애물 크기 대폭 축소
-                        obs.refreshBody();
+                        let key = Phaser.Utils.Array.GetRandom(obsKeys);
+                        let obs = this.obstacles.create(rx, ry, key);
                         
-                        // Hitbox를 하단 20%로 세밀하게 깎아 이미지 투명한 부분에 걸리는 현상 해결
-                        obs.body.setSize(obs.width * 0.4, obs.height * 0.2);
-                        obs.body.setOffset(obs.width * 0.3, obs.height * 0.7); 
+                        // 나무 크기 상향 및 Hitbox 최적화
+                        if (key === 'tree1' || key === 'tree2') {
+                            obs.setScale(0.3); // 기존보다 50% 큼
+                            obs.refreshBody();
+                            // 나뭇잎은 통과하고 나무 밑동(뿌리)만 막히도록 조절
+                            obs.body.setSize(obs.width * 0.2, obs.height * 0.15);
+                            obs.body.setOffset(obs.width * 0.4, obs.height * 0.85); 
+                        } else { // rock3
+                            obs.setScale(0.15);
+                            obs.refreshBody();
+                            obs.body.setSize(obs.width * 0.4, obs.height * 0.3);
+                            obs.body.setOffset(obs.width * 0.3, obs.height * 0.7); 
+                        }
+                        
                         obs.setDepth(obs.y); // Y-sorting 적용
                     }
                 }
 
-                // 3. 주인공 중앙 스폰
-                this.player = this.physics.add.sprite(4000, 4000, 'hero_1');
+                // 3. 주인공 중앙 스폰 (8000, 8000)
+                this.player = this.physics.add.sprite(8000, 8000, 'hero_1');
                 this.player.setScale(0.8); 
                 this.player.setCollideWorldBounds(true);
                 this.player.setSize(this.player.width * 0.5, this.player.height * 0.4);
@@ -337,6 +364,9 @@
                 this.time.addEvent({ delay: 1000, callback: this.spawnEnemies, callbackScope: this, loop: true });
                 this.updateFireTimer(); // 무기 발사 타이머 초기화
 
+                // 몬스터 체력바를 그릴 그래픽 객체 (퍼포먼스 향상을 위해 한 번에 그림)
+                this.enemyHpGraphics = this.add.graphics().setDepth(9999);
+
                 this.createUI();
             }
 
@@ -359,8 +389,13 @@
                 this.expBarFill = this.add.rectangle(20, this.scale.height - 20, 0, 15, 0x00aaff).setOrigin(0, 0.5).setScrollFactor(0).setDepth(9999);
                 this.lvlText = this.add.text(20, this.scale.height - 40, 'Lv.1', { fontSize: '20px', fill: '#fff', fontStyle: 'bold', stroke: '#000', strokeThickness: 3 }).setScrollFactor(0).setDepth(10000);
 
-                // GOLD
-                this.goldText = this.add.text(this.scale.width - 150, 30, '💰 0', { fontSize: '28px', fill: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setScrollFactor(0).setDepth(10000);
+                // GOLD (클릭 시 스킬 상점 호출)
+                this.goldText = this.add.text(this.scale.width - 150, 30, '💰 0', { fontSize: '28px', fill: '#ffd700', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setScrollFactor(0).setDepth(10000).setInteractive();
+                
+                this.goldText.on('pointerdown', () => {
+                    this.scene.pause();
+                    this.scene.launch('SkillShopScene');
+                });
             }
 
             update() {
@@ -398,12 +433,35 @@
                     }
                 });
 
-                // 자석 효과
+                // 자석 효과 및 버그 수정
                 this.drops.getChildren().forEach(drop => {
                     if (drop.active) {
                         let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, drop.x, drop.y);
-                        if (dist < 150) this.physics.moveToObject(drop, this.player, 400); 
+                        if (dist < 150) {
+                            this.physics.moveToObject(drop, this.player, 400); 
+                        } else {
+                            // 150 범위 밖으로 나가면 관성 제거 (제자리 멈춤)
+                            drop.body.setVelocity(0, 0); 
+                        }
+
                         if (dist < 30) this.collectDrop(this.player, drop);
+                    }
+                });
+
+                // 몬스터 체력바 렌더링
+                this.enemyHpGraphics.clear();
+                this.enemies.getChildren().forEach(enemy => {
+                    if (enemy.active && enemy.maxHp > 1) { // 1방 컷(HP 1)이 아닐 때만 노출
+                        let barWidth = 30;
+                        let barHeight = 4;
+                        let x = enemy.x - barWidth / 2;
+                        let y = enemy.y - 25; // 머리 위
+                        let hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
+                        
+                        this.enemyHpGraphics.fillStyle(0x000000, 0.8);
+                        this.enemyHpGraphics.fillRect(x, y, barWidth, barHeight); // 배경
+                        this.enemyHpGraphics.fillStyle(0xff0000, 1);
+                        this.enemyHpGraphics.fillRect(x, y, barWidth * hpRatio, barHeight); // 남은 체력
                     }
                 });
             }
@@ -419,12 +477,12 @@
 
             spawnEnemies() {
                 let spawnCount = 3; 
-                // 5분(300초) 이후부터 기하급수적 증가
-                if (this.elapsedTime > 300) spawnCount += Math.floor((this.elapsedTime - 300) / 10) * 3;
+                // 3분(180초) 이후부터 기하급수적 증가
+                if (this.elapsedTime > 180) spawnCount += Math.floor((this.elapsedTime - 180) / 10) * 4;
 
-                // 4분(240초) 기점 체력 증가
+                // 3분(180초) 기점 체력 증가
                 let hp = 1;
-                if (this.elapsedTime > 240) hp += Math.floor((this.elapsedTime - 240) / 60) * 2; 
+                if (this.elapsedTime > 180) hp += Math.floor((this.elapsedTime - 180) / 30); 
 
                 for (let i = 0; i < spawnCount; i++) {
                     let cam = this.cameras.main;
@@ -439,9 +497,10 @@
                     if (enemy) {
                         enemy.setActive(true).setVisible(true);
                         enemy.monsterType = type;
+                        enemy.maxHp = hp;
                         enemy.hp = hp;
                         enemy.speed = Phaser.Math.Between(80, 110);
-                        enemy.setScale(0.4); // 슬라임 크기 대폭 축소
+                        enemy.setScale(0.5); // 슬라임 크기 30% 증가 적용
                         enemy.setCircle(enemy.width * 0.4);
                     }
                 }
@@ -617,7 +676,7 @@
                 default: 'arcade',
                 arcade: { debug: false }
             },
-            scene: [PreloadScene, TitleScene, UpgradeScene, StageSelectScene, GameScene, LevelUpScene]
+            scene: [PreloadScene, TitleScene, UpgradeScene, StageSelectScene, GameScene, LevelUpScene, SkillShopScene]
         };
 
         const game = new Phaser.Game(config);
