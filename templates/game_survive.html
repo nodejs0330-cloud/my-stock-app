@@ -187,7 +187,7 @@
 
                 // 보상 3개 생성
                 for (let i = 0; i < 3; i++) {
-                    let isRare = Math.random() < 0.1; // 10% 확률 레어
+                    let isRare = Math.random() < 0.2; // 20% 확률 레어
                     let boxImg = isRare ? 'rare_box' : 'box';
                     let boxX = this.scale.width / 2 - 250 + (i * 250);
                     let boxY = this.scale.height / 2;
@@ -268,24 +268,24 @@
                 // 1. 넓은 맵 경계 설정 (8000x8000)
                 this.physics.world.setBounds(0, 0, 8000, 8000);
 
-                // 2. 바닥 타일 생성 (타일 크기 절반으로 축소)
+                // 2. 바닥 타일 생성 (타일 크기 대폭 축소, 뎁스 최소화)
                 if (this.stageData.id === 1) {
                     this.add.tileSprite(4000, 4000, 8000, 8000, 'grass1')
-                        .setTileScale(0.5, 0.5).setDepth(0); // 크기 절반
+                        .setTileScale(0.25, 0.25).setDepth(-10); 
                     
-                    // 장식용 데코레이션 (충돌 X)
-                    const decoKeys = ['grass2', 'grass3', 'grass4', 'grass5'];
-                    for (let i = 0; i < 500; i++) {
+                    // 장식용 데코레이션 (충돌 없는 밟고 지나가는 풀, 꽃, 작은 돌)
+                    const decoKeys = ['grass2', 'grass3', 'grass4', 'grass5', 'rock1', 'rock2'];
+                    for (let i = 0; i < 250; i++) {
                         let rx = Phaser.Math.Between(0, 8000);
                         let ry = Phaser.Math.Between(0, 8000);
-                        // 크기를 절반 이하로 확 줄임
-                        let deco = this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(1).setScale(0.3);
+                        // 크기를 기존 대비 절반으로 축소, 뎁스 낮춤
+                        let deco = this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(-9).setScale(0.15);
                     }
 
-                    // 방해물 그룹 (나무, 돌) - 이동 방해 최소화
+                    // 방해물 그룹 (통과 불가능한 나무와 큰 바위만 포함)
                     this.obstacles = this.physics.add.staticGroup();
-                    const obsKeys = ['rock1', 'rock2', 'rock3', 'tree1', 'tree2'];
-                    for (let i = 0; i < 150; i++) {
+                    const obsKeys = ['tree1', 'tree2', 'rock3'];
+                    for (let i = 0; i < 60; i++) {
                         let rx = Phaser.Math.Between(200, 7800);
                         let ry = Phaser.Math.Between(200, 7800);
                         
@@ -293,10 +293,10 @@
                         if (Math.abs(rx - 4000) < 300 && Math.abs(ry - 4000) < 300) continue;
 
                         let obs = this.obstacles.create(rx, ry, Phaser.Utils.Array.GetRandom(obsKeys));
-                        obs.setScale(0.4); // 기존보다 2배 이상 작게 축소
+                        obs.setScale(0.2); // 장애물 크기 대폭 축소
                         obs.refreshBody();
                         
-                        // Hitbox를 하단 20%로 극단적으로 줄여서 이동을 쾌적하게 만듦
+                        // Hitbox를 하단 20%로 세밀하게 깎아 이미지 투명한 부분에 걸리는 현상 해결
                         obs.body.setSize(obs.width * 0.4, obs.height * 0.2);
                         obs.body.setOffset(obs.width * 0.3, obs.height * 0.7); 
                         obs.setDepth(obs.y); // Y-sorting 적용
@@ -441,7 +441,7 @@
                         enemy.monsterType = type;
                         enemy.hp = hp;
                         enemy.speed = Phaser.Math.Between(80, 110);
-                        enemy.setScale(0.8);
+                        enemy.setScale(0.4); // 슬라임 크기 대폭 축소
                         enemy.setCircle(enemy.width * 0.4);
                     }
                 }
@@ -467,11 +467,10 @@
                         let weapon = this.weapons.get(this.player.x, this.player.y, 'suri');
                         if (weapon) {
                             weapon.setActive(true).setVisible(true);
-                            // 크기 절반 감소 (0.15)
-                            weapon.setScale(0.15);
+                            weapon.hitEnemies = []; // 관통 처리를 위한 타격 몬스터 기록 배열
+                            weapon.setScale(0.2); // 크기 30% 키움
                             weapon.setAngularVelocity(800); 
-                            // 모든 지형지물 위로 렌더링되게 최상단 뎁스 부여
-                            weapon.setDepth(9999);
+                            weapon.setDepth(10000); // UI 밑, 게임 내 최상단 보장
 
                             // 방사형 발사 각도 계산
                             let angleOffset = (i - (pCount - 1) / 2) * 0.2; 
@@ -492,7 +491,10 @@
             hitEnemy(weapon, enemy) {
                 if (!weapon.active || !enemy.active) return;
                 
-                weapon.setActive(false).setVisible(false);
+                // 관통 기능: 이미 맞은 몬스터는 중복 타격 방지
+                if (weapon.hitEnemies.includes(enemy)) return;
+                weapon.hitEnemies.push(enemy);
+
                 enemy.hp -= this.playerStats.damage;
                 
                 enemy.setTint(0xff0000);
@@ -521,7 +523,17 @@
                 this.updateUI();
 
                 if (this.playerStats.hp <= 0) {
-                    this.scene.restart();
+                    this.physics.pause(); // 물리 엔진 정지
+                    
+                    // 게임 오버 텍스트
+                    let goText = this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', { 
+                        fontSize: '100px', fill: '#ff0000', fontStyle: 'bold', stroke: '#000', strokeThickness: 10 
+                    }).setOrigin(0.5).setScrollFactor(0).setDepth(20000);
+                    
+                    // 3초 후 스테이지 선택창으로 귀환
+                    this.time.delayedCall(3000, () => {
+                        this.scene.start('StageSelectScene');
+                    });
                     return;
                 }
 
