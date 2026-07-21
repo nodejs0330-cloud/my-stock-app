@@ -120,7 +120,7 @@
             <div class="control-bar">
                 <div class="top-ctrl">
                     <button class="btn btn-success" id="waveBtn" onclick="startWave()">웨이브 시작</button>
-                    <button class="btn btn-build" id="buildBtn" onclick="toggleBuildMode()">개잡주 건설 (30냥)</button>
+                    <button class="btn btn-build" id="buildBtn" onclick="toggleBuildMode()">개잡주 건설 (30냥) [B]</button>
                 </div>
                 
                 <div class="weapon-panel">
@@ -151,7 +151,7 @@
             <div class="info-box">
                 <div class="status-row"><span style="color:#f87171;">🏛️ 한국거래소 (KRX) 본진</span><span>처치수: <span id="uiKills" style="color:#34d399">0</span></span></div>
                 <div class="bar-container"><div class="bar-fill" id="baseHpBar" style="width: 100%;"></div><div class="bar-text"><span id="baseHp">100</span> / 100</div></div>
-                <div class="status-row" style="margin-top:10px;"><span>분기 (Stage):</span> <span id="uiStage" style="color:#38bdf8; font-weight:bold;">1 / 20</span></div>
+                <div class="status-row" style="margin-top:10px;"><span>분기 (Stage):</span> <span id="uiStage" style="color:#38bdf8; font-weight:bold;">1 / 30</span></div>
                 <div class="status-row"><span>보유 자금:</span> <span id="uiGold" style="color:#f59e0b; font-weight:bold;">500</span> 냥</div>
             </div>
 
@@ -159,8 +159,8 @@
                 <div class="action-title" id="actName">개잡주</div>
                 <div style="font-size: 13px; margin-bottom: 10px; color:#cbd5e1; line-height: 1.4;" id="actStats">-</div>
                 <div style="display:flex; gap: 5px;">
-                    <button class="btn btn-success" style="flex:1;" id="ipoBtn" onclick="ipoTower()">기업 상장 (20냥)</button>
-                    <button class="btn btn-success" style="flex:1; display:none;" id="mergeBtn" onclick="mergeTowers()">합병</button>
+                    <button class="btn btn-success" style="flex:1;" id="ipoBtn" onclick="ipoTower()">기업 상장 (20냥) [M]</button>
+                    <button class="btn btn-success" style="flex:1; display:none;" id="mergeBtn" onclick="mergeTowers()">합병 [M]</button>
                     <button class="btn" style="flex:1; display:none;" id="upgradeBtn" onclick="upgradeTower()">강화</button>
                     <button class="btn btn-danger" id="sellBtn" onclick="sellTower()">판매</button>
                 </div>
@@ -170,7 +170,7 @@
             <div class="dict-wrapper">
                 <div class="dict-header">📊 내 포트폴리오 및 도감</div>
                 
-                <button class="acc-btn" onclick="toggleAcc('missionList')">▼ 📜 특수 조합 미션 (히든)</button>
+                <button class="acc-btn" onclick="toggleAcc('missionList')">▼ 📜 전체 조합 미션 리스트</button>
                 <div id="missionList" class="acc-content" style="display:block;"></div>
                 
                 <button class="acc-btn" onclick="toggleAcc('kospiList')">▼ KOSPI (우량주 합병)</button>
@@ -303,12 +303,12 @@
         'IT': 'IT/엔터'
     };
 
+    // 누락되었던 에셋 호출용 유틸 함수 추가
+    function getRandomAsset(prefix, max) {
+        return prefix + (Math.floor(Math.random() * max) + 1);
+    }
+
     // 특수 조합 미션 (히든 시스템 부활)
-    const MISSIONS = [
-        { id: 1, name: "반도체 투톱 (삼전+닉스)", req: c => c['삼성전자']>0 && c['SK하이닉스']>0, reward: 500, done: false },
-        { id: 2, name: "모빌리티 연합 (현대차+기아)", req: c => c['현대차']>0 && c['기아']>0, reward: 400, done: false },
-        { id: 3, name: "K-바이오 (알테+셀트+HLB)", req: c => c['알테오젠']>0 && c['셀트리온']>0 && c['HLB']>0, reward: 600, done: false },
-        { id: 4, name: "플랫폼 양대산맥 (네이버+카카오)", req: c => c['네이버']>0 && c['카카오']>0, reward: 400, done: false }
     ];
 
     const TOWER_ASSET_MAP = {
@@ -324,48 +324,49 @@
         '네이버': () => 'tower_naver1', '카카오': () => 'tower_kakao1', '셀트리온': () => 'tower_bio1', '삼바': () => 'tower_samsungbio1'
     };
 
+    // 난이도 상승에 맞춰 타워 데미지 약 50% 일괄 하향 (몹 한 방 컷 방지)
     const TOWER_DB = {
-        '일반회사': { tier: 'NORMAL', sector: 'NONE', dmg: 150, range: 80, cd: 1000, type: 'basic', logo: 'NML', desc: '합병을 기다리는 일반 상장사' },
+        '일반회사': { tier: 'NORMAL', sector: 'NONE', dmg: 80, range: 80, cd: 1000, type: 'basic', logo: 'NML', desc: '합병을 기다리는 일반 상장사' },
         
         // BIO (바이오)
-        '알테오젠': { tier: 'KOSDAQ', sector: 'BIO', dmg: 1200, range: 100, cd: 800, type: 'basic', logo: 'ALT', desc: '주사기 다트 발사.' },
-        'HLB': { tier: 'KOSDAQ', sector: 'BIO', dmg: 900, range: 105, cd: 600, type: 'basic', logo: 'HLB', desc: '의료 다트 고속 발사.' },
-        '리가켐바이오': { tier: 'KOSDAQ', sector: 'BIO', dmg: 1600, range: 95, cd: 1000, type: 'poison', logo: 'LCB', desc: '화학 유도탄.' },
-        '휴젤': { tier: 'KOSDAQ', sector: 'BIO', dmg: 1900, range: 130, cd: 1100, type: 'basic', logo: 'HJL', desc: '장거리 톡신 스나이핑.' },
-        '삼천당제약': { tier: 'KOSDAQ', sector: 'BIO', dmg: 1500, range: 115, cd: 1000, type: 'basic', logo: 'SCD', desc: '다트 연사.' },
-        '클래시스': { tier: 'KOSDAQ', sector: 'BIO', dmg: 1300, range: 95, cd: 850, type: 'bolt', logo: 'CLS', desc: '초음파 단일 빔.' },
+        '알테오젠': { tier: 'KOSDAQ', sector: 'BIO', dmg: 600, range: 100, cd: 800, type: 'basic', logo: 'ALT', desc: '주사기 다트 발사.' },
+        'HLB': { tier: 'KOSDAQ', sector: 'BIO', dmg: 450, range: 105, cd: 600, type: 'basic', logo: 'HLB', desc: '의료 다트 고속 발사.' },
+        '리가켐바이오': { tier: 'KOSDAQ', sector: 'BIO', dmg: 800, range: 95, cd: 1000, type: 'poison', logo: 'LCB', desc: '화학 유도탄.' },
+        '휴젤': { tier: 'KOSDAQ', sector: 'BIO', dmg: 950, range: 130, cd: 1100, type: 'basic', logo: 'HJL', desc: '장거리 톡신 스나이핑.' },
+        '삼천당제약': { tier: 'KOSDAQ', sector: 'BIO', dmg: 750, range: 115, cd: 1000, type: 'basic', logo: 'SCD', desc: '다트 연사.' },
+        '클래시스': { tier: 'KOSDAQ', sector: 'BIO', dmg: 650, range: 95, cd: 850, type: 'bolt', logo: 'CLS', desc: '초음파 단일 빔.' },
         
         // BATTERY (2차전지/소재)
-        '에코프로비엠': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 2200, range: 85, cd: 1200, type: 'big', logo: 'EBM', desc: '배터리 이온탄.' },
-        '에코프로': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 1400, range: 110, cd: 900, type: 'bolt', logo: 'ECO', desc: '레이저 빔 타격.' },
-        '엔켐': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 1100, range: 90, cd: 750, type: 'poison', logo: 'ENC', desc: '전해액 구체.' },
-        '솔브레인': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 1300, range: 95, cd: 800, type: 'poison', logo: 'SLB', desc: '안정적 화학 구체.' },
+        '에코프로비엠': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 1100, range: 85, cd: 1200, type: 'big', logo: 'EBM', desc: '배터리 이온탄.' },
+        '에코프로': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 700, range: 110, cd: 900, type: 'bolt', logo: 'ECO', desc: '레이저 빔 타격.' },
+        '엔켐': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 550, range: 90, cd: 750, type: 'poison', logo: 'ENC', desc: '전해액 구체.' },
+        '솔브레인': { tier: 'KOSDAQ', sector: 'BATTERY', dmg: 650, range: 95, cd: 800, type: 'poison', logo: 'SLB', desc: '안정적 화학 구체.' },
         
         // SEMI (반도체/기계)
-        '리노공업': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 1800, range: 100, cd: 950, type: 'big', logo: 'LNO', desc: '견고한 반도체 포탄.' },
-        'HPSP': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 1600, range: 100, cd: 900, type: 'bolt', logo: 'HPS', desc: '고속 레이저 사격.' },
-        '레인보우로보': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 2400, range: 100, cd: 1300, type: 'bolt', logo: 'RR', desc: '정밀 로봇 레이저 조준.' },
-        '두산로보틱스': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 2600, range: 90, cd: 1400, type: 'big', logo: 'DR', desc: '중장비 부품 타격.' },
-        '실리콘투': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 2500, range: 95, cd: 1350, type: 'big', logo: 'SI2', desc: '거대 박스 폭탄 투척.' },
+        '리노공업': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 900, range: 100, cd: 950, type: 'big', logo: 'LNO', desc: '견고한 반도체 포탄.' },
+        'HPSP': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 800, range: 100, cd: 900, type: 'bolt', logo: 'HPS', desc: '고속 레이저 사격.' },
+        '레인보우로보': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 1200, range: 100, cd: 1300, type: 'bolt', logo: 'RR', desc: '정밀 로봇 레이저 조준.' },
+        '두산로보틱스': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 1300, range: 90, cd: 1400, type: 'big', logo: 'DR', desc: '중장비 부품 타격.' },
+        '실리콘투': { tier: 'KOSDAQ', sector: 'SEMI', dmg: 1250, range: 95, cd: 1350, type: 'big', logo: 'SI2', desc: '거대 박스 폭탄 투척.' },
         
         // IT (IT/엔터)
-        'JYP Ent.': { tier: 'KOSDAQ', sector: 'IT', dmg: 1000, range: 120, cd: 650, type: 'basic', logo: 'JYP', desc: '음파 공격.' },
-        '에스엠': { tier: 'KOSDAQ', sector: 'IT', dmg: 1100, range: 110, cd: 700, type: 'basic', logo: 'SM', desc: '고속 마법 구체.' },
-        '와이지엔터': { tier: 'KOSDAQ', sector: 'IT', dmg: 1400, range: 105, cd: 800, type: 'basic', logo: 'YG', desc: '강력한 음파 구체.' },
-        '펄어비스': { tier: 'KOSDAQ', sector: 'IT', dmg: 2000, range: 115, cd: 1150, type: 'basic', logo: 'PA', desc: '검은 사막의 검기 관통.' },
-        '카카오게임즈': { tier: 'KOSDAQ', sector: 'IT', dmg: 1700, range: 110, cd: 1050, type: 'basic', logo: 'KG', desc: '게임 특수 효과 발사.' },
+        'JYP Ent.': { tier: 'KOSDAQ', sector: 'IT', dmg: 500, range: 120, cd: 650, type: 'basic', logo: 'JYP', desc: '음파 공격.' },
+        '에스엠': { tier: 'KOSDAQ', sector: 'IT', dmg: 550, range: 110, cd: 700, type: 'basic', logo: 'SM', desc: '고속 마법 구체.' },
+        '와이지엔터': { tier: 'KOSDAQ', sector: 'IT', dmg: 700, range: 105, cd: 800, type: 'basic', logo: 'YG', desc: '강력한 음파 구체.' },
+        '펄어비스': { tier: 'KOSDAQ', sector: 'IT', dmg: 1000, range: 115, cd: 1150, type: 'basic', logo: 'PA', desc: '검은 사막의 검기 관통.' },
+        '카카오게임즈': { tier: 'KOSDAQ', sector: 'IT', dmg: 850, range: 110, cd: 1050, type: 'basic', logo: 'KG', desc: '게임 특수 효과 발사.' },
         
         // 코스피 (마법 포함 및 데미지 폭증)
-        '삼성전자': { tier: 'KOSPI', sector: 'KOSPI', dmg: 8500, range: 190, cd: 1400, type: 'big', logo: 'SEC', magic: { type:'ignite', dur: 5000 }, desc: '[최종병기] 웨이퍼 광역 폭발 + [점화🔥]' },
-        'SK하이닉스': { tier: 'KOSPI', sector: 'KOSPI', dmg: 4000, range: 160, cd: 750, type: 'bolt', logo: 'HYN', magic: { type:'slow', dur: 3000 }, desc: '체인 라이트닝 레이저 + [둔화🐌]' },
-        'LG엔솔': { tier: 'KOSPI', sector: 'KOSPI', dmg: 2800, range: 140, cd: 900, type: 'bolt', logo: 'ENS', magic: { type:'freeze', dur: 2000 }, desc: '전기장을 터뜨려 적 둔화 + [빙결❄️]' },
-        '삼바': { tier: 'KOSPI', sector: 'KOSPI', dmg: 2400, range: 145, cd: 550, type: 'poison', logo: 'BIO', magic: { type:'ignite', dur: 5000 }, desc: '백신 가스 초고속 연사 + [점화🔥]' },
-        '현대차': { tier: 'KOSPI', sector: 'KOSPI', dmg: 5000, range: 210, cd: 1100, type: 'basic', logo: 'HD', magic: { type:'armor_break', dur: 3000 }, desc: '고속 자동차 직사 발사 + [방깎💔]' },
-        '기아': { tier: 'KOSPI', sector: 'KOSPI', dmg: 4500, range: 165, cd: 1050, type: 'basic', logo: 'KIA', magic: { type:'armor_break', dur: 3000 }, desc: '자동차 투사 파편 스플래시 + [방깎💔]' },
-        '셀트리온': { tier: 'KOSPI', sector: 'KOSPI', dmg: 3300, range: 150, cd: 850, type: 'poison', logo: 'CEL', magic: { type:'ignite', dur: 5000 }, desc: '역병 독소를 누적 시켜 데미지 + [점화🔥]' },
-        'KB금융': { tier: 'KOSPI', sector: 'KOSPI', dmg: 6500, range: 175, cd: 1300, type: 'big', logo: 'KB', magic: { type:'ignite', dur: 5000 }, desc: '거대 황금 동전을 던져 딜링 + [점화🔥]' },
-        '네이버': { tier: 'KOSPI', sector: 'KOSPI', dmg: 2600, range: 180, cd: 650, type: 'bolt', logo: 'NVR', magic: { type:'freeze', dur: 2000 }, desc: '그린 서치 빔으로 방어 무력화 + [빙결❄️]' },
-        '카카오': { tier: 'KOSPI', sector: 'KOSPI', dmg: 3200, range: 160, cd: 950, type: 'basic', logo: 'KAK', magic: { type:'slow', dur: 3000 }, desc: '노란빛 골드 파도 이펙트 + [둔화🐌]' }
+        '삼성전자': { tier: 'KOSPI', sector: 'KOSPI', dmg: 4250, range: 190, cd: 1400, type: 'big', logo: 'SEC', magic: { type:'ignite', dur: 5000 }, desc: '[최종병기] 웨이퍼 광역 폭발 + [점화🔥]' },
+        'SK하이닉스': { tier: 'KOSPI', sector: 'KOSPI', dmg: 2000, range: 160, cd: 750, type: 'bolt', logo: 'HYN', magic: { type:'slow', dur: 3000 }, desc: '체인 라이트닝 레이저 + [둔화🐌]' },
+        'LG엔솔': { tier: 'KOSPI', sector: 'KOSPI', dmg: 1400, range: 140, cd: 900, type: 'bolt', logo: 'ENS', magic: { type:'freeze', dur: 2000 }, desc: '전기장을 터뜨려 적 둔화 + [빙결❄️]' },
+        '삼바': { tier: 'KOSPI', sector: 'KOSPI', dmg: 1200, range: 145, cd: 550, type: 'poison', logo: 'BIO', magic: { type:'ignite', dur: 5000 }, desc: '백신 가스 초고속 연사 + [점화🔥]' },
+        '현대차': { tier: 'KOSPI', sector: 'KOSPI', dmg: 2500, range: 210, cd: 1100, type: 'basic', logo: 'HD', magic: { type:'armor_break', dur: 3000 }, desc: '고속 자동차 직사 발사 + [방깎💔]' },
+        '기아': { tier: 'KOSPI', sector: 'KOSPI', dmg: 2250, range: 165, cd: 1050, type: 'basic', logo: 'KIA', magic: { type:'armor_break', dur: 3000 }, desc: '자동차 투사 파편 스플래시 + [방깎💔]' },
+        '셀트리온': { tier: 'KOSPI', sector: 'KOSPI', dmg: 1650, range: 150, cd: 850, type: 'poison', logo: 'CEL', magic: { type:'ignite', dur: 5000 }, desc: '역병 독소를 누적 시켜 데미지 + [점화🔥]' },
+        'KB금융': { tier: 'KOSPI', sector: 'KOSPI', dmg: 3250, range: 175, cd: 1300, type: 'big', logo: 'KB', magic: { type:'ignite', dur: 5000 }, desc: '거대 황금 동전을 던져 딜링 + [점화🔥]' },
+        '네이버': { tier: 'KOSPI', sector: 'KOSPI', dmg: 1300, range: 180, cd: 650, type: 'bolt', logo: 'NVR', magic: { type:'freeze', dur: 2000 }, desc: '그린 서치 빔으로 방어 무력화 + [빙결❄️]' },
+        '카카오': { tier: 'KOSPI', sector: 'KOSPI', dmg: 1600, range: 160, cd: 950, type: 'basic', logo: 'KAK', magic: { type:'slow', dur: 3000 }, desc: '노란빛 골드 파도 이펙트 + [둔화🐌]' }
     };
 
     let phaserScene = null;
@@ -502,19 +503,44 @@
                 }
             });
             
+            // --- 타워 드래그 시 눈금 기능 개선 ---
             this.input.on('dragstart', (pointer, gameObject) => {
                 if(gameState.isBuilding) return;
                 gameObject.setAlpha(0.5);
                 this.rangeCircle.setVisible(false);
+                
+                // 드래그 시작 시 눈금 표시
+                this.buildMarker.setVisible(true); 
             });
+
             this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
                 if(gameState.isBuilding) return;
                 gameObject.x = dragX;
                 gameObject.y = dragY;
+
+                // 타워 드래그 중 그리드 좌표 계산 및 눈금 이동
+                let gx = Math.floor(pointer.x / TILE);
+                let gy = Math.floor(pointer.y / TILE);
+                this.buildMarker.setPosition(gx * TILE, gy * TILE);
+
+                let tObj = gameObject.towerRef;
+                
+                // 이동 가능한 위치인지 판단하여 눈금 색상 변경
+                if (this.isValidGridForMove(gx, gy, tObj)) {
+                    this.buildMarker.lineStyle(2, 0x10b981, 1); // 초록색 (이동 가능)
+                } else {
+                    this.buildMarker.lineStyle(2, 0xef4444, 1); // 빨간색 (이동 불가)
+                }
+                this.buildMarker.strokeRect(0, 0, TILE, TILE);
             });
+
             this.input.on('dragend', (pointer, gameObject) => {
                 if(gameState.isBuilding) return;
                 gameObject.setAlpha(1);
+                
+                // 드래그 종료 시 눈금 숨김
+                this.buildMarker.setVisible(false); 
+
                 let tObj = gameObject.towerRef;
                 if(!tObj) return;
                 
@@ -526,7 +552,7 @@
                     tObj.cx = gx * TILE + TILE/2;
                     tObj.cy = gy * TILE + TILE/2 - 10;
                 }
-                // 버그 수정: 항상 tObj의 유효한 위치로 다시 복귀시킴
+                // 유효한 위치로 다시 복귀시킴
                 gameObject.setPosition(tObj.cx, tObj.cy + 15);
                 if(tObj.aura) tObj.aura.setPosition(tObj.cx, tObj.cy);
                 
@@ -892,15 +918,24 @@
         spawnWave() {
             this.stageTopText.setText(`STAGE ${gameState.stage}`);
             
-            let isBoss = (gameState.stage % 5 === 0);
-            let eCount = isBoss ? 1 : 12 + gameState.stage * 2;
-            let hpVal = 50 + gameState.stage * gameState.stage * 20;
-            if(isBoss) { hpVal *= 7; if(!isMuted) sndBoss.play().catch(er=>{}); }
+            // 1. 스테이지 및 보스 출현 밸런싱 (10스테이지 마다 보스)
+            let isBossStage = (gameState.stage > 0 && gameState.stage % 10 === 0);
+            let isFinalBoss = (gameState.stage === 30);
+            
+            // 1.3 및 1.4 수정: 마지막 보스 스테이지(30)를 제외하고 보스와 일반몹 다수 동시 등장
+            let normalCount = isFinalBoss ? 0 : 20 + gameState.stage * 3;
+            let bossCount = isBossStage ? 1 : 0;
+            let totalCount = normalCount + bossCount;
+            
+            // 1.1 및 1.2 체력 스케일링 (어려움 난이도: 기하급수적으로 체력 증가)
+            let normalHp = 80 + Math.pow(gameState.stage, 2.2) * 25;
+            let bossHp = normalHp * 20 * (gameState.stage / 10);
 
-            if(isBoss) {
+            if(isBossStage) {
                 this.cameras.main.flash(500, 255, 0, 0); 
                 let warningBg = this.add.rectangle(340, 240, 680, 100, 0x000000, 0.6).setDepth(19);
-                let warningText = this.add.text(340, 240, '🚨 보스 몬스터 출현 🚨', {
+                let warningMsg = isFinalBoss ? '🚨 최종 보스 출현 🚨' : '🚨 보스 몬스터 출현 🚨';
+                let warningText = this.add.text(340, 240, warningMsg, {
                     fontFamily: 'DungGeunMo', fontSize: '50px', fill: '#ef4444', stroke: '#000', strokeThickness: 6
                 }).setOrigin(0.5).setDepth(20);
                 
@@ -910,13 +945,17 @@
                     yoyo: true, repeat: 3, duration: 400,
                     onComplete: () => { warningText.destroy(); warningBg.destroy(); }
                 });
+                if(!isMuted) sndBoss.play().catch(er=>{});
             }
 
-            for(let i=0; i<eCount; i++) {
+            for(let i=0; i<totalCount; i++) {
+                let isThisBoss = isBossStage && (i === totalCount - 1); // 맨 마지막 1마리만 보스
+                let hpVal = isThisBoss ? bossHp : normalHp;
+                
                 let tex = 'ant1';
                 let defaultFace = 'left';
                 
-                if(isBoss) {
+                if(isThisBoss) {
                     let rand = Math.random();
                     if(rand < 0.4) tex = getRandomAsset('boss_ant', 2);
                     else if(rand < 0.7) { tex = 'boss_bear1'; defaultFace = 'right'; }
@@ -929,7 +968,7 @@
                 }
 
                 let spr = this.add.sprite(PATH[0].x*TILE+TILE/2, PATH[0].y*TILE+TILE/2, tex);
-                let eSize = isBoss ? 80 : 36;
+                let eSize = isThisBoss ? 80 : 36;
                 spr.setDisplaySize(eSize, eSize).setDepth(4).setVisible(false);
                 
                 let bg = this.add.graphics().fillStyle(0x000000, 1).fillRect(0, 0, 30, 4).setVisible(false).setDepth(8);
@@ -937,13 +976,15 @@
                 let statTxt = this.add.text(0, 0, '', { fontSize: '14px' }).setOrigin(0.5).setVisible(false).setDepth(9);
 
                 this.enemies.push({
-                    sprite: spr, hp: hpVal, maxHp: hpVal, isBoss: isBoss,
+                    sprite: spr, hp: hpVal, maxHp: hpVal, isBoss: isThisBoss,
                     defaultFacing: defaultFace,
-                    baseSpeed: isBoss ? 0.9 : (1.1 + Math.random()*0.5),
+                    baseSpeed: isThisBoss ? 0.8 : (1.2 + Math.random()*0.6),
                     curDmgMult: 1.0,
                     status: { freeze: 0, slow: 0, armor_break: 0, ignite: 0, igniteTick: 0 },
                     statusText: statTxt,
-                    pIdx: 0, delay: i * 40, reward: isBoss ? 500 : 30 + (gameState.stage * 3),
+                    pIdx: 0, 
+                    delay: i * 35, // 몹 마릿수가 늘었으므로 생성 간격 단축
+                    reward: isThisBoss ? 1000 * (gameState.stage/10) : 10 + Math.floor(gameState.stage * 1.5),
                     hpBarBg: bg, hpBar: bar
                 });
             }
@@ -1097,7 +1138,7 @@
     function updateUI() {
         document.getElementById('baseHp').innerText = Math.max(0, gameState.baseHp);
         document.getElementById('baseHpBar').style.width = Math.max(0, gameState.baseHp) + '%';
-        document.getElementById('uiStage').innerText = gameState.stage + " / 20";
+        document.getElementById('uiStage').innerText = gameState.stage + " / 30";
         document.getElementById('uiGold').innerText = gameState.gold;
         document.getElementById('uiKills').innerText = gameState.kills;
         
@@ -1152,7 +1193,7 @@
                 document.getElementById('actStats').innerText = '상장 준비 중인 잡주입니다.';
                 ipoB.style.display = 'inline-block';
                 document.getElementById('actName').style.color = '#cbd5e1';
-                ipoB.innerText = `기업 상장 (20냥)`; ipoB.style.background = '#10b981';
+                ipoB.innerText = `기업 상장 (20냥) [M]`; ipoB.style.background = '#10b981';
             } else if (t.tier === 'NORMAL') {
                 document.getElementById('actStats').innerText = '합병 대기 중인 일반 상장사입니다.';
                 document.getElementById('actName').style.color = '#e2e8f0';
@@ -1161,7 +1202,7 @@
                 if(normals.length >= 3) {
                     mgB.style.display = 'inline-block';
                     mgB.className = 'btn btn-success';
-                    mgB.innerText = '일반 합병 (랜덤 KOSDAQ)';
+                    mgB.innerText = '일반 합병 (랜덤 KOSDAQ) [M]';
                 } else {
                     mgB.style.display = 'inline-block';
                     mgB.className = 'btn btn-disabled';
@@ -1185,7 +1226,7 @@
                     let sames = phaserScene.towers.filter(tw => tw.tier === 'KOSDAQ' && TOWER_DB[tw.name].sector === spec.sector);
                     if(sames.length >= 3) {
                         mgB.style.display = 'inline-block'; mgB.className = 'btn btn-success';
-                        mgB.innerText = '계열 합병 (랜덤 KOSPI)';
+                        mgB.innerText = '계열 합병 (랜덤 KOSPI) [M]';
                     } else {
                         mgB.style.display = 'inline-block'; mgB.className = 'btn btn-disabled';
                         mNoti.style.display = 'block';
@@ -1388,8 +1429,51 @@
 
     function closeReport() {
         document.getElementById('reportModal').style.display = 'none';
+        
+        // 30스테이지 클리어 시 승리 팝업 및 게임 종료
+        if (gameState.stage >= 30) {
+            alert("🎉축하합니다!🎉 30분기 동안 성공적으로 방어하여 거래소를 지켜냈습니다!");
+            location.reload();
+            return;
+        }
+
         gameState.stage++;
         updateUI();
     }
+
+    // ========================================================
+    // 5. 단축키 설정 (B: 건설, M: 상장/병합)
+    // ========================================================
+    window.addEventListener('keydown', (e) => {
+        // 텍스트 입력창 등에 포커스가 있을 때는 단축키 무시 (안전장치)
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        
+        const key = e.key.toLowerCase();
+
+        // 단축키 [B]: 개잡주 건설 모드 토글
+        if (key === 'b') {
+            toggleBuildMode();
+        }
+
+        // 단축키 [M]: 타워 상장(IPO) 또는 합병(Merge)
+        if (key === 'm') {
+            let t = gameState.selectedTower;
+            // 선택된 타워가 없으면 무시
+            if (!t) return; 
+
+            // 1. 기업 상장(IPO) 조건: 티어가 NONE일 때
+            if (t.tier === 'NONE') {
+                ipoTower();
+            } 
+            // 2. 합병(Merge) 조건: 일반회사(NORMAL) 또는 코스닥(KOSDAQ)일 때
+            else if (t.tier === 'NORMAL' || t.tier === 'KOSDAQ') {
+                // 합병 버튼이 화면에 보이고(display !== 'none'), 비활성화 상태가 아닐 때만 실행
+                let mgBtn = document.getElementById('mergeBtn');
+                if (mgBtn && mgBtn.style.display !== 'none' && !mgBtn.className.includes('btn-disabled')) {
+                    mergeTowers();
+                }
+            }
+        }
+    });
 </script>
 {% endblock %}
