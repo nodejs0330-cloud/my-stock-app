@@ -205,29 +205,39 @@
                 this.physics.world.setBounds(0, 0, 4000, 4000);
 
                 if (this.stageData.id === 1) {
-                    // 기본 잔디 바닥 타일링
+                    // 기본 잔디 바닥 (grass1 이미지를 4000x4000 영역에 타일링하여 반복)
                     this.add.tileSprite(2000, 2000, 4000, 4000, 'grass1').setDepth(0);
 
-                    // 장식 흩뿌리기
+                    // 장식 흩뿌리기 (개수 및 크기 조절)
                     const decoKeys = ['grass2', 'grass3', 'grass4', 'grass5', 'branch', 'mushroom'];
-                    for (let i = 0; i < 400; i++) {
+                    for (let i = 0; i < 250; i++) { // 개수 축소 (400 -> 250)
                         let rx = Phaser.Math.Between(0, 4000);
                         let ry = Phaser.Math.Between(0, 4000);
                         let deco = this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(1);
-                        deco.setScale(1.5); 
+                        deco.setScale(0.7); // 장식 크기 대폭 축소
                     }
 
-                    // 충돌 장애물 배치
+                    // 충돌 장애물 배치 (나무, 바위 - 개수 및 크기 조절, 충돌 박스 최적화)
                     this.obstacles = this.physics.add.staticGroup();
                     const obstacleKeys = ['tree1', 'tree2', 'rock1', 'rock2', 'rock3'];
-                    for (let i = 0; i < 150; i++) {
+                    for (let i = 0; i < 60; i++) { // 개수 축소 (150 -> 60)
                         let rx = Phaser.Math.Between(100, 3900); 
                         let ry = Phaser.Math.Between(100, 3900);
-                        if (Math.abs(rx - 2000) < 300 && Math.abs(ry - 2000) < 300) continue;
+                        // 시작지점(2000, 2000) 주변은 안전구역 (반경 확장)
+                        if (Math.abs(rx - 2000) < 400 && Math.abs(ry - 2000) < 400) continue;
 
                         let obs = this.obstacles.create(rx, ry, Phaser.Utils.Array.GetRandom(obstacleKeys));
-                        obs.setScale(1.5);
-                        obs.refreshBody();
+                        obs.setScale(0.8); // 장애물 크기 축소
+
+                        // [중요] 충돌 히트박스 최적화 (하단만 닿게 설정)
+                        // 이미지의 실제 크기에 따라 조절이 필요할 수 있습니다.
+                        let originalWidth = obs.width;
+                        let originalHeight = obs.height;
+                        
+                        // 충돌 박스를 너비 80%, 높이 30%로 줄이고, Y축을 하단으로 이동
+                        obs.setSize(originalWidth * 0.8, originalHeight * 0.3);
+                        obs.setOffset(originalWidth * 0.1, originalHeight * 0.6); 
+                        
                         obs.setDepth(obs.y); // Y-Sorting
                     }
                 } else {
@@ -236,24 +246,14 @@
 
                 // 주인공 생성
                 this.player = this.physics.add.sprite(2000, 2000, 'hero_1');
-                this.player.setScale(1.2); 
+                this.player.setScale(0.6); // 플레이어 크기 적절히 조절 (확인 후 수정)
                 this.player.setCollideWorldBounds(true);
                 
-                if (this.stageData.id === 1) {
-                    this.physics.add.collider(this.player, this.obstacles);
-                }
-
-                this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-
-                // 스피커 버튼
-                this.createMuteButton();
-
-                // UI
-                this.timerText = this.add.text(this.scale.width / 2, 30, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' })
-                    .setOrigin(0.5).setScrollFactor(0).setDepth(9999);
-
-                // 키보드 입력
-                this.cursors = this.input.keyboard.createCursorKeys();
+                // 플레이어 충돌 히트박스 최적화 (발 부분만 충돌하도록)
+                let pw = this.player.width;
+                let ph = this.player.height;
+                this.player.setSize(pw * 0.6, ph * 0.4);
+                this.player.setOffset(pw * 0.2, ph * 0.5);
                 this.wasd = this.input.keyboard.addKeys({
                     up: Phaser.Input.Keyboard.KeyCodes.W,
                     down: Phaser.Input.Keyboard.KeyCodes.S,
