@@ -309,6 +309,11 @@
     }
 
     // 특수 조합 미션 (히든 시스템 부활)
+    const MISSIONS = [
+        { id: 1, name: "반도체 투톱 (삼전+닉스)", req: c => c['삼성전자']>0 && c['SK하이닉스']>0, reward: 500, done: false },
+        { id: 2, name: "모빌리티 연합 (현대차+기아)", req: c => c['현대차']>0 && c['기아']>0, reward: 400, done: false },
+        { id: 3, name: "K-바이오 (알테+셀트+HLB)", req: c => c['알테오젠']>0 && c['셀트리온']>0 && c['HLB']>0, reward: 600, done: false },
+        { id: 4, name: "플랫폼 양대산맥 (네이버+카카오)", req: c => c['네이버']>0 && c['카카오']>0, reward: 400, done: false }
     ];
 
     const TOWER_ASSET_MAP = {
