@@ -407,7 +407,7 @@ def admin():
     return render_template('admin.html', users=users, notice=notice, main_text=main_text_row, q1=q1_row, q2=q2_row, bg_mode=bg_mode_row)
 
 @app.route('/game')
-def game_hub():
+def game():
     # 로그인이 되어있지 않으면 메인 화면으로 돌려보냅니다.
     if 'user_id' not in session: 
         return redirect(url_for('index'))
