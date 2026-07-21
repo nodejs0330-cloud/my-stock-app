@@ -78,11 +78,13 @@
         overflow: hidden;
     }
 
+    /* 엑스박스(깨진 이미지)가 너무 크지 않게 처리 */
     .card-img-box img {
         width: 100px;
         height: 100px;
         image-rendering: pixelated;
         transition: transform 0.3s ease;
+        color: transparent; /* 엑스박스 텍스트 숨김 용도 */
     }
 
     .game-card:hover .card-img-box img {
@@ -149,6 +151,7 @@
     .btn-active {
         background: linear-gradient(135deg, #3b82f6, #2563eb);
         color: white;
+        cursor: pointer;
     }
 
     .game-card.accent .btn-active {
@@ -170,7 +173,8 @@
         border-color: rgba(71, 85, 105, 0.5);
         box-shadow: none;
     }
-    .game-card.locked img {
+    .game-card.locked img,
+    .game-card.locked .card-img-box div {
         filter: grayscale(100%) opacity(0.4);
     }
 </style>
@@ -182,10 +186,9 @@
     </div>
 
     <div class="game-grid">
-        <!-- 1. 타워 디펜스 게임 (활성화) -->
+        <!-- 1. 타워 디펜스 게임 (활성화 - 노란색 테마) -->
         <div class="game-card accent" onclick="location.href='/game/tower'">
             <div class="card-img-box">
-                <!-- 기존 에셋 중 한국거래소 이미지를 썸네일로 활용 -->
                 <img src="/static/img/tower/krx.png" alt="KRX Defense">
             </div>
             <div class="card-content">
@@ -202,32 +205,33 @@
             </div>
         </div>
 
-        <!-- 2. 신규 게임 예시 (잠금 상태) -->
-        <div class="game-card accent" onclick="location.href='/game/survive'"></div>    
+            <!-- 클릭 시 /game/survive 로 이동하도록 설정 -->
+        <div class="game-card" onclick="location.href='/game/survive'">    
             <div class="card-img-box">
-                <div style="font-size: 3rem; opacity: 0.5;">📈</div>
+                <!-- 존재하지 않는 이미지 경로 지정 (화면에는 엑스박스 아이콘 표시됨) -->
+                <img src="/static/img/dummy_scalping.png" alt="썸네일">
             </div>
             <div class="card-content">
-                <div class="card-title">⚡ 스캘핑 마스터 (Coming Soon)</div>
+                <div class="card-title"></div>
                 <div class="card-tags">
-                    <span class="tag">피지컬</span>
-                    <span class="tag">생존</span>
+                    <span class="tag">붕어빵의 전설(가제)</span>
+                    <span class="tag">생존하라</span>
                 </div>
                 <div class="card-desc">
                     끝까지 살아남아라!<br>
                     (현재 개발 중입니다.)
                 </div>
-                <button class="play-btn btn-locked">업데이트 예정</button>
+                <button class="play-btn btn-active">게임 시작하기</button>
             </div>
         </div>
 
-        <!-- 3. 신규 게임 예시 (잠금 상태) -->
+        <!-- 3. 가치투자 시뮬레이터 (잠금 상태) -->
         <div class="game-card locked">
             <div class="card-img-box">
-                <div style="font-size: 3rem; opacity: 0.5;">🧠</div>
+                <div style="font-size: 3rem; opacity: 0.5;"> ^^ </div>
             </div>
             <div class="card-content">
-                <div class="card-title">🔍 가치투자 시뮬레이터 (Coming Soon)</div>
+                <div class="card-title">(Coming Soon)</div>
                 <div class="card-tags">
                     <span class="tag">방치형</span>
                     <span class="tag">시뮬레이션</span>
