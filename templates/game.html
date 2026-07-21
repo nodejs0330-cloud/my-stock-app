@@ -297,7 +297,7 @@
 
     // 타워별 에셋 고정 (난수 제거, 일반회사 추가)
     const TOWER_ASSET_MAP = {
-        '일반회사': () => Math.random() > 0.5 ? 'normal_tower1' : 'normal_tower2',
+        '일반회사': () => Math.random() > 0.5 ? 'tower_normal1' : 'tower_normal2',
         
         '알테오젠': () => 'tower_bio1', 'HLB': () => 'tower_bio2', '리가켐바이오': () => 'tower_bio3', '휴젤': () => 'tower_bio4', '삼천당제약': () => 'tower_bio5', '클래시스': () => 'tower_bio6',
         '에코프로비엠': () => 'tower_bio7', '에코프로': () => 'tower_bio8', '엔켐': () => 'tower_bio9', '솔브레인': () => 'tower_bio10',
@@ -367,7 +367,7 @@
             
             loadImg('hero'); loadImg('hero_attack'); loadImg('hero_fish'); loadImg('hero_canon');
             loadImg('krx'); loadImg('box');
-            loadImg('normal_tower1'); loadImg('normal_tower2');
+            loadImg('tower_normal1'); loadImg('tower_normal2');
             
             loadImg('golden_fish_detail'); loadImg('fork1'); loadImg('canon_detail'); 
             loadImg('golden_fish1'); loadImg('fork1'); loadImg('canon1'); 
@@ -456,7 +456,7 @@
                         gameState.isBuilding = false;
                         if(!isMuted) sndBuild.play().catch(e=>{}); 
                         
-                        let baseTexture = 'normal_tower1';
+                        let baseTexture = 'tower_normal1';
                         let cx = gx * TILE + TILE/2;
                         let cy = gy * TILE + TILE/2;
                         let spr = this.add.sprite(cx, cy, baseTexture);
