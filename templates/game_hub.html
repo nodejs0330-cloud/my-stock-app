@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block body_class %}bg-[#0b0f19]{% endblock %}
+
+{% block content %}
+<style>
+    @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); font-weight: normal; font-style: normal; }
+
+    .hub-wrapper {
+        min-height: 80vh;
+        padding: 40px 20px;
+        color: #e2e8f0;
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    }
+
+    .hub-header {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .hub-title {
+        font-family: 'DungGeunMo', sans-serif;
+        font-size: 3rem;
+        color: #f59e0b;
+        text-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        margin-bottom: 10px;
+    }
+
+    .hub-subtitle {
+        font-size: 1.1rem;
+        color: #94a3b8;
+    }
+
+    /* 게임 카드 그리드 레이아웃 */
+    .game-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    /* 모던 다크 카드 디자인 */
+    .game-card {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(71, 85, 105, 0.5);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .game-card:hover {
+        transform: translateY(-5px);
+        border-color: #3b82f6;
+        box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
+    }
+
+    .game-card.accent:hover {
+        border-color: #f59e0b;
+        box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.5);
+    }
+
+    /* 카드 썸네일 영역 */
+    .card-img-box {
+        width: 100%;
+        height: 180px;
+        background: #0f172a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-bottom: 1px solid rgba(71, 85, 105, 0.5);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .card-img-box img {
+        width: 100px;
+        height: 100px;
+        image-rendering: pixelated;
+        transition: transform 0.3s ease;
+    }
+
+    .game-card:hover .card-img-box img {
+        transform: scale(1.1);
+    }
+
+    /* 카드 텍스트 및 버튼 영역 */
+    .card-content {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .card-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .card-desc {
+        font-size: 0.95rem;
+        color: #cbd5e1;
+        line-height: 1.5;
+        margin-bottom: 20px;
+        flex: 1;
+    }
+
+    .card-tags {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+
+    .tag {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        background: #334155;
+        color: #94a3b8;
+    }
+
+    .tag.accent-tag {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fcd34d;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* 플레이 버튼 */
+    .play-btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.2s ease;
+        border: none;
+    }
+
+    .btn-active {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+    }
+
+    .game-card.accent .btn-active {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .btn-locked {
+        background: #334155;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+
+    /* 잠긴 게임 (Coming Soon) 처리 */
+    .game-card.locked {
+        cursor: not-allowed;
+    }
+    .game-card.locked:hover {
+        transform: none;
+        border-color: rgba(71, 85, 105, 0.5);
+        box-shadow: none;
+    }
+    .game-card.locked img {
+        filter: grayscale(100%) opacity(0.4);
+    }
+</style>
+
+<div class="hub-wrapper">
+    <div class="hub-header">
+        <h1 class="hub-title">NCS ARCADE</h1>
+        <p class="hub-subtitle">{{ username }}님, 플레이할 미니게임을 선택해 주세요!</p>
+    </div>
+
+    <div class="game-grid">
+        <!-- 1. 타워 디펜스 게임 (활성화) -->
+        <div class="game-card accent" onclick="location.href='/game/tower'">
+            <div class="card-img-box">
+                <!-- 기존 에셋 중 한국거래소 이미지를 썸네일로 활용 -->
+                <img src="/static/img/tower/krx.png" alt="KRX Defense">
+            </div>
+            <div class="card-content">
+                <div class="card-title">🛡️ NCS Stock Defense</div>
+                <div class="card-tags">
+                    <span class="tag accent-tag">전략 디펜스</span>
+                    <span class="tag">난이도: 어려움</span>
+                </div>
+                <div class="card-desc">
+                    몰려오는 개미투자자를 막아내고 한국거래소를 사수하라!<br>
+                    우량주 합병과 무기 강화를 통한 극한의 생존 게임.
+                </div>
+                <button class="play-btn btn-active">게임 시작하기</button>
+            </div>
+        </div>
+
+        <!-- 2. 신규 게임 예시 (잠금 상태) -->
+        <div class="game-card accent" onclick="location.href='/game/survive'"></div>    
+            <div class="card-img-box">
+                <div style="font-size: 3rem; opacity: 0.5;">📈</div>
+            </div>
+            <div class="card-content">
+                <div class="card-title">⚡ 스캘핑 마스터 (Coming Soon)</div>
+                <div class="card-tags">
+                    <span class="tag">피지컬</span>
+                    <span class="tag">생존</span>
+                </div>
+                <div class="card-desc">
+                    끝까지 살아남아라!<br>
+                    (현재 개발 중입니다.)
+                </div>
+                <button class="play-btn btn-locked">업데이트 예정</button>
+            </div>
+        </div>
+
+        <!-- 3. 신규 게임 예시 (잠금 상태) -->
+        <div class="game-card locked">
+            <div class="card-img-box">
+                <div style="font-size: 3rem; opacity: 0.5;">🧠</div>
+            </div>
+            <div class="card-content">
+                <div class="card-title">🔍 가치투자 시뮬레이터 (Coming Soon)</div>
+                <div class="card-tags">
+                    <span class="tag">방치형</span>
+                    <span class="tag">시뮬레이션</span>
+                </div>
+                <div class="card-desc">
+                    10년 전으로 돌아간다면 당신은 부자가 될 수 있을까? 실제 과거 데이터를 바탕으로 가치투자를 테스트해 보세요.
+                </div>
+                <button class="play-btn btn-locked">업데이트 예정</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

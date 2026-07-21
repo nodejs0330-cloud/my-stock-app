@@ -405,17 +405,33 @@ def admin():
     q2_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 4').fetchone()
     bg_mode_row = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 5').fetchone()
     return render_template('admin.html', users=users, notice=notice, main_text=main_text_row, q1=q1_row, q2=q2_row, bg_mode=bg_mode_row)
-	
+
 @app.route('/game')
-def game():
+def game_hub():
     # 로그인이 되어있지 않으면 메인 화면으로 돌려보냅니다.
     if 'user_id' not in session: 
         return redirect(url_for('index'))
     
-    # 세션에서 사용자 이름을 가져와 게임 화면으로 전달합니다.
+    # 세션에서 사용자 이름을 가져와 허브 화면으로 전달합니다.
     username = session.get('name', '투자자')
-    return render_template('game.html', username=username)
-	
+    return render_template('game_hub.html', username=username)
+
+@app.route('/game/tower')
+def game_tower():
+    if 'user_id' not in session: 
+        return redirect(url_for('index'))
+    
+    username = session.get('name', '투자자')
+    return render_template('game_tower.html', username=username)
+
+@app.route('/game/survive')
+def game_survive():
+    if 'user_id' not in session: 
+        return redirect(url_for('index'))
+    
+    username = session.get('name', '투자자')
+    return render_template('game_survive.html', username=username)
+
 @app.route('/logout')
 def logout():
     session.clear()
