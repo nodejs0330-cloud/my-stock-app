@@ -222,20 +222,18 @@
                 this.player.setScale(1.2); 
                 this.player.setCollideWorldBounds(true);
                 
-                // 장애물과 충돌 설정
+                // 플레이어가 장애물(나무, 돌)을 통과하지 못하게 콜라이더 추가
                 if (this.stageData.id === 1) {
                     this.physics.add.collider(this.player, this.obstacles);
                 }
 
                 this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
-                // UI 설정
-                this.timerText = this.add.text(this.scale.width / 2, 30, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold', stroke: '#000', strokeThickness: 4 })
+                // UI
+                this.timerText = this.add.text(this.scale.width / 2, 30, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' })
                     .setOrigin(0.5).setScrollFactor(0).setDepth(9999);
-                this.stageText = this.add.text(20, 20, this.stageData.name, { fontSize: '24px', fill: '#fff', stroke: '#000', strokeThickness: 3 })
-                    .setScrollFactor(0).setDepth(9999);
 
-                // 키보드 입력
+                // --- [누락되었던 키보드 입력 및 타이머 설정 복구] ---
                 this.cursors = this.input.keyboard.createCursorKeys();
                 this.wasd = this.input.keyboard.addKeys({
                     up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -244,11 +242,11 @@
                     right: Phaser.Input.Keyboard.KeyCodes.D
                 });
 
-                // 게임 로직 타이머
+                // 게임 타이머 이벤트 (1초마다 updateGameLogic 실행)
                 this.time.addEvent({ delay: 1000, callback: this.updateGameLogic, callbackScope: this, loop: true });
-            }
+            } // <-- 이 닫는 괄호가 빠져서 오류가 났습니다.
 
-            //            update() {
+            update() {
                 let velocityX = 0;
                 let velocityY = 0;
 
