@@ -35,7 +35,7 @@
         let isMuted = false;
         let globalBGM = null;
 
-        // [필수 포함 확인] BGM 중복 방지 재생 헬퍼 (동일 BGM 리셋 방지) - 단 한 곳만 유지
+        // BGM 중복 방지 재생 헬퍼 (단 한 곳만 유지)
         function playBGM(scene, key) {
             if (globalBGM && globalBGM.key === key && globalBGM.isPlaying) {
                 return; 
@@ -132,7 +132,6 @@
                 this.load.audio('final_boss', '/static/bgm/survive/final_boss.mp3');
 
                 // SFX 로드
-                // UI 버튼 사운드 등록 (button1, button2)
                 this.load.audio('button1', '/static/sfx/survive/button1.mp3');
                 this.load.audio('button2', '/static/sfx/survive/button2.mp3');
 
@@ -162,7 +161,7 @@
                 this.load.image('sli_drop1', '/static/img/survive/monster/sli/sli_drop1.png');
                 this.load.image('sli_drop3', '/static/img/survive/monster/sli/sli_drop3.png');
 
-                // [필수 포함 확인] 상자 이미지(`box`, `rare_box`) 및 스크롤 썸네일 로드
+                // 상자 이미지 및 스크롤 썸네일 로드
                 this.load.image('box', '/static/img/survive/reword/box.png');
                 this.load.image('rare_box', '/static/img/survive/reword/rare_box.png');
                 this.load.image('scroll_fire_stream', '/static/img/survive/reword/scroll_fire_stream.png');
@@ -173,7 +172,7 @@
                 this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
                 this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
                 
-                // 골드 포켓 이미지 로드 (요청사항 3번)
+                // 골드 주머니 이미지
                 this.load.image('goldpocket', '/static/img/survive/reword/goldpocket.png');
 
                 ['sli', 'ssli'].forEach(prefix => {
@@ -216,7 +215,6 @@
                 let upgradeX = isMobile ? this.scale.width / 2 + 140 : this.scale.width / 2 + 180;
                 let baseSize = isMobile ? 160 : 220;
 
-                // 시작 버튼 (투명 레이어 글로우 호버 적용)
                 let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(baseSize, baseSize).setInteractive();
                 if(startBtn.preFX) {
                     startBtn.preFX.setPadding(32);
@@ -236,7 +234,6 @@
                     this.scene.start('StageSelectScene');
                 });
 
-                 // 강화 버튼 (투명 레이어 글로우 호버 적용)
                 let upgradeBtn = this.add.image(upgradeX, startY, 'game_upgrade').setDisplaySize(baseSize, baseSize).setInteractive();
                 if(upgradeBtn.preFX) {
                     upgradeBtn.preFX.setPadding(32);
@@ -256,7 +253,6 @@
                     this.scene.start('UpgradeScene');
                 });
 
-                // 허브로 돌아가기 (레트로 테마 호버 복구)
                 let exitBtn = this.add.text(this.scale.width / 2, this.scale.height - 40, '메인 허브로 돌아가기', {
                     fontSize: '22px', fill: '#aaa', backgroundColor: '#222', padding: { x: 15, y: 8 }, borderRadius: 8
                 }).setOrigin(0.5).setInteractive();
@@ -302,7 +298,6 @@
             constructor() { super({ key: 'StageSelectScene' }); }
 
             create() {
-                // 게임 오버 등에서 돌아왔을 때 메인 BGM 안전 복원
                 if (!globalBGM || globalBGM.key !== 'survive_main') {
                     playBGM(this, 'survive_main');
                 }
@@ -326,7 +321,6 @@
                     let cardX = isMobile ? (this.scale.width / 2) - 160 + (col * 320) : (this.scale.width / 2) - 340 + (col * 340);
                     let cardY = isMobile ? 240 + (row * 240) : 260 + (row * 220);
 
-                     // 레트로 황금색 톤 테두리
                     let hitBox = this.add.rectangle(cardX, cardY, 280, 180, 0x222222, 0.85).setStrokeStyle(3, 0xaa7722);
 
                     if (stage.bossKey) {
@@ -369,37 +363,7 @@
         }
 
         // ==========================================
-        // 5. Skill Shop Scene
-        // ==========================================
-        class SkillShopScene extends Phaser.Scene {
-            constructor() { super({ key: 'SkillShopScene' }); }
-            init(data) { this.gameScene = data.gameScene; }
-
-            create() {
-                let cam = this.cameras.main;
-                let cx = cam.scrollX + (GAME_WIDTH / 2);
-                let cy = cam.scrollY + (GAME_HEIGHT / 2);
-
-                this.add.rectangle(cx, cy, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.8).setDepth(40000);
-                this.add.text(cx, cy - 150, '골드 상점', { fontSize: '48px', fill: '#ffcc00' }).setOrigin(0.5).setDepth(40001);
-                this.add.text(cx, cy, '구현 준비 중...', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setDepth(40001);
-
-                let closeBtn = this.add.text(cx, cy + 150, '닫기', {
-                    fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 15 }
-                }).setOrigin(0.5).setDepth(40001).setInteractive();
-
-                closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#aa7722').setFill('#fff'));
-                closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#555').setFill('#fff'));
-                closeBtn.on('pointerdown', () => {
-                    playRandomSFX(this, 'button');
-                    this.scene.stop();
-                    this.gameScene.scene.resume();
-                });
-            }
-        }
-
-        // ==========================================
-        // 6. Game Scene (인게임)
+        // 4. Game Scene (인게임)
         // ==========================================
         class GameScene extends Phaser.Scene {
             constructor() { super({ key: 'GameScene' }); }
@@ -431,7 +395,6 @@
                 this.bgTile = this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1').setDepth(-10);
                 this.bgTile.setTileScale(0.25, 0.25);
 
-                // 가로/세로 십자 오솔길 (가로축 90도 회전 적용 완료)
                 for (let y = 1000; y < 15000; y += 64) {
                     this.add.image(8000, y, 'grass5').setScale(0.25).setDepth(-9);
                 }
@@ -469,7 +432,7 @@
                 this.player = this.physics.add.sprite(8000, 8000, 'hero_1').setScale(0.4);
                 this.player.setCollideWorldBounds(true);
                 
-                // 요청사항 1번: 주인공 투명 누끼 영역을 고려한 정밀 피격판정(Hitbox) 축소 설정
+                // 요청사항 1번: 주인공 정밀 히트박스 축소 설정
                 this.player.body.setSize(this.player.width * 0.35, this.player.height * 0.35);
                 this.player.body.setOffset(this.player.width * 0.325, this.player.height * 0.55);
 
@@ -512,7 +475,7 @@
                 this.playerHpBg = this.add.rectangle(130, 130, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
                 this.playerHpBar = this.add.rectangle(30, 130, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                // 요청사항 3번: 우측 상단 골드 UI에 goldpocket.png 적용
+                // 요청사항 3번: goldpocket.png 아이콘 적용
                 if (this.textures.exists('goldpocket')) {
                     this.goldIcon = this.add.image(this.scale.width - 160, 80, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(1000).setInteractive();
                 } else {
@@ -520,13 +483,14 @@
                 }
 
                 this.goldText = this.add.text(this.scale.width - 120, 80, '0', { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1000).setInteractive();
-                
+
                 const openShop = () => {
                     this.scene.pause();
                     this.scene.launch('SkillShopScene', { gameScene: this });
+                    this.scene.bringToTop('SkillShopScene');
                 };
-                this.goldText.on('pointerdown', openShop);
                 this.goldIcon.on('pointerdown', openShop);
+                this.goldText.on('pointerdown', openShop);
             }
 
             updateHpUI() {
@@ -603,10 +567,8 @@
                     this.lastAttackTime = time;
                 }
 
-                // 완벽히 복구된 4대 스킬 연산
                 this.updateActiveSkills(time);
 
-                 // 몬스터 체력바 정밀 밀착 연산
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.hpBar && enemy.active) {
                         enemy.hpBar.clear();
@@ -834,6 +796,7 @@
                     
                     this.scene.pause();
                     this.scene.launch('LevelUpScene', { gameScene: this });
+                    this.scene.bringToTop('LevelUpScene'); // 씬을 렌더링 최상단으로 가져옴
                 }
                 this.expBar.setSize((this.playerStats.exp / this.playerStats.maxExp) * 200, 16);
             }
@@ -866,7 +829,7 @@
         }
 
         // ==========================================
-        // 4. Level Up Scene (요청사항 2번: 세로 정렬 및 카메라 절대 좌표 정렬 적용)
+        // 5. Level Up Scene (요청사항 2번: 세로 정렬 및 최상단 오버레이 렌더링)
         // ==========================================
         class LevelUpScene extends Phaser.Scene {
             constructor() { super({ key: 'LevelUpScene' }); }
@@ -877,18 +840,19 @@
                 try {
                     playRandomSFX(this, 'level_up');
                     
-                    let cam = this.cameras.main;
-                    let cx = cam.scrollX + (GAME_WIDTH / 2);
-                    let cy = cam.scrollY + (GAME_HEIGHT / 2);
+                    let cx = this.scale.width / 2;
+                    let cy = this.scale.height / 2;
 
                     // 반투명 배경
-                    this.add.rectangle(cx, cy, GAME_WIDTH * 2, GAME_HEIGHT * 2, 0x000000, 0.85)
+                    this.add.rectangle(cx, cy, this.scale.width * 2, this.scale.height * 2, 0x000000, 0.85)
+                        .setScrollFactor(0)
                         .setDepth(30000)
                         .setInteractive();
                     
-                    // 제목 텍스트 (세로 정렬을 고려하여 위치 상단 조정)
-                    this.add.text(cx, cy - (isMobile ? 320 : 260), 'LEVEL UP!', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' })
+                    // 제목 텍스트 (세로 정렬 배치)
+                    this.add.text(cx, isMobile ? cy - 320 : cy - 250, 'LEVEL UP!', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' })
                         .setOrigin(0.5)
+                        .setScrollFactor(0)
                         .setDepth(30001);
 
                     const rewardPool = [
@@ -914,40 +878,44 @@
                     let shuffled = Phaser.Utils.Array.Shuffle([...available]);
                     let selected = shuffled.slice(0, 3);
 
-                    // 요청사항 2번: 세로 정렬(Vertical Stacking) 배치 구현
+                    // 세로 정렬 카드 배치
+                    let cardSpacing = isMobile ? 170 : 135;
+                    let startY = cy - cardSpacing + 10;
+
                     selected.forEach((reward, idx) => {
-                        let cardSpacing = isMobile ? 180 : 140;
-                        let cardY = cy - 140 + (idx * cardSpacing);
+                        let cardY = startY + (idx * cardSpacing);
                         let cardX = cx;
                         let isRare = reward.type === 'rare';
 
                         let cardWidth = isMobile ? 640 : 700;
-                        let cardHeight = isMobile ? 150 : 120;
+                        let cardHeight = isMobile ? 140 : 115;
 
                         let cardBg = this.add.rectangle(cardX, cardY, cardWidth, cardHeight, isRare ? 0x3d2b00 : 0x112233, 0.95)
                             .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
+                            .setScrollFactor(0)
                             .setDepth(30002)
                             .setInteractive();
 
                         let iconKey = reward.icon || 'box';
                         if (!this.textures.exists(iconKey)) iconKey = (isRare ? 'rare_box' : 'box');
 
-                        // 아이콘 좌측 배치
+                        // 카드 내부 좌측 아이콘
                         this.add.image(cardX - (cardWidth / 2) + 60, cardY, iconKey)
                             .setDisplaySize(70, 70)
+                            .setScrollFactor(0)
                             .setDepth(30003);
 
                         let curLv = this.gameScene.playerStats[reward.statKey] || 0;
                         let textStartX = cardX - (cardWidth / 2) + 120;
 
-                        this.add.text(textStartX, cardY - (isMobile ? 45 : 35), reward.name, { fontSize: isMobile ? '22px' : '20px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold' })
-                            .setDepth(30003);
-                        this.add.text(textStartX, cardY - (isMobile ? 15 : 10), reward.desc, { fontSize: isMobile ? '15px' : '14px', fill: '#cccccc' })
-                            .setDepth(30003);                       
+                        this.add.text(textStartX, cardY - (isMobile ? 40 : 32), reward.name, { fontSize: isMobile ? '22px' : '20px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold' })
+                            .setScrollFactor(0).setDepth(30003);
+                        this.add.text(textStartX, cardY - (isMobile ? 12 : 8), reward.desc, { fontSize: isMobile ? '15px' : '14px', fill: '#cccccc' })
+                            .setScrollFactor(0).setDepth(30003);                       
 
                         if(reward.id !== 'heal') {
-                            this.add.text(textStartX, cardY + (isMobile ? 15 : 15), `레벨: Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { fontSize: isMobile ? '14px' : '13px', fill: '#00ffcc' })
-                                .setDepth(30003);
+                            this.add.text(textStartX, cardY + (isMobile ? 16 : 16), `레벨: Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { fontSize: isMobile ? '14px' : '13px', fill: '#00ffcc' })
+                                .setScrollFactor(0).setDepth(30003);
                         }
 
                         cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x664400 : 0x224466));
@@ -981,12 +949,42 @@
             }
         }
 
+        // ==========================================
+        // 6. Skill Shop Scene
+        // ==========================================
+        class SkillShopScene extends Phaser.Scene {
+            constructor() { super({ key: 'SkillShopScene' }); }
+            init(data) { this.gameScene = data.gameScene; }
+
+            create() {
+                let cx = this.scale.width / 2;
+                let cy = this.scale.height / 2;
+
+                this.add.rectangle(cx, cy, this.scale.width * 2, this.scale.height * 2, 0x000000, 0.85).setScrollFactor(0).setDepth(40000);
+                this.add.text(cx, cy - 150, '골드 상점', { fontSize: '48px', fill: '#ffcc00' }).setOrigin(0.5).setScrollFactor(0).setDepth(40001);
+                this.add.text(cx, cy, '구현 준비 중...', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(40001);
+
+                let closeBtn = this.add.text(cx, cy + 150, '닫기', {
+                    fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 15 }
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(40001).setInteractive();
+
+                closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#aa7722').setFill('#fff'));
+                closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#555').setFill('#fff'));
+                closeBtn.on('pointerdown', () => {
+                    playRandomSFX(this, 'button');
+                    this.scene.stop();
+                    this.gameScene.scene.resume();
+                });
+            }
+        }
+
         const config = {
             type: Phaser.AUTO,
             parent: 'game-container',
             scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: GAME_WIDTH, height: GAME_HEIGHT },
             physics: { default: 'arcade', arcade: { debug: false } },
-            scene: [PreloadScene, TitleScene, UpgradeScene, StageSelectScene, LevelUpScene, SkillShopScene, GameScene]
+            // GameScene을 오버레이 Scene(LevelUpScene, SkillShopScene)보다 앞에 등록하여 렌더링 순서 보장
+            scene: [PreloadScene, TitleScene, UpgradeScene, StageSelectScene, GameScene, LevelUpScene, SkillShopScene]
         };
         const game = new Phaser.Game(config);
     </script>
