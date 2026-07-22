@@ -33,6 +33,7 @@
         const GAME_HEIGHT = isMobile ? 1280 : 720;
 
         let isMuted = false;
+        let globalCurrentBgm = null;
 
         // [미래 구현용 몬스터/보스 SFX 레지스터]
         const MONSTER_SFX_REGISTRY = {
@@ -62,7 +63,19 @@
             }
         }
 
-        // 공용 SFX 무작위 (1 or 2) 재생 헬퍼 함수 (cache.audio.exists 기반으로 정상 작동)
+        // 공용 BGM 재생 헬퍼 함수 (중복 재생 방지 및 기존 BGM 전체 정지)
+        function playBGM(scene, bgmKey, volume = 0.5) {
+            if (globalCurrentBgm && globalCurrentBgm.key === bgmKey && globalCurrentBgm.isPlaying) {
+                return;
+            }
+            scene.sound.stopAll();
+            if (scene.cache.audio.exists(bgmKey)) {
+                globalCurrentBgm = scene.sound.add(bgmKey, { loop: true, volume: isMuted ? 0 : volume });
+                globalCurrentBgm.play();
+            }
+        }
+
+        // 공용 SFX 무작위 (1 or 2) 재생 헬퍼 함수
         function playRandomSFX(scene, baseKey, volume = 0.5) {
             if (isMuted) return;
             let num = Math.random() < 0.5 ? '1' : '2';
@@ -72,6 +85,8 @@
                 scene.sound.play(key, { volume: volume });
             } else if (scene.cache.audio.exists(baseKey + '1')) {
                 scene.sound.play(baseKey + '1', { volume: volume });
+            } else if (scene.cache.audio.exists(baseKey)) {
+                scene.sound.play(baseKey, { volume: volume });
             }
         }
 
@@ -122,8 +137,8 @@
                 this.load.audio('button1', '/static/sfx/survive/button1.mp3');
                 this.load.audio('button2', '/static/sfx/survive/button2.mp3');
 
-                // 기본 SFX 리스트
-                const sfxKeys = ['footstep', 'suri_throw', 'hit_impact', 'skill_fire', 'skill_water', 'skill_wind', 'skill_bomb', 'level_up', 'pickup', 'boss_warning'];
+                // 기본 SFX 리스트 (game_over 포함)
+                const sfxKeys = ['footstep', 'suri_throw', 'hit_impact', 'skill_fire', 'skill_water', 'skill_wind', 'skill_bomb', 'level_up', 'pickup', 'boss_warning', 'game_over'];
                 sfxKeys.forEach(key => {
                     this.load.audio(`${key}1`, `/static/sfx/survive/${key}1.mp3`);
                     this.load.audio(`${key}2`, `/static/sfx/survive/${key}2.mp3`);
@@ -147,13 +162,13 @@
                 this.load.image('sli_drop1', '/static/img/survive/monster/sli/sli_drop1.png');
                 this.load.image('sli_drop3', '/static/img/survive/monster/sli/sli_drop3.png');
 
-                // 스킬 인게임 이펙트 (static/img/survive/reword/)
+                // 스킬 인게임 이펙트
                 this.load.image('fire_stream', '/static/img/survive/reword/fire_stream.png');
                 this.load.image('water_dragon', '/static/img/survive/reword/water_dragon.png');
                 this.load.image('rasenshuriken', '/static/img/survive/reword/rasenshuriken.png');
                 this.load.image('explosive_shuriken', '/static/img/survive/reword/explosive_shuriken.png');
 
-                // 레벨업 보상 스크롤 썸네일 (static/img/survive/reword/)
+                // 레벨업 보상 스크롤 썸네일
                 this.load.image('scroll_fire_stream', '/static/img/survive/reword/scroll_fire_stream.png');
                 this.load.image('scroll_water_dragon', '/static/img/survive/reword/scroll_water_dragon.png');
                 this.load.image('scroll_rasenshuriken', '/static/img/survive/reword/scroll_rasenshuriken.png');
@@ -162,7 +177,7 @@
                 this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
                 this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
 
-                // 몬스터 종류 1 & 2
+                // 몬스터 종류
                 this.load.image('sli1', '/static/img/survive/monster/sli/sli1.png');
                 this.load.image('sli2', '/static/img/survive/monster/sli/sli2.png');
                 this.load.image('sli3', '/static/img/survive/monster/sli/sli3.png');
@@ -173,7 +188,7 @@
                 this.load.image('ssli3', '/static/img/survive/monster/sli/ssli3.png');
                 this.load.image('ssli4', '/static/img/survive/monster/sli/ssli4.png');
 
-                // 타일 및 지형
+                // 타일
                 this.load.image('grass1', '/static/img/survive/tile/grass1.png');
                 this.load.image('grass3', '/static/img/survive/tile/grass3.png');
                 this.load.image('grass4', '/static/img/survive/tile/grass4.png');
@@ -184,15 +199,13 @@
                 this.load.image('tree1', '/static/img/survive/tile/tree1.png');
                 this.load.image('tree2', '/static/img/survive/tile/tree2.png');
 
-                // 기본 보상 상자
+                // 상자
                 this.load.image('box', '/static/img/survive/reword/box.png');
                 this.load.image('rare_box', '/static/img/survive/reword/rare_box.png');
             }
 
             create() {
-                if (!this.sound.get('survive_main')) {
-                    this.sound.play('survive_main', { loop: true, volume: 0.5 });
-                }
+                playBGM(this, 'survive_main');
                 this.scene.start('TitleScene');
             }
         }
@@ -204,6 +217,8 @@
             constructor() { super({ key: 'TitleScene' }); }
 
             create() {
+                playBGM(this, 'survive_main');
+
                 let bg = this.add.image(this.scale.width / 2, this.scale.height / 2, 'main_bg');
                 let scaleX = this.scale.width / bg.width;
                 let scaleY = this.scale.height / bg.height;
@@ -212,29 +227,62 @@
 
                 createMuteButton(this);
 
-                let startY = isMobile ? this.scale.height - 220 : this.scale.height - 120;
-                let startX = isMobile ? this.scale.width / 2 - 140 : this.scale.width / 2 - 180;
-                let upgradeX = isMobile ? this.scale.width / 2 + 140 : this.scale.width / 2 + 180;
+                let startY = isMobile ? this.scale.height - 220 : this.scale.height - 140;
+                let startX = isMobile ? this.scale.width / 2 - 140 : this.scale.width / 2 - 220;
+                let upgradeX = isMobile ? this.scale.width / 2 + 140 : this.scale.width / 2 + 220;
 
-                let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(160, 160).setInteractive();
-                startBtn.on('pointerover', () => startBtn.setTint(0xdddddd));
-                startBtn.on('pointerout', () => startBtn.clearTint());
+                // PC 환경 버튼 사이즈 확대 (220x220, 모바일은 160x160)
+                let btnSize = isMobile ? 160 : 220;
+
+                // 시작 버튼 & 테두리 이펙트
+                let startGlow = this.add.rectangle(startX, startY, btnSize + 16, btnSize + 16, 0xffcc00, 0)
+                    .setStrokeStyle(4, 0xffcc00, 0).setDepth(99);
+
+                let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(btnSize, btnSize).setInteractive().setDepth(100);
+                
+                startBtn.on('pointerover', () => {
+                    startBtn.setScale((btnSize / startBtn.width) * 1.08);
+                    startGlow.setStrokeStyle(4, 0xffcc00, 1).setFillStyle(0xffcc00, 0.15);
+                });
+                startBtn.on('pointerout', () => {
+                    startBtn.setScale(btnSize / startBtn.width);
+                    startGlow.setStrokeStyle(4, 0xffcc00, 0).setFillStyle(0xffcc00, 0);
+                });
                 startBtn.on('pointerdown', () => {
                     playButtonSFX(this);
                     this.scene.start('StageSelectScene');
                 });
 
-                let upgradeBtn = this.add.image(upgradeX, startY, 'game_upgrade').setDisplaySize(160, 160).setInteractive();
-                upgradeBtn.on('pointerover', () => upgradeBtn.setTint(0xdddddd));
-                upgradeBtn.on('pointerout', () => upgradeBtn.clearTint());
+                // 강화 버튼 & 테두리 이펙트
+                let upgradeGlow = this.add.rectangle(upgradeX, startY, btnSize + 16, btnSize + 16, 0x00ffcc, 0)
+                    .setStrokeStyle(4, 0x00ffcc, 0).setDepth(99);
+
+                let upgradeBtn = this.add.image(upgradeX, startY, 'game_upgrade').setDisplaySize(btnSize, btnSize).setInteractive().setDepth(100);
+
+                upgradeBtn.on('pointerover', () => {
+                    upgradeBtn.setScale((btnSize / upgradeBtn.width) * 1.08);
+                    upgradeGlow.setStrokeStyle(4, 0x00ffcc, 1).setFillStyle(0x00ffcc, 0.15);
+                });
+                upgradeBtn.on('pointerout', () => {
+                    upgradeBtn.setScale(btnSize / upgradeBtn.width);
+                    upgradeGlow.setStrokeStyle(4, 0x00ffcc, 0).setFillStyle(0x00ffcc, 0);
+                });
                 upgradeBtn.on('pointerdown', () => {
                     playButtonSFX(this);
                     this.scene.start('UpgradeScene');
                 });
 
+                // 허브로 돌아가기 버튼 & 레트로 호버 이펙트
                 let exitBtn = this.add.text(this.scale.width / 2, this.scale.height - 40, '메인 허브로 돌아가기', {
-                    fontSize: '22px', fill: '#aaa', backgroundColor: '#222', padding: { x: 15, y: 8 }
-                }).setOrigin(0.5).setInteractive();
+                    fontSize: '22px', fill: '#ffddaa', backgroundColor: '#1a1410', padding: { x: 20, y: 10 }
+                }).setOrigin(0.5).setInteractive().setDepth(100);
+
+                exitBtn.on('pointerover', () => {
+                    exitBtn.setStyle({ fill: '#ffffff', backgroundColor: '#aa7722' });
+                });
+                exitBtn.on('pointerout', () => {
+                    exitBtn.setStyle({ fill: '#ffddaa', backgroundColor: '#1a1410' });
+                });
                 exitBtn.on('pointerdown', () => {
                     playButtonSFX(this);
                     window.location.href = '/game';
@@ -249,6 +297,7 @@
             constructor() { super({ key: 'UpgradeScene' }); }
 
             create() {
+                playBGM(this, 'survive_main');
                 createMuteButton(this);
                 this.add.text(this.scale.width / 2, 120, '무기 및 능력 강화', { fontSize: '40px', fill: '#ffcc00' }).setOrigin(0.5);
                 this.add.text(this.scale.width / 2, this.scale.height / 2, '골드를 소모하여 영구 능력을 강화합니다.\n(업데이트 예정)', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5);
@@ -265,13 +314,16 @@
         }
 
         // ==========================================
-        // 3. Stage Select Scene (레트로 웜 골드 테두리 개편)
+        // 3. Stage Select Scene
         // ==========================================
         class StageSelectScene extends Phaser.Scene {
             constructor() { super({ key: 'StageSelectScene' }); }
 
             create() {
+                // 무조건 메인 BGM으로 원복 재생
+                playBGM(this, 'survive_main');
                 createMuteButton(this);
+
                 this.add.text(this.scale.width / 2, 80, '스테이지 선택', { fontSize: '40px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
 
                 const stages = [
@@ -290,7 +342,6 @@
                     let cardX = isMobile ? (this.scale.width / 2) - 160 + (col * 320) : (this.scale.width / 2) - 340 + (col * 340);
                     let cardY = isMobile ? 240 + (row * 240) : 260 + (row * 220);
 
-                    // 기존 초록색(0x00ff00) ➔ 고전 레트로 웜 브론즈/골드(0xaa7722) 스타일로 변경
                     let hitBox = this.add.rectangle(cardX, cardY, 280, 180, 0x1f1a14, 0.9).setStrokeStyle(3, 0xaa7722);
 
                     if (stage.bossKey) {
@@ -325,95 +376,101 @@
         }
 
         // ==========================================
-        // 4. Level Up Scene (레벨업 카드 출력 에러 완벽 해결)
+        // 4. Level Up Scene (완벽 예외 방지 및 안전 렌더링)
         // ==========================================
         class LevelUpScene extends Phaser.Scene {
             constructor() { super({ key: 'LevelUpScene' }); }
 
             init(data) {
-                this.gameScene = data.gameScene;
+                this.gameScene = data ? data.gameScene : null;
             }
 
             create() {
-                playRandomSFX(this, 'level_up');
-                
-                this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.75)
-                    .setScrollFactor(0);
-
-                this.add.text(this.scale.width / 2, 120, 'LEVEL UP!', {
-                    fontSize: '56px', fill: '#ffcc00', fontStyle: 'bold'
-                }).setOrigin(0.5).setScrollFactor(0);
-
-                const rewardPool = [
-                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', maxLvl: 5, icon: 'scroll_fire_stream' },
-                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게 수룡을 날립니다.', statKey: 'water', maxLvl: 5, icon: 'scroll_water_dragon' },
-                    { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형 회전 수리검을 투척합니다.', statKey: 'wind', maxLvl: 5, icon: 'scroll_rasenshuriken' },
-                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 폭발하는 수리검을 던집니다.', statKey: 'bomb', maxLvl: 5, icon: 'scroll_explosive_shuriken' },
-                    { id: 'hp', type: 'normal', name: '체술: 체력 증가', desc: '최대 체력을 +20 늘립니다.', statKey: 'hpLvl', maxLvl: 5, icon: 'box' },
-                    { id: 'speed', type: 'normal', name: '족경술: 이동속도 증가', desc: '이동속도를 +8% 증가시킵니다.', statKey: 'spdLvl', maxLvl: 5, icon: 'box' },
-                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 투사체 관통 횟수 +1', statKey: 'pierce', maxLvl: 3, icon: 'scroll_pierce' },
-                    { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '투사체 발사 수 +1 증가', statKey: 'clone', maxLvl: 3, icon: 'scroll_clone' },
-                    { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위 +20% 증가', statKey: 'magnet', maxLvl: 3, icon: 'scroll_magnet' }
-                ];
-
-                // Max 레벨 판정 버그 수정 (statKey 기준 별도 레벨 카운터 연산)
-                let availablePool = rewardPool.filter(r => {
-                    let curLvl = this.gameScene.playerStats[r.statKey] || 0;
-                    return curLvl < r.maxLvl;
-                });
-
-                // 안전장치: 조건 만족 보상이 없으면 체력 회복 기본 부여
-                if (availablePool.length === 0) {
-                    availablePool.push({ id: 'hp', type: 'normal', name: '체술: 체력 회복', desc: '체력을 +20 회복시킵니다.', statKey: 'hpLvl', maxLvl: 99, icon: 'box' });
-                }
-
-                let shuffled = Phaser.Utils.Array.Shuffle([...availablePool]);
-                let selectedRewards = shuffled.slice(0, 3);
-
-                selectedRewards.forEach((reward, idx) => {
-                    let cardY = isMobile ? 320 + (idx * 260) : 380 + (idx * 220);
-                    let cardX = this.scale.width / 2;
-
-                    let isRare = reward.type === 'rare';
-                    let cardBg = this.add.rectangle(cardX, cardY, isMobile ? 580 : 700, 200, isRare ? 0x3d2b00 : 0x112233, 0.9)
-                        .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
-                        .setScrollFactor(0)
-                        .setInteractive();
-
-                    // 아이콘 존재 여부 검사 안전 로드
-                    let iconKey = (this.textures.exists(reward.icon)) ? reward.icon : (isRare ? 'rare_box' : 'box');
-                    let iconImage = this.add.image(cardX - (isMobile ? 210 : 260), cardY, iconKey)
+                try {
+                    playRandomSFX(this, 'level_up');
+                    
+                    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.8)
                         .setScrollFactor(0);
 
-                    iconImage.setDisplaySize(110, 110);
+                    this.add.text(this.scale.width / 2, 100, 'LEVEL UP!', {
+                        fontSize: '52px', fill: '#ffcc00', fontStyle: 'bold'
+                    }).setOrigin(0.5).setScrollFactor(0);
 
-                    let curLvl = this.gameScene.playerStats[reward.statKey] || 0;
-                    let levelStr = `현재 레벨: Lv.${curLvl} / Max Lv.${reward.maxLvl}`;
+                    const rewardPool = [
+                        { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', maxLvl: 5, icon: 'scroll_fire_stream' },
+                        { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게 수룡을 날립니다.', statKey: 'water', maxLvl: 5, icon: 'scroll_water_dragon' },
+                        { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형 회전 수리검을 투척합니다.', statKey: 'wind', maxLvl: 5, icon: 'scroll_rasenshuriken' },
+                        { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 폭발하는 수리검을 던집니다.', statKey: 'bomb', maxLvl: 5, icon: 'scroll_explosive_shuriken' },
+                        { id: 'hp', type: 'normal', name: '체술: 체력 증가', desc: '최대 체력을 +20 늘립니다.', statKey: 'hpLvl', maxLvl: 5, icon: 'box' },
+                        { id: 'speed', type: 'normal', name: '족경술: 이동속도 증가', desc: '이동속도를 +8% 증가시킵니다.', statKey: 'spdLvl', maxLvl: 5, icon: 'box' },
+                        { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 투사체 관통 횟수 +1', statKey: 'pierce', maxLvl: 3, icon: 'scroll_pierce' },
+                        { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '투사체 발사 수 +1 증가', statKey: 'clone', maxLvl: 3, icon: 'scroll_clone' },
+                        { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위 +20% 증가', statKey: 'magnet', maxLvl: 3, icon: 'scroll_magnet' }
+                    ];
 
-                    this.add.text(cardX - (isMobile ? 120 : 180), cardY - 50, reward.name, {
-                        fontSize: '24px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold'
-                    }).setScrollFactor(0);
+                    let stats = (this.gameScene && this.gameScene.playerStats) ? this.gameScene.playerStats : {};
 
-                    this.add.text(cardX - (isMobile ? 120 : 180), cardY - 10, reward.desc, {
-                        fontSize: '18px', fill: '#cccccc'
-                    }).setScrollFactor(0);
-
-                    this.add.text(cardX - (isMobile ? 120 : 180), cardY + 35, levelStr, {
-                        fontSize: '18px', fill: '#00ffcc', fontStyle: 'bold'
-                    }).setScrollFactor(0);
-
-                    cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x5c4200 : 0x224466));
-                    cardBg.on('pointerout', () => cardBg.setFillStyle(isRare ? 0x3d2b00 : 0x112233));
-                    cardBg.on('pointerdown', () => {
-                        playButtonSFX(this);
-                        this.applyReward(reward);
-                        this.scene.stop();
-                        this.gameScene.scene.resume();
+                    let availablePool = rewardPool.filter(r => {
+                        let curLvl = stats[r.statKey] || 0;
+                        return curLvl < r.maxLvl;
                     });
-                });
+
+                    if (availablePool.length === 0) {
+                        availablePool.push({ id: 'hp', type: 'normal', name: '체술: 체력 회복', desc: '체력을 +20 회복시킵니다.', statKey: 'hpLvl', maxLvl: 99, icon: 'box' });
+                    }
+
+                    let shuffled = Phaser.Utils.Array.Shuffle([...availablePool]);
+                    let selectedRewards = shuffled.slice(0, 3);
+
+                    selectedRewards.forEach((reward, idx) => {
+                        let cardY = isMobile ? 280 + (idx * 250) : 340 + (idx * 210);
+                        let cardX = this.scale.width / 2;
+
+                        let isRare = reward.type === 'rare';
+                        let cardBg = this.add.rectangle(cardX, cardY, isMobile ? 580 : 700, 190, isRare ? 0x3d2b00 : 0x112233, 0.95)
+                            .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
+                            .setScrollFactor(0)
+                            .setInteractive();
+
+                        let iconKey = (this.textures && this.textures.exists(reward.icon)) ? reward.icon : (isRare ? 'rare_box' : 'box');
+                        let iconImage = this.add.image(cardX - (isMobile ? 210 : 260), cardY, iconKey)
+                            .setScrollFactor(0);
+
+                        iconImage.setDisplaySize(100, 100);
+
+                        let curLvl = stats[reward.statKey] || 0;
+                        let levelStr = `현재 레벨: Lv.${curLvl} / Max Lv.${reward.maxLvl}`;
+
+                        this.add.text(cardX - (isMobile ? 120 : 180), cardY - 45, reward.name, {
+                            fontSize: '24px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold'
+                        }).setScrollFactor(0);
+
+                        this.add.text(cardX - (isMobile ? 120 : 180), cardY - 10, reward.desc, {
+                            fontSize: '18px', fill: '#cccccc'
+                        }).setScrollFactor(0);
+
+                        this.add.text(cardX - (isMobile ? 120 : 180), cardY + 30, levelStr, {
+                            fontSize: '18px', fill: '#00ffcc', fontStyle: 'bold'
+                        }).setScrollFactor(0);
+
+                        cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x5c4200 : 0x224466));
+                        cardBg.on('pointerout', () => cardBg.setFillStyle(isRare ? 0x3d2b00 : 0x112233));
+                        cardBg.on('pointerdown', () => {
+                            playButtonSFX(this);
+                            this.applyReward(reward);
+                            this.scene.stop('LevelUpScene');
+                            if (this.gameScene) this.gameScene.scene.resume();
+                        });
+                    });
+                } catch (err) {
+                    console.error("LevelUpScene Error:", err);
+                    if (this.gameScene) this.gameScene.scene.resume();
+                    this.scene.stop('LevelUpScene');
+                }
             }
 
             applyReward(reward) {
+                if (!this.gameScene) return;
                 let stats = this.gameScene.playerStats;
                 if (stats[reward.statKey] === undefined) stats[reward.statKey] = 0;
                 stats[reward.statKey]++;
@@ -421,6 +478,7 @@
                 if (reward.id === 'hp') {
                     stats.maxHp += 20;
                     stats.hp = Math.min(stats.hp + 20, stats.maxHp);
+                    if (this.gameScene.updateHpUI) this.gameScene.updateHpUI();
                 } else if (reward.id === 'speed') {
                     stats.speed *= 1.08;
                 } else if (reward.id === 'magnet') {
@@ -435,7 +493,7 @@
         class SkillShopScene extends Phaser.Scene {
             constructor() { super({ key: 'SkillShopScene' }); }
 
-            init(data) { this.gameScene = data.gameScene; }
+            init(data) { this.gameScene = data ? data.gameScene : null; }
 
             create() {
                 this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.8);
@@ -449,20 +507,20 @@
 
                 closeBtn.on('pointerdown', () => {
                     playButtonSFX(this);
-                    this.scene.stop();
-                    this.gameScene.scene.resume();
+                    this.scene.stop('SkillShopScene');
+                    if (this.gameScene) this.gameScene.scene.resume();
                 });
             }
         }
 
         // ==========================================
-        // 6. Game Scene (인게임 - 체력바 밀착 및 SFX 정밀 보정)
+        // 6. Game Scene (인게임 - 바 형태 HP 및 아픈 피격 이펙트)
         // ==========================================
         class GameScene extends Phaser.Scene {
             constructor() { super({ key: 'GameScene' }); }
 
             init(data) {
-                this.stageData = data.stageData;
+                this.stageData = data ? data.stageData : { id: 1, time: 600 };
                 this.elapsedTime = 0;
 
                 this.playerStats = {
@@ -489,21 +547,14 @@
             }
 
             create() {
-                // 스테이지별 BGM 교체
-                this.sound.stopAll();
+                // 스테이지 BGM 연동
                 let bgmKey = `stage${this.stageData.id}`;
-                if (this.cache.audio.exists(bgmKey)) {
-                    this.currentBgm = this.sound.add(bgmKey, { loop: true, volume: 0.5 });
-                    this.currentBgm.play();
-                } else if (this.cache.audio.exists('survive_main')) {
-                    this.currentBgm = this.sound.add('survive_main', { loop: true, volume: 0.5 });
-                    this.currentBgm.play();
-                }
+                playBGM(this, bgmKey, 0.5);
 
                 this.physics.world.setBounds(0, 0, 16000, 16000);
                 createMuteButton(this);
 
-                // 타일 배경 (16000x16000 전 영역 타일링 검은 화면 오류 교정)
+                // 배경 타일링
                 this.bgTile = this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1')
                     .setTileScale(0.25, 0.25)
                     .setDepth(-10);
@@ -580,17 +631,36 @@
                 this.timerText = this.add.text(this.scale.width / 2, 40, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
                 this.levelText = this.add.text(30, 30, 'LV.1', { fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
 
+                // EXP 바
                 this.expBarBg = this.add.rectangle(130, 70, 200, 16, 0x333333).setScrollFactor(0).setDepth(1000);
                 this.expBar = this.add.rectangle(30, 70, 0, 16, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                this.hpText = this.add.text(30, 100, `HP: ${this.playerStats.hp} / ${this.playerStats.maxHp}`, { fontSize: '18px', fill: '#ff4444' }).setScrollFactor(0).setDepth(1000);
+                // 주인공 바 형태 HP 구현
+                this.hpBarContainer = this.add.container(30, 95).setScrollFactor(0).setDepth(1000);
+                
+                this.hpBarBorder = this.add.rectangle(0, 0, 220, 24, 0x000000, 0.8)
+                    .setOrigin(0, 0).setStrokeStyle(2, 0xff5555);
+                this.hpBarFill = this.add.rectangle(2, 2, 216, 20, 0xff3333)
+                    .setOrigin(0, 0);
+                this.hpBarText = this.add.text(110, 12, `HP: ${this.playerStats.hp} / ${this.playerStats.maxHp}`, {
+                    fontSize: '14px', fill: '#ffffff', fontStyle: 'bold'
+                }).setOrigin(0.5);
 
+                this.hpBarContainer.add([this.hpBarBorder, this.hpBarFill, this.hpBarText]);
+
+                // 골드
                 this.goldText = this.add.text(this.scale.width - 120, 80, '💰 0', { fontSize: '22px', fill: '#ffd700' }).setScrollFactor(0).setDepth(1000).setInteractive();
                 this.goldText.on('pointerdown', () => {
                     playButtonSFX(this);
                     this.scene.pause();
                     this.scene.launch('SkillShopScene', { gameScene: this });
                 });
+            }
+
+            updateHpUI() {
+                let pct = Math.max(0, Math.min(1, this.playerStats.hp / this.playerStats.maxHp));
+                this.hpBarFill.setSize(216 * pct, 20);
+                this.hpBarText.setText(`HP: ${Math.ceil(this.playerStats.hp)} / ${this.playerStats.maxHp}`);
             }
 
             setupVirtualJoystick() {
@@ -663,7 +733,7 @@
 
                 this.updateActiveSkills(time);
 
-                // 몬스터 체력바 프레임 단위 실시간 밀착 연산 (떠다니는 버그 완벽 해결)
+                // 몬스터 체력바 정밀 밀착 연산
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.hpBar && enemy.active) {
                         enemy.hpBar.clear();
@@ -851,21 +921,40 @@
                 if (this.isInvincible) return;
 
                 this.playerStats.hp -= 10;
-                this.hpText.setText(`HP: ${this.playerStats.hp} / ${this.playerStats.maxHp}`);
+                this.updateHpUI();
                 this.isInvincible = true;
 
+                // 빨간색 피격 가시성 강화 및 아픈 이펙트 (비네트 플래시 + 카메라 흔들림)
+                let painFlash = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0xff0000, 0.45)
+                    .setScrollFactor(0).setDepth(99999);
+                
                 this.tweens.add({
-                    targets: player, alpha: 0.3, duration: 100, yoyo: true, repeat: 5,
-                    onComplete: () => { player.alpha = 1; this.isInvincible = false; }
+                    targets: painFlash, alpha: 0, duration: 250,
+                    onComplete: () => painFlash.destroy()
                 });
 
+                this.cameras.main.shake(180, 0.012);
+                player.setTint(0xff2222);
+
+                this.tweens.add({
+                    targets: player, alpha: 0.2, duration: 100, yoyo: true, repeat: 5,
+                    onComplete: () => { player.alpha = 1; player.clearTint(); this.isInvincible = false; }
+                });
+
+                // 게임 오버 처리
                 if (this.playerStats.hp <= 0) {
                     this.physics.pause();
+                    playRandomSFX(this, 'game_over', 0.8);
+
                     this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', {
                         fontSize: '64px', fill: '#ff0000', fontStyle: 'bold'
-                    }).setOrigin(0.5).setScrollFactor(0);
+                    }).setOrigin(0.5).setScrollFactor(0).setDepth(100000);
 
-                    this.time.delayedCall(2000, () => this.scene.start('StageSelectScene'));
+                    // 2초 후 StageSelectScene 이동 시 BGM을 survive_main으로 확실히 복원
+                    this.time.delayedCall(2000, () => {
+                        playBGM(this, 'survive_main');
+                        this.scene.start('StageSelectScene');
+                    });
                 }
             }
 
@@ -904,12 +993,7 @@
 
                 if (this.elapsedTime === this.stageData.time) {
                     playRandomSFX(this, 'boss_warning', 0.8);
-
-                    if (this.currentBgm) this.currentBgm.stop();
-                    if (this.cache.audio.exists('final_boss')) {
-                        this.currentBgm = this.sound.add('final_boss', { loop: true, volume: 0.6 });
-                        this.currentBgm.play();
-                    }
+                    playBGM(this, 'final_boss', 0.6);
 
                     let warn = this.add.text(this.scale.width / 2, this.scale.height / 2, '⚠ 보스 출현 ⚠', {
                         fontSize: '64px', fill: '#ff0000', fontStyle: 'bold'
