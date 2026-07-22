@@ -66,7 +66,7 @@
                 this.load.image('box', '/static/img/survive/reword/box.png');
                 this.load.image('rare_box', '/static/img/survive/reword/rare_box.png');
 
-                // 타일 및 장식 요소 (grass2 제외)
+                // 타일 및 장식 요소
                 this.load.image('grass1', '/static/img/survive/tile/grass1.png');
                 this.load.image('grass3', '/static/img/survive/tile/grass3.png');
                 this.load.image('grass4', '/static/img/survive/tile/grass4.png');
@@ -97,7 +97,6 @@
                 bg.setDisplaySize(this.scale.width, this.scale.height);
                 this.createMuteButton();
 
-                // 세로 모드 레이아웃 세로 수직 배치
                 let startBtn = this.add.image(this.scale.width / 2, this.scale.height / 2 + 150, 'btn_start').setInteractive();
                 startBtn.setDisplaySize(180, 180);
                 startBtn.on('pointerover', () => startBtn.setTint(0xcccccc));
@@ -116,13 +115,15 @@
         }
 
         // ==========================================
-        // 2. Upgrade Scene & Stage Select
+        // 2. Upgrade & Stage Select Scenes
         // ==========================================
         class UpgradeScene extends Phaser.Scene {
             constructor() { super({ key: 'UpgradeScene' }); }
             create() {
                 this.createMuteButton();
                 this.add.text(this.scale.width / 2, 100, '무기 강화소', { fontSize: '48px', fill: '#ffcc00' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 300, '골드를 소비하여 영구 스탯을 증가시킵니다.\n(추후 업데이트 예정)', { fontSize: '22px', fill: '#ffffff', align: 'center' }).setOrigin(0.5);
+
                 let backBtn = this.add.text(this.scale.width / 2, 600, '뒤로가기', { fontSize: '32px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 } }).setOrigin(0.5).setInteractive();
                 backBtn.on('pointerdown', () => this.scene.start('TitleScene'));
             }
@@ -143,7 +144,6 @@
                     { id: 6, name: 'Stage 6: 종말의 차원', time: 1800 }
                 ];
 
-                // 세로 화면에 맞춰 2열 3행 배치
                 stages.forEach((stage, index) => {
                     let col = index % 2;
                     let row = Math.floor(index / 2);
@@ -172,7 +172,7 @@
         }
 
         // ==========================================
-        // 4. Level Up Scene (세로 수직 모바일 UI)
+        // 3. Level Up & Skill Shop Modal Scenes
         // ==========================================
         class LevelUpScene extends Phaser.Scene {
             constructor() { super({ key: 'LevelUpScene' }); }
@@ -213,7 +213,6 @@
                     selectedRewards.push({ isRare: isRare && targetPool === rarePool, item: picked });
                 }
 
-                // 세로 수직형 카드 리스트 배치
                 selectedRewards.forEach((rewardObj, i) => {
                     let boxX = this.scale.width / 2;
                     let boxY = 280 + (i * 260);
@@ -223,14 +222,14 @@
                     let cardBg = this.add.rectangle(boxX, boxY, 580, 220, isRare ? 0x3d2b00 : 0x1f2937)
                         .setStrokeStyle(3, isRare ? 0xffd700 : 0x4b5563).setInteractive();
 
-                    let boxImg = this.add.image(boxX - 200, boxY, isRare ? 'rare_box' : 'box').setScale(0.7);
+                    this.add.image(boxX - 200, boxY, isRare ? 'rare_box' : 'box').setScale(0.7);
 
-                    let titleText = this.add.text(boxX + 30, boxY - 40, item.name, {
-                        fontSize: '24px', fill: isRare ? '#ffd700' : '#ffffff', fontStyle: 'bold', align: 'left'
+                    this.add.text(boxX + 30, boxY - 40, item.name, {
+                        fontSize: '24px', fill: isRare ? '#ffd700' : '#ffffff', fontStyle: 'bold'
                     }).setOrigin(0, 0.5);
 
-                    let descText = this.add.text(boxX + 30, boxY + 25, item.desc(), {
-                        fontSize: '18px', fill: '#9ca3af', align: 'left', wordWrap: { width: 320 }
+                    this.add.text(boxX + 30, boxY + 25, item.desc(), {
+                        fontSize: '18px', fill: '#9ca3af', wordWrap: { width: 320 }
                     }).setOrigin(0, 0.5);
 
                     cardBg.on('pointerover', () => cardBg.setStrokeStyle(4, 0x00ffff));
@@ -263,10 +262,27 @@
             }
         }
 
+        class SkillShopScene extends Phaser.Scene {
+            constructor() { super({ key: 'SkillShopScene' }); }
+
+            create() {
+                this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85);
+                this.add.text(this.scale.width / 2, 100, '닌자 스킬 상점', { fontSize: '48px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 180, '골드를 사용하여 스킬을 습득/강화하세요 (구현 예정)', { fontSize: '20px', fill: '#ffffff' }).setOrigin(0.5);
+
+                let closeBtn = this.add.text(this.scale.width / 2, this.scale.height - 120, '닫기', {
+                    fontSize: '32px', fill: '#ffffff', backgroundColor: '#555555', padding: { x: 30, y: 15 }
+                }).setOrigin(0.5).setInteractive();
+
+                closeBtn.on('pointerdown', () => {
+                    this.scene.resume('GameScene');
+                    this.scene.stop();
+                });
+            }
+        }
+
         // ==========================================
-        // 4-1. Skill Shop Scene
-        // ==========================================
-        // 5. Game Scene (인게임 핵심 로직 & 터치 조이스틱)
+        // 4. Game Scene (In-game logic)
         // ==========================================
         class GameScene extends Phaser.Scene {
             constructor() { super({ key: 'GameScene' }); }
@@ -278,37 +294,25 @@
                 
                 this.playerStats = {
                     hp: 100, maxHp: 100, speed: 180, 
-                    damage: 4, // 초기 수리검 데미지 4로 상향
+                    damage: 4,
                     level: 1, exp: 0, nextExp: 15, gold: 0,
                     projectileCount: 1, fireRate: 1600,
                     penetration: 0, magnetRadius: 180,
-                    skills: {
-                        katon: { lvl: 0 },
-                        suiton: { lvl: 0 },
-                        fuuton: { lvl: 0 },
-                        bomb: { lvl: 0 }
-                    }
+                    skills: { katon: { lvl: 0 }, suiton: { lvl: 0 }, fuuton: { lvl: 0 }, bomb: { lvl: 0 } }
                 };
                 this.enemyBaseHp = 10;
                 this.isInvincible = false; 
 
-                // 터치 조이스틱 상태 변수
-                this.touchStick = {
-                    active: false,
-                    startX: 0, startY: 0,
-                    vectorX: 0, vectorY: 0
-                };
+                this.touchStick = { active: false, startX: 0, startY: 0, vectorX: 0, vectorY: 0 };
             }
 
             create() {
                 this.physics.world.setBounds(0, 0, 16000, 16000);
 
                 if (this.stageData.id === 1) {
-                    // 1. 기본 잔디 타일 스케일 0.25 (타일 입자를 더 촘촘하고 작게 축소)
                     this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1')
                         .setTileScale(0.25, 0.25).setDepth(-10); 
                     
-                    // 2. 흙길(grass5) 축소 스케일에 맞춰 64px 간격으로 촘촘히 연결
                     for (let x = 0; x < 16000; x += 64) {
                         this.add.image(x, 8000, 'grass5').setDepth(-9).setScale(0.25);
                     }
@@ -316,40 +320,66 @@
                         this.add.image(8000, y, 'grass5').setDepth(-9).setScale(0.25);
                     }
 
-                    // 3. 장식용 요소 (grass3, grass4, rock1, rock2) 축소 적용
                     const decoKeys = ['grass3', 'grass4', 'rock1', 'rock2'];
                     for (let i = 0; i < 500; i++) {
-                // (기존 맵 타일, 숲 장애물, 플레이어 생성 부분 유지)
+                        let rx = Phaser.Math.Between(0, 16000);
+                        let ry = Phaser.Math.Between(0, 16000);
+                        let key = Phaser.Utils.Array.GetRandom(decoKeys);
+                        this.add.image(rx, ry, key).setDepth(-8).setScale(0.25);
+                    }
 
-                // 입력 키보드 설정
+                    this.obstacles = this.physics.add.staticGroup();
+                    for (let i = 0; i < 80; i++) {
+                        let rx = Phaser.Math.Between(200, 15800);
+                        let ry = Phaser.Math.Between(200, 15800);
+                        if (Math.abs(rx - 8000) < 600 && Math.abs(ry - 8000) < 600) continue;
+
+                        let isTree = Math.random() < 0.6;
+                        let key = isTree ? (Math.random() < 0.5 ? 'tree1' : 'tree2') : 'rock3';
+                        let obs = this.obstacles.create(rx, ry, key);
+                        obs.setScale(isTree ? 1.2 : 0.4);
+
+                        if (isTree) {
+                            obs.body.setSize(obs.width * 0.3, obs.height * 0.2);
+                            obs.body.setOffset(obs.width * 0.35, obs.height * 0.75);
+                        } else {
+                            obs.body.setSize(obs.width * 0.5, obs.height * 0.4);
+                            obs.body.setOffset(obs.width * 0.25, obs.height * 0.5);
+                        }
+                        obs.setDepth(obs.y);
+                    }
+                } else {
+                    this.add.grid(8000, 8000, 16000, 16000, 64, 64, 0x222222).setAltFillStyle(0x2a2a2a);
+                }
+
+                this.player = this.physics.add.sprite(8000, 8000, 'hero_1');
+                this.player.setScale(0.5);
+                this.player.setCollideWorldBounds(true);
+
+                this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+
                 this.cursors = this.input.keyboard.createCursorKeys();
                 this.wasd = this.input.keyboard.addKeys({
                     up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
                     left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D
                 });
 
-                // 터치 조이스틱 그래픽 생성 (궁수의 전설 스타일)
                 this.joyBase = this.add.circle(0, 0, 70, 0xffffff, 0.25).setScrollFactor(0).setDepth(15000).setVisible(false);
                 this.joyThumb = this.add.circle(0, 0, 35, 0xffffff, 0.6).setScrollFactor(0).setDepth(15001).setVisible(false);
 
-                // 모바일 터치 이벤트 바인딩
                 this.input.on('pointerdown', (pointer) => {
-                    // UI 클릭 시(상단 골드나 스피커 버튼 등)에는 조이스틱 동작 방지
                     if (pointer.y < 80) return;
-
                     this.touchStick.active = true;
                     this.touchStick.startX = pointer.x;
                     this.touchStick.startY = pointer.y;
                     this.touchStick.vectorX = 0;
                     this.touchStick.vectorY = 0;
-
                     this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
                     this.joyThumb.setPosition(pointer.x, pointer.y).setVisible(true);
                 });
 
                 this.input.on('pointermove', (pointer) => {
                     if (!this.touchStick.active) return;
-
                     let dx = pointer.x - this.touchStick.startX;
                     let dy = pointer.y - this.touchStick.startY;
                     let dist = Math.sqrt(dx * dx + dy * dy);
@@ -358,7 +388,6 @@
                     if (dist > 0) {
                         this.touchStick.vectorX = dx / dist;
                         this.touchStick.vectorY = dy / dist;
-                        
                         let clampedDist = Math.min(dist, maxRadius);
                         this.joyThumb.setPosition(
                             this.touchStick.startX + this.touchStick.vectorX * clampedDist,
@@ -379,8 +408,7 @@
                 this.weapons = this.physics.add.group();
                 this.drops = this.physics.add.group();
 
-                // 장애물 물리 충돌 연동 (플레이어 및 몬스터 모두 막힘)
-                if (this.stageData.id === 1) {
+                if (this.stageData.id === 1 && this.obstacles) {
                     this.physics.add.collider(this.player, this.obstacles);
                     this.physics.add.collider(this.enemies, this.obstacles);
                 }
@@ -388,7 +416,6 @@
                 this.physics.add.overlap(this.weapons, this.enemies, this.hitEnemy, null, this);
                 this.physics.add.overlap(this.player, this.enemies, this.takeDamage, null, this);
 
-                // 타이머 및 그래픽
                 this.time.addEvent({ delay: 1000, callback: this.updateGameLogic, callbackScope: this, loop: true });
                 this.time.addEvent({ delay: 1000, callback: this.spawnEnemies, callbackScope: this, loop: true });
                 this.updateFireTimer();
@@ -424,14 +451,12 @@
             update() {
                 let velocityX = 0; let velocityY = 0;
 
-                // 1. 키보드 입력 체크
                 if (this.cursors.left.isDown || this.wasd.left.isDown) velocityX = -1;
                 else if (this.cursors.right.isDown || this.wasd.right.isDown) velocityX = 1;
 
                 if (this.cursors.up.isDown || this.wasd.up.isDown) velocityY = -1;
                 else if (this.cursors.down.isDown || this.wasd.down.isDown) velocityY = 1;
 
-                // 2. 터치 조이스틱 입력 결합
                 if (this.touchStick.active) {
                     velocityX = this.touchStick.vectorX;
                     velocityY = this.touchStick.vectorY;
@@ -449,7 +474,6 @@
 
                 this.player.setDepth(this.player.y);
 
-                // 몬스터 AI 추적
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.active) {
                         this.physics.moveToObject(enemy, this.player, enemy.speed);
@@ -464,7 +488,6 @@
                     }
                 });
 
-                // 드랍 아이템 자석 흡수
                 this.drops.getChildren().forEach(drop => {
                     if (drop.active) {
                         let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, drop.x, drop.y);
@@ -478,7 +501,6 @@
                     }
                 });
 
-                // 몬스터 체력바
                 this.enemyHpGraphics.clear();
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.active && enemy.maxHp > 1) {
@@ -500,7 +522,6 @@
                 let secs = this.elapsedTime % 60;
                 this.timerText.setText(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
 
-                // 나루토 신규 액티브 스킬 자동 발사 타이머 연산
                 this.handleNinjaSkills();
 
                 if (this.elapsedTime === 600) this.spawnBossWarning();
@@ -509,7 +530,6 @@
             handleNinjaSkills() {
                 let sk = this.playerStats.skills;
                 
-                // 1. 화둔 (불뿜기): Lv1=4.5, Lv2=7, Lv3=9.5, Lv4=12 (기본 HP 10 슬라임을 3번 강화해야 원샷)
                 if (sk.katon.lvl > 0 && this.elapsedTime % 4 === 0) {
                     let flame = this.add.circle(this.player.x, this.player.y, 50 + sk.katon.lvl * 10, 0xff4500, 0.4);
                     this.physics.add.existing(flame);
@@ -535,7 +555,6 @@
                     this.tweens.add({ targets: flame, alpha: 0, scale: 1.2, duration: 600, onComplete: () => flame.destroy() });
                 }
 
-                // 2. 수둔 (수룡탄): 가장 가까운 적에게 폭발 (Lv1=5, Lv2=7.5, Lv3=10, Lv4=12.5)
                 if (sk.suiton.lvl > 0 && this.elapsedTime % 5 === 0) {
                     let activeEnemies = this.enemies.getChildren().filter(e => e.active);
                     if (activeEnemies.length > 0) {
@@ -563,7 +582,6 @@
                     }
                 }
 
-                // 3. 풍둔 (나선 수리검): 관통 다단히트 (Lv1=3.5, Lv2=6, Lv3=8.5, Lv4=11)
                 if (sk.fuuton.lvl > 0 && this.elapsedTime % 6 === 0) {
                     let activeEnemies = this.enemies.getChildren().filter(e => e.active);
                     if (activeEnemies.length > 0) {
@@ -586,7 +604,6 @@
                     }
                 }
 
-                // 4. 기폭찰: 명중 시 스플래시 폭발 (Lv1=4, Lv2=6.5, Lv3=9, Lv4=11.5)
                 if (sk.bomb.lvl > 0 && this.elapsedTime % 4 === 0) {
                     let activeEnemies = this.enemies.getChildren().filter(e => e.active);
                     if (activeEnemies.length > 0) {
@@ -619,7 +636,6 @@
                 let spawnCount = 3; 
                 if (this.elapsedTime > 180) spawnCount += Math.floor((this.elapsedTime - 180) / 10) * 3;
 
-                // 기본 슬라임 체력 10, 3분(180초) 이후 15초마다 체력 +2씩 증가
                 let hp = this.enemyBaseHp;
                 if (this.elapsedTime > 180) hp += Math.floor((this.elapsedTime - 180) / 15) * 2; 
 
@@ -662,14 +678,13 @@
                         if (weapon) {
                             weapon.setActive(true).setVisible(true);
                             weapon.hitEnemies = [];
-                            weapon.hitsLeft = this.playerStats.penetration; // 관통 횟수 지정
-                            weapon.setScale(0.26); // 30% 확대
+                            weapon.hitsLeft = this.playerStats.penetration;
+                            weapon.setScale(0.26);
                             weapon.setDepth(10000);
 
                             let angleOffset = (i - (pCount - 1) / 2) * 0.2; 
                             let finalAngle = baseAngle + angleOffset;
                             
-                            // 칼날 부분이 적을 바라보도록 회전 지정 (+90도 보정)
                             weapon.rotation = finalAngle + Math.PI / 2;
                             
                             let speed = 600;
@@ -699,7 +714,6 @@
                     this.spawnDrop(enemy.x, enemy.y);
                 }
 
-                // 관통 횟수 소진 시 소멸
                 if (weapon.hitsLeft <= 0) {
                     weapon.setActive(false).setVisible(false);
                 } else {
@@ -752,7 +766,7 @@
                     if (this.playerStats.exp >= this.playerStats.nextExp) {
                         this.playerStats.level++;
                         this.playerStats.exp = 0;
-                        this.playerStats.nextExp = Math.floor(this.playerStats.nextExp * 1.5); 
+                        this.playerStats.nextExp = Math.floor(this.playerStats.nextExp * 1.8) + 10; 
                         
                         let lvupText = this.add.text(this.player.x, this.player.y - 60, 'LEVEL UP!', { fontSize:'28px', fill:'#0f0', fontStyle:'bold', stroke:'#000', strokeThickness:4 }).setOrigin(0.5).setDepth(10000);
                         this.tweens.add({ targets: lvupText, y: lvupText.y - 80, alpha: 0, duration: 1500, onComplete: () => lvupText.destroy() });
@@ -796,7 +810,7 @@
         }
 
         // ==========================================
-        // Phaser 설정 및 세로 해상도(Portrait) 세팅
+        // Phaser Config Init
         // ==========================================
         const config = {
             type: Phaser.AUTO,
@@ -804,7 +818,7 @@
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: 720,   // 세로 모드 해상도
+                width: 720,
                 height: 1280
             },
             physics: {
