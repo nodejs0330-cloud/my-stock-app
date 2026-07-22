@@ -75,17 +75,31 @@
 
                 // 무기 & 아이템 & 이펙트
                 this.load.image('suri', '/static/img/survive/eqi/suri.png');
-                this.load.image('suri_vfx', '/static/img/survive/effect/suri_throw_vfx.png'); // 이펙트 등록
+                this.load.image('suri_vfx', '/static/img/survive/effect/suri_throw_vfx.png');
                 this.load.image('sli_drop1', '/static/img/survive/monster/sli/sli_drop1.png');
                 this.load.image('sli_drop3', '/static/img/survive/monster/sli/sli_drop3.png');
 
-                // 몬스터 종류 1
+                // 스킬 인게임 이펙트 (static/img/survive/reword/)
+                this.load.image('fire_stream', '/static/img/survive/reword/fire_stream.png');
+                this.load.image('water_dragon', '/static/img/survive/reword/water_dragon.png');
+                this.load.image('rasenshuriken', '/static/img/survive/reword/rasenshuriken.png');
+                this.load.image('explosive_shuriken', '/static/img/survive/reword/explosive_shuriken.png');
+
+                // 레벨업 보상 스크롤 썸네일 (static/img/survive/reword/)
+                this.load.image('scroll_fire_stream', '/static/img/survive/reword/scroll_fire_stream.png');
+                this.load.image('scroll_water_dragon', '/static/img/survive/reword/scroll_water_dragon.png');
+                this.load.image('scroll_rasenshuriken', '/static/img/survive/reword/scroll_rasenshuriken.png');
+                this.load.image('scroll_explosive_shuriken', '/static/img/survive/reword/scroll_explosive_shuriken.png');
+                this.load.image('scroll_pierce', '/static/img/survive/reword/scroll_pierce.png');
+                this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
+                this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
+
+                // 몬스터 종류 1 & 2
                 this.load.image('sli1', '/static/img/survive/monster/sli/sli1.png');
                 this.load.image('sli2', '/static/img/survive/monster/sli/sli2.png');
                 this.load.image('sli3', '/static/img/survive/monster/sli/sli3.png');
                 this.load.image('sli4', '/static/img/survive/monster/sli/sli4.png');
 
-                // 몬스터 종류 2
                 this.load.image('ssli1', '/static/img/survive/monster/sli/ssli1.png');
                 this.load.image('ssli2', '/static/img/survive/monster/sli/ssli2.png');
                 this.load.image('ssli3', '/static/img/survive/monster/sli/ssli3.png');
@@ -102,7 +116,7 @@
                 this.load.image('tree1', '/static/img/survive/tile/tree1.png');
                 this.load.image('tree2', '/static/img/survive/tile/tree2.png');
 
-                // 보상 박스
+                // 기본 보상 상자
                 this.load.image('box', '/static/img/survive/reword/box.png');
                 this.load.image('rare_box', '/static/img/survive/reword/rare_box.png');
             }
@@ -224,7 +238,7 @@
         }
 
         // ==========================================
-        // 4. Level Up Scene
+        // 4. Level Up Scene (보상 선택 모달 - 이미지 썸네일 & Max Level 표기)
         // ==========================================
         class LevelUpScene extends Phaser.Scene {
             constructor() { super({ key: 'LevelUpScene' }); }
@@ -241,18 +255,29 @@
                 }).setOrigin(0.5);
 
                 const rewardPool = [
-                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire' },
-                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게 수룡을 날립니다.', statKey: 'water' },
-                    { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형 회전 수리검을 투척합니다.', statKey: 'wind' },
-                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 폭발하는 수리검을 던집니다.', statKey: 'bomb' },
-                    { id: 'hp', type: 'normal', name: '체술: 체력 증가', desc: '최대 체력을 +20 늘립니다.', statKey: 'maxHp' },
-                    { id: 'speed', type: 'normal', name: '족경술: 이동속도 증가', desc: '이동속도를 +8% 증가시킵니다.', statKey: 'speed' },
-                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 투사체 관통 횟수 +1', statKey: 'pierce' },
-                    { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '투사체 발사 수 +1 증가', statKey: 'clone' },
-                    { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위 +20% 증가', statKey: 'magnet' }
+                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', maxLvl: 5, icon: 'scroll_fire_stream' },
+                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게 수룡을 날립니다.', statKey: 'water', maxLvl: 5, icon: 'scroll_water_dragon' },
+                    { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형 회전 수리검을 투척합니다.', statKey: 'wind', maxLvl: 5, icon: 'scroll_rasenshuriken' },
+                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 폭발하는 수리검을 던집니다.', statKey: 'bomb', maxLvl: 5, icon: 'scroll_explosive_shuriken' },
+                    { id: 'hp', type: 'normal', name: '체술: 체력 증가', desc: '최대 체력을 +20 늘립니다.', statKey: 'hpLvl', maxLvl: 5, icon: 'box' },
+                    { id: 'speed', type: 'normal', name: '족경술: 이동속도 증가', desc: '이동속도를 +8% 증가시킵니다.', statKey: 'spdLvl', maxLvl: 5, icon: 'box' },
+                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 투사체 관통 횟수 +1', statKey: 'pierce', maxLvl: 3, icon: 'scroll_pierce' },
+                    { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '투사체 발사 수 +1 증가', statKey: 'clone', maxLvl: 3, icon: 'scroll_clone' },
+                    { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위 +20% 증가', statKey: 'magnet', maxLvl: 3, icon: 'scroll_magnet' }
                 ];
 
-                let shuffled = Phaser.Utils.Array.Shuffle([...rewardPool]);
+                // Max 레벨에 도달하지 않은 스킬만 필터링
+                let availablePool = rewardPool.filter(r => {
+                    let curLvl = this.gameScene.playerStats[r.statKey] || 0;
+                    return curLvl < r.maxLvl;
+                });
+
+                // 풀이 비어있는 경우 Fallback (체력 증가 기본 부여)
+                if (availablePool.length === 0) {
+                    availablePool.push({ id: 'hp', type: 'normal', name: '체술: 체력 회복', desc: '체력을 +20 회복시킵니다.', statKey: 'hpLvl', maxLvl: 99, icon: 'box' });
+                }
+
+                let shuffled = Phaser.Utils.Array.Shuffle([...availablePool]);
                 let selectedRewards = shuffled.slice(0, 3);
 
                 selectedRewards.forEach((reward, idx) => {
@@ -260,16 +285,19 @@
                     let cardX = this.scale.width / 2;
 
                     let isRare = reward.type === 'rare';
-                    let boxKey = isRare ? 'rare_box' : 'box';
-
                     let cardBg = this.add.rectangle(cardX, cardY, isMobile ? 580 : 700, 200, isRare ? 0x3d2b00 : 0x112233, 0.9)
                         .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
                         .setInteractive();
 
-                    this.add.image(cardX - (isMobile ? 210 : 260), cardY, boxKey).setDisplaySize(100, 100);
+                    // 아이콘 썸네일 안전 로드
+                    let iconKey = (this.textures.exists(reward.icon)) ? reward.icon : (isRare ? 'rare_box' : 'box');
+                    let iconImage = this.add.image(cardX - (isMobile ? 210 : 260), cardY, iconKey);
 
-                    let curStat = this.gameScene.playerStats[reward.statKey] || 0;
-                    let nextStatStr = `${curStat} ➔ ${curStat + 1}`;
+                    // 400x400 원본 크기 조절
+                    iconImage.setDisplaySize(110, 110);
+
+                    let curLvl = this.gameScene.playerStats[reward.statKey] || 0;
+                    let levelStr = `현재 레벨: Lv.${curLvl} / Max Lv.${reward.maxLvl}`;
 
                     this.add.text(cardX - (isMobile ? 120 : 180), cardY - 50, reward.name, {
                         fontSize: '24px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold'
@@ -279,8 +307,8 @@
                         fontSize: '18px', fill: '#cccccc'
                     });
 
-                    this.add.text(cardX - (isMobile ? 120 : 180), cardY + 35, `레벨: ${nextStatStr}`, {
-                        fontSize: '18px', fill: '#00ffcc'
+                    this.add.text(cardX - (isMobile ? 120 : 180), cardY + 35, levelStr, {
+                        fontSize: '18px', fill: '#00ffcc', fontStyle: 'bold'
                     });
 
                     cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x5c4200 : 0x224466));
@@ -295,12 +323,12 @@
 
             applyReward(reward) {
                 let stats = this.gameScene.playerStats;
-                if (!stats[reward.statKey]) stats[reward.statKey] = 0;
+                if (stats[reward.statKey] === undefined) stats[reward.statKey] = 0;
                 stats[reward.statKey]++;
 
                 if (reward.id === 'hp') {
                     stats.maxHp += 20;
-                    stats.hp += 20;
+                    stats.hp = Math.min(stats.hp + 20, stats.maxHp);
                 } else if (reward.id === 'speed') {
                     stats.speed *= 1.08;
                 } else if (reward.id === 'magnet') {
@@ -335,7 +363,7 @@
         }
 
         // ==========================================
-        // 6. Game Scene (인게임)
+        // 6. Game Scene (인게임 - 타일맵 확장 & 스킬 연산)
         // ==========================================
         class GameScene extends Phaser.Scene {
             constructor() { super({ key: 'GameScene' }); }
@@ -356,7 +384,8 @@
                     gold: 0,
                     magnetRange: 150,
                     fire: 0, water: 0, wind: 0, bomb: 0,
-                    pierce: 0, clone: 0, magnet: 0
+                    pierce: 0, clone: 0, magnet: 0,
+                    hpLvl: 0, spdLvl: 0
                 };
 
                 this.lastAttackTime = 0;
@@ -369,20 +398,25 @@
                 this.physics.world.setBounds(0, 0, 16000, 16000);
                 createMuteButton(this);
 
-                // 1. 타일 배경
-                this.bgTile = this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1').setScale(0.25).setDepth(-10);
+                // 1. 타일 배경 (16000x16000 전체 영역 완벽 커버)
+                this.bgTile = this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1')
+                    .setTileScale(0.25, 0.25)
+                    .setDepth(-10);
 
-                // 2. 오솔길 연결
-                for (let y = 1000; y < 15000; y += 64) {
+                // 2. 오솔길 십자 및 보조 네트워크 연결
+                for (let y = 500; y < 15500; y += 64) {
                     this.add.image(8000, y, 'grass5').setScale(0.25).setDepth(-9);
+                }
+                for (let x = 500; x < 15500; x += 64) {
+                    this.add.image(x, 8000, 'grass5').setScale(0.25).setDepth(-9);
                 }
 
                 // 3. 장애물 그룹
                 this.obstacles = this.physics.add.staticGroup();
 
-                for (let i = 0; i < 40; i++) {
-                    let cx = Phaser.Math.Between(2000, 14000);
-                    let cy = Phaser.Math.Between(2000, 14000);
+                for (let i = 0; i < 60; i++) {
+                    let cx = Phaser.Math.Between(1500, 14500);
+                    let cy = Phaser.Math.Between(1500, 14500);
                     if (Phaser.Math.Distance.Between(cx, cy, 8000, 8000) < 600) continue;
 
                     for (let j = 0; j < 6; j++) {
@@ -394,7 +428,7 @@
                     }
                 }
 
-                for (let i = 0; i < 50; i++) {
+                for (let i = 0; i < 70; i++) {
                     let rx = Phaser.Math.Between(1000, 15000);
                     let ry = Phaser.Math.Between(1000, 15000);
                     if (Phaser.Math.Distance.Between(rx, ry, 8000, 8000) < 500) continue;
@@ -426,14 +460,13 @@
                 // UI
                 this.setupUI();
 
-                // 키보드
+                // 키보드 & 터치 입력
                 this.cursors = this.input.keyboard.createCursorKeys();
                 this.wasd = this.input.keyboard.addKeys({
                     up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
                     left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D
                 });
 
-                // 터치 조이스틱
                 this.setupVirtualJoystick();
 
                 // 타이머
@@ -448,7 +481,7 @@
                 this.expBarBg = this.add.rectangle(130, 70, 200, 16, 0x333333).setScrollFactor(0).setDepth(1000);
                 this.expBar = this.add.rectangle(30, 70, 0, 16, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                this.hpText = this.add.text(30, 100, 'HP: 100 / 100', { fontSize: '18px', fill: '#ff4444' }).setScrollFactor(0).setDepth(1000);
+                this.hpText = this.add.text(30, 100, `HP: ${this.playerStats.hp} / ${this.playerStats.maxHp}`, { fontSize: '18px', fill: '#ff4444' }).setScrollFactor(0).setDepth(1000);
 
                 this.goldText = this.add.text(this.scale.width - 120, 80, '💰 0', { fontSize: '22px', fill: '#ffd700' }).setScrollFactor(0).setDepth(1000).setInteractive();
                 this.goldText.on('pointerdown', () => {
@@ -515,12 +548,13 @@
 
                 this.player.setDepth(this.player.y);
 
-                // 기본 공격
+                // 기본 수리검 발사
                 if (time > this.lastAttackTime + this.playerStats.attackDelay) {
                     this.fireBasicSuri();
                     this.lastAttackTime = time;
                 }
 
+                // 액티브 스킬 시전
                 this.updateActiveSkills(time);
 
                 // 자석 경험치 연산
@@ -540,7 +574,7 @@
 
                 let angleBase = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
 
-                // 던지는 이펙트(suri_vfx) 생성 연출 (401x327 -> scale 0.18)
+                // 던지는 이펙트
                 let vfx = this.add.image(this.player.x, this.player.y, 'suri_vfx')
                     .setScale(0.18)
                     .setRotation(angleBase + Math.PI / 2)
@@ -568,9 +602,16 @@
             }
 
             updateActiveSkills(time) {
-                if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 4000) {
-                    let fire = this.add.rectangle(this.player.x, this.player.y, 200, 80, 0xff4400, 0.6).setDepth(9999);
-                    this.physics.add.existing(fire);
+                // 1. 화둔: 호화구의 술 (화염 분사)
+                if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 3500) {
+                    let target = this.getClosestEnemy();
+                    let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : 0;
+
+                    let fire = this.physics.add.sprite(this.player.x, this.player.y, 'fire_stream')
+                        .setDisplaySize(180, 180)
+                        .setRotation(angle)
+                        .setDepth(9999);
+
                     fire.damage = 2 + (this.playerStats.fire * 2.5);
                     fire.hitEnemies = [];
 
@@ -581,8 +622,72 @@
                         }
                     });
 
-                    this.time.delayedCall(800, () => fire.destroy());
+                    this.tweens.add({
+                        targets: fire, alpha: 0, scaleX: 0.6, scaleY: 0.6, duration: 600,
+                        onComplete: () => fire.destroy()
+                    });
+
                     this.lastSkillTimes.fire = time;
+                }
+
+                // 2. 수둔: 수룡탄의 술 (수룡 돌진)
+                if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + 4500) {
+                    let target = this.getClosestEnemy();
+                    if (target) {
+                        let dragon = this.projectiles.create(this.player.x, this.player.y, 'water_dragon')
+                            .setDisplaySize(100, 100)
+                            .setDepth(9999);
+
+                        let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+                        dragon.rotation = angle;
+                        dragon.damage = 2.5 + (this.playerStats.water * 2.5);
+                        dragon.pierce = 1;
+
+                        this.physics.velocityFromRotation(angle, 450, dragon.body.velocity);
+                    }
+                    this.lastSkillTimes.water = time;
+                }
+
+                // 3. 풍둔: 나선 수리검 (회전 관통)
+                if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 5500) {
+                    let target = this.getClosestEnemy();
+                    if (target) {
+                        let rasen = this.projectiles.create(this.player.x, this.player.y, 'rasenshuriken')
+                            .setDisplaySize(120, 120)
+                            .setDepth(9999);
+
+                        let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+                        rasen.damage = 1.0 + (this.playerStats.wind * 2.5);
+                        rasen.pierce = 99; // 화면 전체 관통
+
+                        this.physics.velocityFromRotation(angle, 300, rasen.body.velocity);
+
+                        // 회전 모션
+                        this.tweens.add({
+                            targets: rasen, rotation: Math.PI * 6, duration: 2500,
+                            onComplete: () => { if (rasen.active) rasen.destroy(); }
+                        });
+                    }
+                    this.lastSkillTimes.wind = time;
+                }
+
+                // 4. 기폭찰 수리검 (폭발)
+                if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 4000) {
+                    let target = this.getClosestEnemy();
+                    if (target) {
+                        let bomb = this.projectiles.create(this.player.x, this.player.y, 'explosive_shuriken')
+                            .setDisplaySize(80, 80)
+                            .setDepth(9999);
+
+                        let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+                        bomb.rotation = angle + Math.PI / 2;
+                        bomb.damage = 1.5 + (this.playerStats.bomb * 2.5);
+                        bomb.isBomb = true;
+                        bomb.pierce = 0;
+
+                        this.physics.velocityFromRotation(angle, 550, bomb.body.velocity);
+                    }
+                    this.lastSkillTimes.bomb = time;
                 }
             }
 
@@ -647,6 +752,17 @@
 
             handleProjectileHit(projectile, enemy) {
                 this.damageEnemy(enemy, projectile.damage);
+
+                // 기폭찰 스킬 폭발 범위 피해 연산
+                if (projectile.isBomb) {
+                    let expArea = this.add.circle(projectile.x, projectile.y, 80, 0xffaa00, 0.5).setDepth(9999);
+                    this.physics.add.existing(expArea);
+                    this.physics.add.overlap(expArea, this.enemies, (a, areaEnemy) => {
+                        this.damageEnemy(areaEnemy, projectile.damage * 0.8);
+                    });
+                    this.tweens.add({ targets: expArea, alpha: 0, scale: 1.3, duration: 200, onComplete: () => expArea.destroy() });
+                }
+
                 if (projectile.pierce <= 0) {
                     projectile.destroy();
                 } else {
@@ -655,9 +771,10 @@
             }
 
             damageEnemy(enemy, dmg) {
+                if (!enemy.active) return;
                 enemy.hp -= dmg;
                 enemy.setTint(0xffffff);
-                this.time.delayedCall(100, () => enemy.clearTint());
+                this.time.delayedCall(100, () => { if (enemy.active) enemy.clearTint(); });
 
                 if (enemy.hp <= 0) {
                     if (enemy.hpBar) enemy.hpBar.destroy();
