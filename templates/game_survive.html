@@ -35,7 +35,7 @@
         let isMuted = false;
         let globalBGM = null;
 
-        // [필수 포함 확인] BGM 중복 방지 재생 헬퍼 (동일 BGM 리셋 방지)
+        // [필수 포함 확인] BGM 중복 방지 재생 헬퍼 (동일 BGM 리셋 방지) - 단 한 곳만 유지
         function playBGM(scene, key) {
             if (globalBGM && globalBGM.key === key && globalBGM.isPlaying) {
                 return; 
@@ -79,7 +79,6 @@
             }
         }
 
-
         function playRandomSFX(scene, baseKey, volume = 0.5) {
             if (isMuted) return;
             let num = Math.random() < 0.5 ? '1' : '2';
@@ -92,10 +91,6 @@
             }
         }
 
-        function playButtonSFX(scene) {
-            playRandomSFX(scene, 'button', 0.6);
-        }
-
         function createMuteButton(scene) {
             let muteBtn = scene.add.text(scene.scale.width - 40, 40, isMuted ? '🔇' : '🔊', { fontSize: '32px' })
                 .setOrigin(0.5)
@@ -104,7 +99,7 @@
                 .setInteractive();
 
             muteBtn.on('pointerdown', () => {
-                playButtonSFX(scene);
+                playRandomSFX(scene, 'button');
                 isMuted = !isMuted;
                 scene.sound.mute = isMuted;
                 muteBtn.setText(isMuted ? '🔇' : '🔊');
@@ -223,7 +218,6 @@
                 let baseSize = isMobile ? 160 : 220;
 
                 // 시작 버튼 (투명 레이어 글로우 호버 적용)
-
                 let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(baseSize, baseSize).setInteractive();
                 if(startBtn.preFX) {
                     startBtn.preFX.setPadding(32);
@@ -244,7 +238,6 @@
                 });
 
                  // 강화 버튼 (투명 레이어 글로우 호버 적용)
-
                 let upgradeBtn = this.add.image(upgradeX, startY, 'game_upgrade').setDisplaySize(baseSize, baseSize).setInteractive();
                 if(upgradeBtn.preFX) {
                     upgradeBtn.preFX.setPadding(32);
@@ -377,7 +370,7 @@
         }
 
         // ==========================================
-        // 4. Level Up Scene
+        // 4. Level Up Scene (카메라 절대 좌표 기반 렌더링 수정 적용)
         // ==========================================
         class LevelUpScene extends Phaser.Scene {
             constructor() { super({ key: 'LevelUpScene' }); }
@@ -387,13 +380,17 @@
             create() {
                 try {
                     playRandomSFX(this, 'level_up');
-                    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85)
-                        .setScrollFactor(0)
-                        .setDepth(30000);
                     
-                    this.add.text(this.scale.width / 2, 100, 'LEVEL UP!', { fontSize: '56px', fill: '#ffcc00', fontStyle: 'bold' })
+                    let cam = this.cameras.main;
+                    let centerX = cam.scrollX + (GAME_WIDTH / 2);
+                    let centerY = cam.scrollY + (GAME_HEIGHT / 2);
+
+                    this.add.rectangle(centerX, centerY, GAME_WIDTH * 2, GAME_HEIGHT * 2, 0x000000, 0.85)
+                        .setDepth(30000)
+                        .setInteractive();
+                    
+                    this.add.text(centerX, cam.scrollY + 100, 'LEVEL UP!', { fontSize: '56px', fill: '#ffcc00', fontStyle: 'bold' })
                         .setOrigin(0.5)
-                        .setScrollFactor(0)
                         .setDepth(30001);
 
                     const rewardPool = [
@@ -420,13 +417,12 @@
                     let selected = shuffled.slice(0, 3);
 
                     selected.forEach((reward, idx) => {
-                        let cardY = isMobile ? 280 + (idx * 240) : 300 + (idx * 200);
-                        let cardX = this.scale.width / 2;
+                        let cardY = cam.scrollY + (isMobile ? 280 + (idx * 240) : 220 + (idx * 160));
+                        let cardX = centerX;
                         let isRare = reward.type === 'rare';
 
-                        let cardBg = this.add.rectangle(cardX, cardY, isMobile ? 620 : 700, 180, isRare ? 0x3d2b00 : 0x112233, 0.9)
+                        let cardBg = this.add.rectangle(cardX, cardY, isMobile ? 620 : 700, 140, isRare ? 0x3d2b00 : 0x112233, 0.95)
                             .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
-                            .setScrollFactor(0)
                             .setDepth(30002)
                             .setInteractive();
 
@@ -435,20 +431,19 @@
                         if (!this.textures.exists(iconKey)) iconKey = (isRare ? 'rare_box' : 'box');
 
                         this.add.image(cardX - (isMobile ? 220 : 260), cardY, iconKey)
-                            .setDisplaySize(100, 100)
-                            .setScrollFactor(0)
+                            .setDisplaySize(80, 80)
                             .setDepth(30003);
 
                         let curLv = this.gameScene.playerStats[reward.statKey] || 0;
 
-                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 45, reward.name, { fontSize: '26px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold' })
-                            .setScrollFactor(0).setDepth(30003);
-                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 5, reward.desc, { fontSize: '18px', fill: '#cccccc' })
-                            .setScrollFactor(0).setDepth(30003);                        
+                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 35, reward.name, { fontSize: '24px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold' })
+                            .setDepth(30003);
+                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 5, reward.desc, { fontSize: '16px', fill: '#cccccc' })
+                            .setDepth(30003);                       
 
                         if(reward.id !== 'heal') {
-                            this.add.text(cardX - (isMobile ? 140 : 180), cardY + 35, `레벨: Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { fontSize: '18px', fill: '#00ffcc' })
-                                .setScrollFactor(0).setDepth(30003);
+                            this.add.text(cardX - (isMobile ? 140 : 180), cardY + 25, `레벨: Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { fontSize: '16px', fill: '#00ffcc' })
+                                .setDepth(30003);
                         }
 
                         cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x664400 : 0x224466));
