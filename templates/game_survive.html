@@ -387,8 +387,14 @@
             create() {
                 try {
                     playRandomSFX(this, 'level_up');
-                    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85).setScrollFactor(0);
-                    this.add.text(this.scale.width / 2, 100, 'LEVEL UP!', { fontSize: '56px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0);
+                    this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85)
+                        .setScrollFactor(0)
+                        .setDepth(30000);
+                    
+                    this.add.text(this.scale.width / 2, 100, 'LEVEL UP!', { fontSize: '56px', fill: '#ffcc00', fontStyle: 'bold' })
+                        .setOrigin(0.5)
+                        .setScrollFactor(0)
+                        .setDepth(30001);
 
                     const rewardPool = [
                         { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
@@ -421,21 +427,28 @@
                         let cardBg = this.add.rectangle(cardX, cardY, isMobile ? 620 : 700, 180, isRare ? 0x3d2b00 : 0x112233, 0.9)
                             .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
                             .setScrollFactor(0)
+                            .setDepth(30002)
                             .setInteractive();
 
                         // 방어 코드: 이미지 로드 실패 시 에러 방지용 기본 box 대체
                         let iconKey = reward.icon || 'box';
                         if (!this.textures.exists(iconKey)) iconKey = (isRare ? 'rare_box' : 'box');
 
-                        this.add.image(cardX - (isMobile ? 220 : 260), cardY, iconKey).setDisplaySize(100, 100).setScrollFactor(0);
+                        this.add.image(cardX - (isMobile ? 220 : 260), cardY, iconKey)
+                            .setDisplaySize(100, 100)
+                            .setScrollFactor(0)
+                            .setDepth(30003);
 
                         let curLv = this.gameScene.playerStats[reward.statKey] || 0;
 
-                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 45, reward.name, { fontSize: '26px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold' }).setScrollFactor(0);
-                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 5, reward.desc, { fontSize: '18px', fill: '#cccccc' }).setScrollFactor(0);
-                        
+                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 45, reward.name, { fontSize: '26px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold' })
+                            .setScrollFactor(0).setDepth(30003);
+                        this.add.text(cardX - (isMobile ? 140 : 180), cardY - 5, reward.desc, { fontSize: '18px', fill: '#cccccc' })
+                            .setScrollFactor(0).setDepth(30003);                        
+
                         if(reward.id !== 'heal') {
-                            this.add.text(cardX - (isMobile ? 140 : 180), cardY + 35, `레벨: Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { fontSize: '18px', fill: '#00ffcc' }).setScrollFactor(0);
+                            this.add.text(cardX - (isMobile ? 140 : 180), cardY + 35, `레벨: Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { fontSize: '18px', fill: '#00ffcc' })
+                                .setScrollFactor(0).setDepth(30003);
                         }
 
                         cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x664400 : 0x224466));
