@@ -298,10 +298,10 @@
                 this.lastFacing = 'down'; // 바라보는 방향 (up, down, left, right)
                 
                 this.playerStats = {
-                    hp: 100, maxHp: 100, speed: 180, damage: 1, 
-                    level: 1, exp: 0, nextExp: 10, gold: 0,
-                    projectileCount: 1, fireRate: 1600, // 기본 공속 1.6초로 너프
-                    penetration: 0, magnetRadius: 180, // 기본 관통 0
+                    hp: 100, maxHp: 100, speed: 180, damage: 3, // 기본 수리검 데미지 3
+                    level: 1, exp: 0, nextExp: 15, gold: 0,
+                    projectileCount: 1, fireRate: 1600,
+                    penetration: 0, magnetRadius: 180,
                     skills: {
                         katon: { lvl: 0 },
                         suiton: { lvl: 0 },
@@ -309,6 +309,7 @@
                         bomb: { lvl: 0 }
                     }
                 };
+                this.enemyBaseHp = 10; // 기본 슬라임 HP 10 (스킬 3~4강 시 원샷 가능)
                 this.isInvincible = false; 
             }
 
@@ -316,24 +317,24 @@
                 this.physics.world.setBounds(0, 0, 16000, 16000);
 
                 if (this.stageData.id === 1) {
-                    // 1. 기본 잔디 타일 스케일 0.5 (더 촘촘하게)
+                    // 1. 기본 잔디 타일 스케일 0.25 (타일 입자를 더 촘촘하고 작게 축소)
                     this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1')
-                        .setTileScale(0.5, 0.5).setDepth(-10); 
+                        .setTileScale(0.25, 0.25).setDepth(-10); 
                     
-                    // 2. 흙길(grass5) 연결 오솔길 생성
-                    for (let x = 0; x < 16000; x += 128) {
-                        this.add.image(x, 8000, 'grass5').setDepth(-9).setScale(0.5);
+                    // 2. 흙길(grass5) 축소 스케일에 맞춰 64px 간격으로 촘촘히 연결
+                    for (let x = 0; x < 16000; x += 64) {
+                        this.add.image(x, 8000, 'grass5').setDepth(-9).setScale(0.25);
                     }
-                    for (let y = 0; y < 16000; y += 128) {
-                        this.add.image(8000, y, 'grass5').setDepth(-9).setScale(0.5);
+                    for (let y = 0; y < 16000; y += 64) {
+                        this.add.image(8000, y, 'grass5').setDepth(-9).setScale(0.25);
                     }
 
-                    // 3. 장식용 (grass2 제외, 3, 4, rock1, rock2)
+                    // 3. 장식용 요소 (grass3, grass4, rock1, rock2) 축소 적용
                     const decoKeys = ['grass3', 'grass4', 'rock1', 'rock2'];
-                    for (let i = 0; i < 400; i++) {
+                    for (let i = 0; i < 500; i++) {
                         let rx = Phaser.Math.Between(0, 16000);
                         let ry = Phaser.Math.Between(0, 16000);
-                        this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(-8).setScale(0.5);
+                        this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(-8).setScale(0.25);
                     }
 
                     // 4. 장애물 (나무 2배 확대 & 숲 클러스터 구역)
@@ -513,35 +514,119 @@
             handleNinjaSkills() {
                 let sk = this.playerStats.skills;
                 
-                // 화둔 (불뿜기)
+                // 1. 화둔 (불뿜기): Lv1=4.5, Lv2=7, Lv3=9.5, Lv4=12 (기본 HP 10 슬라임을 3번 강화해야 원샷)
                 if (sk.katon.lvl > 0 && this.elapsedTime % 4 === 0) {
-                    let flame = this.add.circle(this.player.x, this.player.y, 60 + sk.katon.lvl * 15, 0xff4500, 0.5);
+                    let flame = this.add.circle(this.player.x, this.player.y, 50 + sk.katon.lvl * 10, 0xff4500, 0.4);
                     this.physics.add.existing(flame);
                     
-                    let offset = 80;
+                    let offset = 70;
                     if (this.lastFacing === 'up') flame.y -= offset;
                     else if (this.lastFacing === 'down') flame.y += offset;
                     else if (this.lastFacing === 'left') flame.x -= offset;
                     else if (this.lastFacing === 'right') flame.x += offset;
 
+                    let dmg = 2 + sk.katon.lvl * 2.5;
                     this.physics.add.overlap(flame, this.enemies, (f, e) => {
-                        e.hp -= (1 + sk.katon.lvl * 0.5);
+                        if (!e.active || f.hitEnemies?.includes(e)) return;
+                        if (!f.hitEnemies) f.hitEnemies = [];
+                        f.hitEnemies.push(e);
+
+                        e.hp -= dmg;
                         e.setTint(0xff8800);
                         this.time.delayedCall(100, () => { if(e.active) e.clearTint(); });
                         if (e.hp <= 0) { e.setActive(false).setVisible(false); this.spawnDrop(e.x, e.y); }
                     });
 
-                    this.tweens.add({ targets: flame, alpha: 0, scale: 1.3, duration: 800, onComplete: () => flame.destroy() });
+                    this.tweens.add({ targets: flame, alpha: 0, scale: 1.2, duration: 600, onComplete: () => flame.destroy() });
+                }
+
+                // 2. 수둔 (수룡탄): 가장 가까운 적에게 폭발 (Lv1=5, Lv2=7.5, Lv3=10, Lv4=12.5)
+                if (sk.suiton.lvl > 0 && this.elapsedTime % 5 === 0) {
+                    let activeEnemies = this.enemies.getChildren().filter(e => e.active);
+                    if (activeEnemies.length > 0) {
+                        let target = activeEnemies[0];
+                        let dragon = this.add.circle(this.player.x, this.player.y, 15, 0x00bfff, 0.8);
+                        this.physics.add.existing(dragon);
+                        this.physics.moveToObject(dragon, target, 400);
+
+                        let dmg = 2.5 + sk.suiton.lvl * 2.5;
+                        this.physics.add.overlap(dragon, this.enemies, (d, e) => {
+                            if (!d.active || !e.active) return;
+                            d.setActive(false).setVisible(false).destroy();
+
+                            let splash = this.add.circle(e.x, e.y, 40 + sk.suiton.lvl * 8, 0x00ffff, 0.5);
+                            this.physics.add.existing(splash);
+                            this.physics.add.overlap(splash, this.enemies, (s, targetEnemy) => {
+                                if (!targetEnemy.active) return;
+                                targetEnemy.hp -= dmg;
+                                targetEnemy.setTint(0x00ffff);
+                                this.time.delayedCall(100, () => { if(targetEnemy.active) targetEnemy.clearTint(); });
+                                if (targetEnemy.hp <= 0) { targetEnemy.setActive(false).setVisible(false); this.spawnDrop(targetEnemy.x, targetEnemy.y); }
+                            });
+                            this.tweens.add({ targets: splash, alpha: 0, scale: 1.3, duration: 300, onComplete: () => splash.destroy() });
+                        });
+                    }
+                }
+
+                // 3. 풍둔 (나선 수리검): 관통 다단히트 (Lv1=3.5, Lv2=6, Lv3=8.5, Lv4=11)
+                if (sk.fuuton.lvl > 0 && this.elapsedTime % 6 === 0) {
+                    let activeEnemies = this.enemies.getChildren().filter(e => e.active);
+                    if (activeEnemies.length > 0) {
+                        let target = activeEnemies[0];
+                        let rasen = this.add.circle(this.player.x, this.player.y, 25 + sk.fuuton.lvl * 5, 0x00ff7f, 0.6);
+                        this.physics.add.existing(rasen);
+                        this.physics.moveToObject(rasen, target, 200);
+
+                        let dmg = 1 + sk.fuuton.lvl * 2.5;
+                        rasen.hitEnemies = [];
+                        this.physics.add.overlap(rasen, this.enemies, (r, e) => {
+                            if (!e.active || r.hitEnemies.includes(e)) return;
+                            r.hitEnemies.push(e);
+                            e.hp -= dmg;
+                            e.setTint(0x00ff7f);
+                            this.time.delayedCall(100, () => { if(e.active) e.clearTint(); });
+                            if (e.hp <= 0) { e.setActive(false).setVisible(false); this.spawnDrop(e.x, e.y); }
+                        });
+                        this.tweens.add({ targets: rasen, alpha: 0, duration: 2500, onComplete: () => rasen.destroy() });
+                    }
+                }
+
+                // 4. 기폭찰: 명중 시 스플래시 폭발 (Lv1=4, Lv2=6.5, Lv3=9, Lv4=11.5)
+                if (sk.bomb.lvl > 0 && this.elapsedTime % 4 === 0) {
+                    let activeEnemies = this.enemies.getChildren().filter(e => e.active);
+                    if (activeEnemies.length > 0) {
+                        let target = activeEnemies[0];
+                        let bombSuri = this.add.circle(this.player.x, this.player.y, 10, 0xffd700, 1);
+                        this.physics.add.existing(bombSuri);
+                        this.physics.moveToObject(bombSuri, target, 500);
+
+                        let dmg = 1.5 + sk.bomb.lvl * 2.5;
+                        this.physics.add.overlap(bombSuri, this.enemies, (b, e) => {
+                            if (!b.active || !e.active) return;
+                            b.setActive(false).setVisible(false).destroy();
+
+                            let exp = this.add.circle(e.x, e.y, 50 + sk.bomb.lvl * 10, 0xff0000, 0.6);
+                            this.physics.add.existing(exp);
+                            this.physics.add.overlap(exp, this.enemies, (ex, targetEnemy) => {
+                                if (!targetEnemy.active) return;
+                                targetEnemy.hp -= dmg;
+                                targetEnemy.setTint(0xff0000);
+                                this.time.delayedCall(100, () => { if(targetEnemy.active) targetEnemy.clearTint(); });
+                                if (targetEnemy.hp <= 0) { targetEnemy.setActive(false).setVisible(false); this.spawnDrop(targetEnemy.x, targetEnemy.y); }
+                            });
+                            this.tweens.add({ targets: exp, alpha: 0, scale: 1.4, duration: 400, onComplete: () => exp.destroy() });
+                        });
+                    }
                 }
             }
 
             spawnEnemies() {
                 let spawnCount = 3; 
-                // 3분(180초) 기점 폭증
                 if (this.elapsedTime > 180) spawnCount += Math.floor((this.elapsedTime - 180) / 10) * 3;
 
-                let hp = 1;
-                if (this.elapsedTime > 180) hp += Math.floor((this.elapsedTime - 180) / 25); 
+                // 기본 슬라임 체력 10, 3분(180초) 이후 15초마다 체력 +2씩 증가
+                let hp = this.enemyBaseHp;
+                if (this.elapsedTime > 180) hp += Math.floor((this.elapsedTime - 180) / 15) * 2; 
 
                 for (let i = 0; i < spawnCount; i++) {
                     let cam = this.cameras.main;
