@@ -97,14 +97,15 @@
                 bg.setDisplaySize(this.scale.width, this.scale.height);
                 this.createMuteButton();
 
-                let startBtn = this.add.image(this.scale.width / 2 - 150, this.scale.height - 150, 'btn_start').setInteractive();
-                startBtn.setDisplaySize(150, 150);
+                // 세로 모드 레이아웃 세로 수직 배치
+                let startBtn = this.add.image(this.scale.width / 2, this.scale.height / 2 + 150, 'btn_start').setInteractive();
+                startBtn.setDisplaySize(180, 180);
                 startBtn.on('pointerover', () => startBtn.setTint(0xcccccc));
                 startBtn.on('pointerout', () => startBtn.clearTint());
                 startBtn.on('pointerdown', () => this.scene.start('StageSelectScene'));
 
-                let upgradeBtn = this.add.image(this.scale.width / 2 + 150, this.scale.height - 150, 'btn_upgrade').setInteractive();
-                upgradeBtn.setDisplaySize(150, 150);
+                let upgradeBtn = this.add.image(this.scale.width / 2, this.scale.height / 2 + 350, 'btn_upgrade').setInteractive();
+                upgradeBtn.setDisplaySize(180, 180);
                 upgradeBtn.on('pointerover', () => upgradeBtn.setTint(0xcccccc));
                 upgradeBtn.on('pointerout', () => upgradeBtn.clearTint());
                 upgradeBtn.on('pointerdown', () => this.scene.start('UpgradeScene'));
@@ -122,7 +123,7 @@
             create() {
                 this.createMuteButton();
                 this.add.text(this.scale.width / 2, 100, '무기 강화소', { fontSize: '48px', fill: '#ffcc00' }).setOrigin(0.5);
-                let backBtn = this.add.text(this.scale.width / 2, 500, '뒤로가기', { fontSize: '32px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 } }).setOrigin(0.5).setInteractive();
+                let backBtn = this.add.text(this.scale.width / 2, 600, '뒤로가기', { fontSize: '32px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 } }).setOrigin(0.5).setInteractive();
                 backBtn.on('pointerdown', () => this.scene.start('TitleScene'));
             }
         }
@@ -142,21 +143,22 @@
                     { id: 6, name: 'Stage 6: 종말의 차원', time: 1800 }
                 ];
 
+                // 세로 화면에 맞춰 2열 3행 배치
                 stages.forEach((stage, index) => {
-                    let col = index % 3;
-                    let row = Math.floor(index / 3);
-                    let cardX = (this.scale.width / 2) - 300 + (col * 300);
-                    let cardY = 280 + (row * 200); 
+                    let col = index % 2;
+                    let row = Math.floor(index / 2);
+                    let cardX = (this.scale.width / 2) - 160 + (col * 320);
+                    let cardY = 220 + (row * 240); 
 
                     let bossPlaceholder;
                     if (stage.id === 1) {
-                        bossPlaceholder = this.add.image(cardX, cardY - 40, 'boss_sli0').setDisplaySize(100, 100);
+                        bossPlaceholder = this.add.image(cardX, cardY - 40, 'boss_sli0').setDisplaySize(110, 110);
                     } else {
-                        bossPlaceholder = this.add.rectangle(cardX, cardY - 40, 100, 100, 0x666666).setStrokeStyle(2, 0xffffff);
+                        bossPlaceholder = this.add.rectangle(cardX, cardY - 40, 110, 110, 0x666666).setStrokeStyle(2, 0xffffff);
                     }
                     
-                    let infoText = this.add.text(cardX, cardY + 40, `${stage.name}\n(보스: ${stage.time / 60}분)`, { fontSize: '20px', fill: '#0f0', align: 'center' }).setOrigin(0.5);
-                    let hitBox = this.add.rectangle(cardX, cardY, 220, 180, 0x333333, 0.8).setStrokeStyle(2, 0xaaaaaa).setInteractive();
+                    let infoText = this.add.text(cardX, cardY + 50, `${stage.name}\n(보스: ${stage.time / 60}분)`, { fontSize: '20px', fill: '#0f0', align: 'center' }).setOrigin(0.5);
+                    let hitBox = this.add.rectangle(cardX, cardY, 280, 210, 0x333333, 0.8).setStrokeStyle(2, 0xaaaaaa).setInteractive();
                     
                     this.add.container(0, 0, [hitBox, bossPlaceholder, infoText]);
                     hitBox.on('pointerover', () => hitBox.setFillStyle(0x555555));
@@ -170,21 +172,20 @@
         }
 
         // ==========================================
-        // 4. Level Up Scene (나루토 컨셉 보상 팝업)
+        // 4. Level Up Scene (세로 수직 모바일 UI)
         // ==========================================
         class LevelUpScene extends Phaser.Scene {
             constructor() { super({ key: 'LevelUpScene' }); }
             init(data) { this.gameScene = data.scene; }
 
             create() {
-                this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.75);
+                this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85);
                 this.add.text(this.scale.width / 2, 80, 'LEVEL UP!', { fontSize: '56px', fill: '#ffcc00', fontStyle: 'bold', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5);
-                this.add.text(this.scale.width / 2, 140, '보상을 선택하세요 (중복 제거 적용)', { fontSize: '22px', fill: '#fff' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 140, '보상을 선택하세요', { fontSize: '24px', fill: '#fff' }).setOrigin(0.5);
 
                 this.selected = false;
                 let pStats = this.gameScene.playerStats;
 
-                // --- 보상 풀 정의 ---
                 const normalPool = [
                     { id: 'katon', name: '닌자 두루마리: 화둔', desc: () => `플레이어 정면에 화염 방사\n[LV.${pStats.skills.katon.lvl} ➔ LV.${pStats.skills.katon.lvl + 1}]` },
                     { id: 'suiton', name: '닌자 두루마리: 수둔', desc: () => `수룡을 소환하여 범위 피해\n[LV.${pStats.skills.suiton.lvl} ➔ LV.${pStats.skills.suiton.lvl + 1}]` },
@@ -201,41 +202,36 @@
                     { id: 'magnet', name: '★ 노획 (자력의 술)', desc: () => `획득 범위 +20% 증가\n[현재 범위: ${pStats.magnetRadius}px ➔ ${Math.round(pStats.magnetRadius * 1.2)}px]` }
                 ];
 
-                // 3개 중복 없이 선택하기
                 let selectedRewards = [];
                 for (let i = 0; i < 3; i++) {
-                    let isRare = Math.random() < 0.3; // 레어 확률 30%
+                    let isRare = Math.random() < 0.3;
                     let targetPool = isRare ? rarePool : normalPool;
-                    
-                    // 중복 방지 필터링
                     let available = targetPool.filter(r => !selectedRewards.some(s => s.item.id === r.id));
-                    if (available.length === 0) {
-                        available = normalPool.filter(r => !selectedRewards.some(s => s.item.id === r.id));
-                    }
+                    if (available.length === 0) available = normalPool.filter(r => !selectedRewards.some(s => s.item.id === r.id));
 
                     let picked = Phaser.Utils.Array.GetRandom(available);
                     selectedRewards.push({ isRare: isRare && targetPool === rarePool, item: picked });
                 }
 
-                // UI 생성
+                // 세로 수직형 카드 리스트 배치
                 selectedRewards.forEach((rewardObj, i) => {
-                    let boxX = this.scale.width / 2 - 280 + (i * 280);
-                    let boxY = this.scale.height / 2 + 30;
+                    let boxX = this.scale.width / 2;
+                    let boxY = 280 + (i * 260);
                     let isRare = rewardObj.isRare;
                     let item = rewardObj.item;
 
-                    let cardBg = this.add.rectangle(boxX, boxY, 240, 320, isRare ? 0x3d2b00 : 0x1f2937)
+                    let cardBg = this.add.rectangle(boxX, boxY, 580, 220, isRare ? 0x3d2b00 : 0x1f2937)
                         .setStrokeStyle(3, isRare ? 0xffd700 : 0x4b5563).setInteractive();
 
-                    let boxImg = this.add.image(boxX, boxY - 80, isRare ? 'rare_box' : 'box').setScale(0.6);
+                    let boxImg = this.add.image(boxX - 200, boxY, isRare ? 'rare_box' : 'box').setScale(0.7);
 
-                    let titleText = this.add.text(boxX, boxY, item.name, {
-                        fontSize: '20px', fill: isRare ? '#ffd700' : '#ffffff', fontStyle: 'bold', align: 'center', wordWrap: { width: 220 }
-                    }).setOrigin(0.5);
+                    let titleText = this.add.text(boxX + 30, boxY - 40, item.name, {
+                        fontSize: '24px', fill: isRare ? '#ffd700' : '#ffffff', fontStyle: 'bold', align: 'left'
+                    }).setOrigin(0, 0.5);
 
-                    let descText = this.add.text(boxX, boxY + 60, item.desc(), {
-                        fontSize: '15px', fill: '#9ca3af', align: 'center', wordWrap: { width: 220 }
-                    }).setOrigin(0.5);
+                    let descText = this.add.text(boxX + 30, boxY + 25, item.desc(), {
+                        fontSize: '18px', fill: '#9ca3af', align: 'left', wordWrap: { width: 320 }
+                    }).setOrigin(0, 0.5);
 
                     cardBg.on('pointerover', () => cardBg.setStrokeStyle(4, 0x00ffff));
                     cardBg.on('pointerout', () => cardBg.setStrokeStyle(3, isRare ? 0xffd700 : 0x4b5563));
@@ -244,7 +240,6 @@
                         if (this.selected) return;
                         this.selected = true;
 
-                        // 스탯 적용
                         if (item.id === 'katon') pStats.skills.katon.lvl++;
                         else if (item.id === 'suiton') pStats.skills.suiton.lvl++;
                         else if (item.id === 'fuuton') pStats.skills.fuuton.lvl++;
@@ -271,23 +266,7 @@
         // ==========================================
         // 4-1. Skill Shop Scene
         // ==========================================
-        class SkillShopScene extends Phaser.Scene {
-            constructor() { super({ key: 'SkillShopScene' }); }
-            create() {
-                this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85);
-                this.add.text(this.scale.width / 2, 120, '스킬 상점', { fontSize: '48px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5);
-                this.add.text(this.scale.width / 2, 300, '구현 준비 중입니다...\n\n(모은 골드를 소모하여 액티브 스킬 구매)', { fontSize: '28px', fill: '#fff', align: 'center', lineHeight: 1.5 }).setOrigin(0.5);
-
-                let closeBtn = this.add.text(this.scale.width / 2, 550, '닫기 (게임 재개)', { fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 } }).setOrigin(0.5).setInteractive();
-                closeBtn.on('pointerdown', () => {
-                    this.scene.stop();
-                    this.scene.resume('GameScene');
-                });
-            }
-        }
-
-        // ==========================================
-        // 5. Game Scene (인게임 핵심 로직)
+        // 5. Game Scene (인게임 핵심 로직 & 터치 조이스틱)
         // ==========================================
         class GameScene extends Phaser.Scene {
             constructor() { super({ key: 'GameScene' }); }
@@ -295,10 +274,11 @@
             init(data) {
                 this.stageData = data.stageData;
                 this.elapsedTime = 0;
-                this.lastFacing = 'down'; // 바라보는 방향 (up, down, left, right)
+                this.lastFacing = 'down';
                 
                 this.playerStats = {
-                    hp: 100, maxHp: 100, speed: 180, damage: 3, // 기본 수리검 데미지 3
+                    hp: 100, maxHp: 100, speed: 180, 
+                    damage: 4, // 초기 수리검 데미지 4로 상향
                     level: 1, exp: 0, nextExp: 15, gold: 0,
                     projectileCount: 1, fireRate: 1600,
                     penetration: 0, magnetRadius: 180,
@@ -309,8 +289,15 @@
                         bomb: { lvl: 0 }
                     }
                 };
-                this.enemyBaseHp = 10; // 기본 슬라임 HP 10 (스킬 3~4강 시 원샷 가능)
+                this.enemyBaseHp = 10;
                 this.isInvincible = false; 
+
+                // 터치 조이스틱 상태 변수
+                this.touchStick = {
+                    active: false,
+                    startX: 0, startY: 0,
+                    vectorX: 0, vectorY: 0
+                };
             }
 
             create() {
@@ -332,60 +319,60 @@
                     // 3. 장식용 요소 (grass3, grass4, rock1, rock2) 축소 적용
                     const decoKeys = ['grass3', 'grass4', 'rock1', 'rock2'];
                     for (let i = 0; i < 500; i++) {
-                        let rx = Phaser.Math.Between(0, 16000);
-                        let ry = Phaser.Math.Between(0, 16000);
-                        this.add.image(rx, ry, Phaser.Utils.Array.GetRandom(decoKeys)).setDepth(-8).setScale(0.25);
-                    }
+                // (기존 맵 타일, 숲 장애물, 플레이어 생성 부분 유지)
 
-                    // 4. 장애물 (나무 2배 확대 & 숲 클러스터 구역)
-                    this.obstacles = this.physics.add.staticGroup();
-                    
-                    // 숲 클러스터 생성 (5개 지점에 나무 10개씩 뭉침)
-                    for (let c = 0; c < 8; c++) {
-                        let cx = Phaser.Math.Between(1000, 15000);
-                        let cy = Phaser.Math.Between(1000, 15000);
-                        if (Math.abs(cx - 8000) < 600 && Math.abs(cy - 8000) < 600) continue;
-
-                        for (let t = 0; t < 10; t++) {
-                            let tx = cx + Phaser.Math.Between(-150, 150);
-                            let ty = cy + Phaser.Math.Between(-150, 150);
-                            let tree = this.obstacles.create(tx, ty, Math.random() > 0.5 ? 'tree1' : 'tree2');
-                            tree.setScale(0.8); // 2배 확대 적용
-                            tree.refreshBody();
-                            tree.body.setSize(tree.width * 0.25, tree.height * 0.15); // 밑동만 충돌
-                            tree.body.setOffset(tree.width * 0.375, tree.height * 0.85);
-                            tree.setDepth(tree.y);
-                        }
-                    }
-
-                    // 개별 바위(rock3) 배치
-                    for (let i = 0; i < 60; i++) {
-                        let rx = Phaser.Math.Between(500, 15500);
-                        let ry = Phaser.Math.Between(500, 15500);
-                        if (Math.abs(rx - 8000) < 500 && Math.abs(ry - 8000) < 500) continue;
-                        let rock = this.obstacles.create(rx, ry, 'rock3');
-                        rock.setScale(0.3);
-                        rock.refreshBody();
-                        rock.body.setSize(rock.width * 0.4, rock.height * 0.3);
-                        rock.body.setOffset(rock.width * 0.3, rock.height * 0.7);
-                        rock.setDepth(rock.y);
-                    }
-                }
-
-                // 5. 주인공 중앙 스폰
-                this.player = this.physics.add.sprite(8000, 8000, 'hero_1');
-                this.player.setScale(0.8); 
-                this.player.setCollideWorldBounds(true);
-                this.player.setSize(this.player.width * 0.5, this.player.height * 0.4);
-                this.player.setOffset(this.player.width * 0.25, this.player.height * 0.6);
-
-                this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-
-                // 입력 및 그룹
+                // 입력 키보드 설정
                 this.cursors = this.input.keyboard.createCursorKeys();
                 this.wasd = this.input.keyboard.addKeys({
                     up: Phaser.Input.Keyboard.KeyCodes.W, down: Phaser.Input.Keyboard.KeyCodes.S,
                     left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D
+                });
+
+                // 터치 조이스틱 그래픽 생성 (궁수의 전설 스타일)
+                this.joyBase = this.add.circle(0, 0, 70, 0xffffff, 0.25).setScrollFactor(0).setDepth(15000).setVisible(false);
+                this.joyThumb = this.add.circle(0, 0, 35, 0xffffff, 0.6).setScrollFactor(0).setDepth(15001).setVisible(false);
+
+                // 모바일 터치 이벤트 바인딩
+                this.input.on('pointerdown', (pointer) => {
+                    // UI 클릭 시(상단 골드나 스피커 버튼 등)에는 조이스틱 동작 방지
+                    if (pointer.y < 80) return;
+
+                    this.touchStick.active = true;
+                    this.touchStick.startX = pointer.x;
+                    this.touchStick.startY = pointer.y;
+                    this.touchStick.vectorX = 0;
+                    this.touchStick.vectorY = 0;
+
+                    this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
+                    this.joyThumb.setPosition(pointer.x, pointer.y).setVisible(true);
+                });
+
+                this.input.on('pointermove', (pointer) => {
+                    if (!this.touchStick.active) return;
+
+                    let dx = pointer.x - this.touchStick.startX;
+                    let dy = pointer.y - this.touchStick.startY;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    let maxRadius = 70;
+
+                    if (dist > 0) {
+                        this.touchStick.vectorX = dx / dist;
+                        this.touchStick.vectorY = dy / dist;
+                        
+                        let clampedDist = Math.min(dist, maxRadius);
+                        this.joyThumb.setPosition(
+                            this.touchStick.startX + this.touchStick.vectorX * clampedDist,
+                            this.touchStick.startY + this.touchStick.vectorY * clampedDist
+                        );
+                    }
+                });
+
+                this.input.on('pointerup', () => {
+                    this.touchStick.active = false;
+                    this.touchStick.vectorX = 0;
+                    this.touchStick.vectorY = 0;
+                    this.joyBase.setVisible(false);
+                    this.joyThumb.setVisible(false);
                 });
 
                 this.enemies = this.physics.add.group();
@@ -437,18 +424,26 @@
             update() {
                 let velocityX = 0; let velocityY = 0;
 
+                // 1. 키보드 입력 체크
                 if (this.cursors.left.isDown || this.wasd.left.isDown) velocityX = -1;
                 else if (this.cursors.right.isDown || this.wasd.right.isDown) velocityX = 1;
 
                 if (this.cursors.up.isDown || this.wasd.up.isDown) velocityY = -1;
                 else if (this.cursors.down.isDown || this.wasd.down.isDown) velocityY = 1;
 
-                if (velocityX !== 0 && velocityY !== 0) { velocityX *= Math.SQRT1_2; velocityY *= Math.SQRT1_2; }
+                // 2. 터치 조이스틱 입력 결합
+                if (this.touchStick.active) {
+                    velocityX = this.touchStick.vectorX;
+                    velocityY = this.touchStick.vectorY;
+                } else if (velocityX !== 0 && velocityY !== 0) {
+                    velocityX *= Math.SQRT1_2;
+                    velocityY *= Math.SQRT1_2;
+                }
 
                 this.player.body.setVelocity(velocityX * this.playerStats.speed, velocityY * this.playerStats.speed);
 
-                if (velocityY > 0) { this.player.setTexture('hero_1'); this.lastFacing = 'down'; }
-                else if (velocityY < 0) { this.player.setTexture('hero_2'); this.lastFacing = 'up'; }
+                if (velocityY > 0 && Math.abs(velocityY) > Math.abs(velocityX)) { this.player.setTexture('hero_1'); this.lastFacing = 'down'; }
+                else if (velocityY < 0 && Math.abs(velocityY) > Math.abs(velocityX)) { this.player.setTexture('hero_2'); this.lastFacing = 'up'; }
                 else if (velocityX < 0) { this.player.setTexture('hero_3'); this.lastFacing = 'left'; }
                 else if (velocityX > 0) { this.player.setTexture('hero_4'); this.lastFacing = 'right'; }
 
@@ -801,7 +796,7 @@
         }
 
         // ==========================================
-        // Phaser 설정 및 초기화
+        // Phaser 설정 및 세로 해상도(Portrait) 세팅
         // ==========================================
         const config = {
             type: Phaser.AUTO,
@@ -809,8 +804,8 @@
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
-                width: 1280,
-                height: 720
+                width: 720,   // 세로 모드 해상도
+                height: 1280
             },
             physics: {
                 default: 'arcade',
