@@ -92,7 +92,7 @@
             }
         }
 
-        // 요구사항 1 & 2: 사운드 버튼 위치 상단 여백 확보 (y: 68px)
+        // 요구사항 2: 상단 여백 보정 (y: 68px)
         function createMuteButton(scene) {
             let muteBtn = scene.add.text(scene.scale.width - 45, 68, isMuted ? '🔇' : '🔊', { fontSize: '34px' })
                 .setOrigin(0.5)
@@ -120,7 +120,6 @@
             constructor() { super({ key: 'PreloadScene' }); }
 
             preload() {
-                // 요구사항 2: 상단 잘림 방지 Y좌표 하향 및 로딩 위치 보정
                 this.add.text(this.scale.width / 2, this.scale.height / 2 + 20, '로딩 중...', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
 
                 this.load.image('main_bg', '/static/img/survive/main.png');
@@ -160,7 +159,10 @@
                 this.load.image('fire_stream', '/static/img/survive/reword/fire_stream.png');
                 this.load.image('water_dragon', '/static/img/survive/reword/water_dragon.png');
                 this.load.image('rasenshuriken', '/static/img/survive/reword/rasenshuriken.png');
+                
+                // 요구사항 1.1 & 1.2: 기폭찰 수리검 및 폭발 이펙트 이미지 로드
                 this.load.image('explosive_shuriken', '/static/img/survive/reword/explosive_shuriken.png');
+                this.load.image('explosion_vfx', '/static/img/survive/reword/explosion_vfx.png');
 
                 this.load.image('sli_drop1', '/static/img/survive/monster/sli/sli_drop1.png');
                 this.load.image('sli_drop3', '/static/img/survive/monster/sli/sli_drop3.png');
@@ -176,7 +178,7 @@
                 this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
                 this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
                 
-                // 원칙 6: 골드 주머니 경로 보존 (static/img/survive/reword/goldpocket.png)
+                // 원칙 6: 골드 주머니 경로 보존
                 this.load.image('goldpocket', '/static/img/survive/reword/goldpocket.png');
 
                 ['sli', 'ssli'].forEach(prefix => {
@@ -214,8 +216,7 @@
 
                 createMuteButton(this);
 
-                // 요구사항 6: 모바일 반응형 타이틀 및 크기 조절
-                let titleText = this.add.text(this.scale.width / 2, isMobile ? 140 : 120, 'NCS SURVIVE', {
+                this.add.text(this.scale.width / 2, isMobile ? 140 : 120, 'NCS SURVIVE', {
                     fontSize: isMobile ? '46px' : '64px',
                     fill: '#ffcc00',
                     fontStyle: 'bold',
@@ -391,9 +392,10 @@
                 this.stageData = data.stageData;
                 this.elapsedTime = 0;
 
+                // 요구사항 1.5: 주인공 1~3 레벨 경험치 요구량 50% 단축 (기본 maxExp = 8)
                 this.playerStats = {
                     hp: 100, maxHp: 100, speed: 160, damage: 5, attackDelay: 1100,
-                    level: 1, exp: 0, maxExp: 15, gold: 0, magnetRange: 150,
+                    level: 1, exp: 0, maxExp: 8, gold: 0, magnetRange: 150,
                     fire: 0, water: 0, wind: 0, bomb: 0, pierce: 0, clone: 0, magnet: 0,
                     maxHpLv: 0, speedLv: 0, healLv: 0
                 };
@@ -404,7 +406,7 @@
                 this.isInvincible = false;
                 this.joystickVector = { x: 0, y: 0 };
                 this.isLevelUpOpen = false;
-                this.levelUpElements = []; // 원칙 2 & 요구사항 1: 컨테이너 버그 방지용 배열 관리
+                this.levelUpElements = [];
             }
 
             create() {
@@ -485,7 +487,6 @@
                 this.time.addEvent({ delay: 1000, callback: this.spawnEnemies, callbackScope: this, loop: true });
             }
 
-            // 요구사항 1 & 2: 사운드 및 골드 UI 상단 Y: 68px 한 줄 정렬 및 여백 확보
             setupUI() {
                 this.timerText = this.add.text(this.scale.width / 2, 68, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(10000);
                 this.levelText = this.add.text(30, 48, 'LV.1', { fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(10000);
@@ -497,7 +498,6 @@
                 this.playerHpBg = this.add.rectangle(130, 142, 200, 20, 0x330000).setScrollFactor(0).setDepth(10000);
                 this.playerHpBar = this.add.rectangle(30, 142, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
-                // 골드 아이콘 & 텍스트 상단 Y: 68px 정렬
                 if (this.textures.exists('goldpocket')) {
                     this.goldIcon = this.add.image(this.scale.width - 170, 68, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(10005).setInteractive({ useHandCursor: true });
                 } else {
@@ -520,14 +520,13 @@
                 this.playerHpBar.setSize(200 * hpPct, 20);
             }
 
-            // 요구사항 1 해결: 팝업 시 가상 조이스틱 터치 완벽 차단
             setupVirtualJoystick() {
                 this.joyBase = this.add.circle(0, 0, 60, 0xffffff, 0.2).setScrollFactor(0).setDepth(14999).setVisible(false);
                 this.joyThumb = this.add.circle(0, 0, 30, 0xffffff, 0.5).setScrollFactor(0).setDepth(15000).setVisible(false);
 
                 this.input.on('pointerdown', (pointer) => {
-                    if (this.isLevelUpOpen) return; // 팝업 시 조이스틱 터치 즉시 무시
-                    if (pointer.x > this.scale.width - 180 && pointer.y < 100) return; // 상단 우측 버튼 구역 예외
+                    if (this.isLevelUpOpen) return;
+                    if (pointer.x > this.scale.width - 180 && pointer.y < 100) return;
                     this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
                     this.joyThumb.setPosition(pointer.x, pointer.y).setVisible(true);
                 });
@@ -620,7 +619,7 @@
                     }
                 });
 
-                // 요구사항 5: 골드 자력 수집 범위 동일 조정
+                // 골드 자력 수집
                 this.goldItems.getChildren().forEach(goldItem => {
                     let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, goldItem.x, goldItem.y);
                     if (dist < this.playerStats.magnetRange) {
@@ -631,6 +630,7 @@
                 });
             }
 
+            // 요구사항 1.6: 기본 공격은 투사체 2배 스킬(clone) 적용
             fireBasicSuri() {
                 let target = this.getClosestEnemy();
                 if (!target) return;
@@ -660,87 +660,137 @@
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
 
-                // 화둔 호화구
-                if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 3500) {
-                    playRandomSFX(this, 'skill_fire', 0.6);
-                    let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
-                    
-                    let fire;
-                    if (this.textures.exists('fire_stream')) {
-                        fire = this.physics.add.sprite(this.player.x, this.player.y, 'fire_stream')
-                            .setDisplaySize(200, 120)
-                            .setRotation(angle + Math.PI)
-                            .setDepth(9999);
-                    } else {
-                        fire = this.add.rectangle(this.player.x, this.player.y, 200, 80, 0xff4400, 0.6).setDepth(9999);
-                        this.physics.add.existing(fire);
-                    }
+                // 요구사항 1.3 & 1.4: 화둔 호화구의 술 (1렙 기준 ~1.5타로 처치, 멀티히트이므로 쿨타임/데미지 상승폭 완만)
+                // 요구사항 1.4: 3렙 이상 강화 시 반대 방향으로도 발사
+                // 요구사항 1.6: 화둔은 분신술(clone) 적용 제외
+                if (this.playerStats.fire > 0) {
+                    let fireLv = this.playerStats.fire;
+                    let fireCd = Math.max(2200, 3500 - (fireLv - 1) * 200);
 
-                    fire.damage = 1.5 + (this.playerStats.fire * 1.5);
-                    fire.hitEnemies = [];
-
-                    this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
-                        if (!f.hitEnemies.includes(enemy.id)) {
-                            f.hitEnemies.push(enemy.id);
-                            this.damageEnemy(enemy, f.damage);
+                    if (time > this.lastSkillTimes.fire + fireCd) {
+                        playRandomSFX(this, 'skill_fire', 0.6);
+                        let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
+                        
+                        let anglesToFire = [baseAngle];
+                        if (fireLv >= 3) {
+                            anglesToFire.push(baseAngle + Math.PI); // 반대 방향 추가
                         }
-                    });
-                    this.tweens.add({ targets: fire, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 600, onComplete: () => fire.destroy() });
-                    this.lastSkillTimes.fire = time;
+
+                        anglesToFire.forEach(streamAngle => {
+                            let fire;
+                            if (this.textures.exists('fire_stream')) {
+                                fire = this.physics.add.sprite(this.player.x, this.player.y, 'fire_stream')
+                                    .setDisplaySize(200, 120)
+                                    .setRotation(streamAngle + Math.PI) // 기본 이미지가 <- 로 정렬되어 있으므로 + Math.PI
+                                    .setDepth(9999);
+                            } else {
+                                fire = this.add.rectangle(this.player.x, this.player.y, 200, 80, 0xff4400, 0.6).setDepth(9999);
+                                this.physics.add.existing(fire);
+                            }
+
+                            fire.damage = 3.5 + (fireLv * 1.2);
+                            fire.hitEnemies = [];
+
+                            this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
+                                if (!f.hitEnemies.includes(enemy.id)) {
+                                    f.hitEnemies.push(enemy.id);
+                                    this.damageEnemy(enemy, f.damage);
+                                }
+                            });
+                            this.tweens.add({ targets: fire, alpha: 0, scaleX: 1.2, scaleY: 1.2, duration: 600, onComplete: () => fire.destroy() });
+                        });
+
+                        this.lastSkillTimes.fire = time;
+                    }
                 }
 
-                // 수둔 수룡탄
-                if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + 3000 && target) {
-                    playRandomSFX(this, 'skill_water', 0.6);
-                    let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
-                    let waterKey = this.textures.exists('water_dragon') ? 'water_dragon' : 'suri';
-                    
-                    let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
-                    water.rotation = angle + Math.PI / 2;
-                    water.damage = 3 + (this.playerStats.water * 2);
-                    water.pierce = 0;
-                    water.isBomb = false;
-                    this.physics.velocityFromRotation(angle, 400, water.body.velocity);
-                    this.lastSkillTimes.water = time;
+                // 요구사항 1.3 & 1.4: 수둔 수룡탄 (1렙 1타 확정 처치: 데미지 10, 쿨타임/데미지 상승폭 가파름)
+                // 요구사항 1.4: 2렙부터 2개 발사, 1렙 증가마다 1개씩 추가 (Lv1=1, Lv2=2, Lv3=3...)
+                // 요구사항 1.6: 수둔은 분신술(clone) 적용 제외
+                if (this.playerStats.water > 0 && target) {
+                    let waterLv = this.playerStats.water;
+                    let waterCd = Math.max(1200, 3000 - (waterLv - 1) * 350);
+
+                    if (time > this.lastSkillTimes.water + waterCd) {
+                        playRandomSFX(this, 'skill_water', 0.6);
+                        let angleBase = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+                        let waterKey = this.textures.exists('water_dragon') ? 'water_dragon' : 'suri';
+                        
+                        let waterCount = waterLv; // 1렙 1개, 2렙 2개, 3렙 3개...
+                        for (let i = 0; i < waterCount; i++) {
+                            let angle = angleBase + ((i - (waterCount - 1) / 2) * 0.22);
+                            let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
+                            water.rotation = angle + Math.PI / 2;
+                            water.damage = 10 + (waterLv - 1) * 4; // 1렙 시 10 데미지 (슬라임 1타 처치)
+                            water.pierce = 0;
+                            water.isBomb = false;
+                            this.physics.velocityFromRotation(angle, 420, water.body.velocity);
+                        }
+
+                        this.lastSkillTimes.water = time;
+                    }
                 }
 
-                // 풍둔 나선수리검
-                if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
-                    playRandomSFX(this, 'skill_wind', 0.6);
-                    let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
-                    let windKey = this.textures.exists('rasenshuriken') ? 'rasenshuriken' : 'suri';
+                // 요구사항 1.3 & 1.4: 풍둔 나선수리검 (1렙 기준 ~1.5타 처치, 멀티히트이므로 상승폭 낮음)
+                // 요구사항 1.6: 나선수리검은 분신술(clone) 적용 대상!
+                if (this.playerStats.wind > 0) {
+                    let windLv = this.playerStats.wind;
+                    let windCd = Math.max(2500, 4500 - (windLv - 1) * 300);
 
-                    let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
-                    wind.damage = 0.5 + (this.playerStats.wind * 0.5);
-                    wind.pierce = 999;
-                    wind.isBomb = false;
-                    
-                    this.tweens.add({ targets: wind, rotation: wind.rotation + Math.PI * 10, duration: 2500 });
-                    this.physics.velocityFromRotation(angle, 250, wind.body.velocity);
-                    this.time.delayedCall(3000, () => { if(wind.active) wind.destroy(); });
-                    this.lastSkillTimes.wind = time;
+                    if (time > this.lastSkillTimes.wind + windCd) {
+                        playRandomSFX(this, 'skill_wind', 0.6);
+                        let angleBase = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
+                        let windKey = this.textures.exists('rasenshuriken') ? 'rasenshuriken' : 'suri';
+
+                        let count = 1 + this.playerStats.clone;
+                        for (let i = 0; i < count; i++) {
+                            let angle = angleBase + ((i - (count - 1) / 2) * 0.3);
+                            let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(110, 110).setDepth(9999);
+                            wind.damage = 2.5 + (windLv * 0.8);
+                            wind.pierce = 999;
+                            wind.isBomb = false;
+                            
+                            this.tweens.add({ targets: wind, rotation: wind.rotation + Math.PI * 10, duration: 2500 });
+                            this.physics.velocityFromRotation(angle, 260, wind.body.velocity);
+                            this.time.delayedCall(3000, () => { if(wind.active) wind.destroy(); });
+                        }
+
+                        this.lastSkillTimes.wind = time;
+                    }
                 }
 
-                // 요구사항 4: 기폭찰 수리검 크기 60% 축소 + 롤링 애니메이션
-                if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
-                    playRandomSFX(this, 'skill_bomb', 0.6);
-                    let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
-                    let bombKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri';
+                // 요구사항 1.1: 기폭찰 수리검 크기 40px 조정 (explosive_shuriken.png 사용)
+                // 요구사항 1.3: 기폭찰 1렙 기준 ~1.5타 처치 (데미지 7)
+                // 요구사항 1.6: 기폭찰 수리검은 분신술(clone) 적용 대상!
+                if (this.playerStats.bomb > 0 && target) {
+                    let bombLv = this.playerStats.bomb;
+                    let bombCd = Math.max(1800, 3200 - (bombLv - 1) * 250);
 
-                    let bombSuri = this.projectiles.create(this.player.x, this.player.y, bombKey).setDisplaySize(20, 20).setDepth(9999);
-                    bombSuri.damage = 2 + (this.playerStats.bomb * 2);
-                    bombSuri.pierce = 0;
-                    bombSuri.isBomb = true;
-                    
-                    this.tweens.add({
-                        targets: bombSuri,
-                        rotation: '+=6.28',
-                        duration: 300,
-                        repeat: -1
-                    });
+                    if (time > this.lastSkillTimes.bomb + bombCd) {
+                        playRandomSFX(this, 'skill_bomb', 0.6);
+                        let angleBase = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+                        let bombKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri';
 
-                    this.physics.velocityFromRotation(angle, 450, bombSuri.body.velocity);
-                    this.lastSkillTimes.bomb = time;
+                        let count = 1 + this.playerStats.clone;
+                        for (let i = 0; i < count; i++) {
+                            let angle = angleBase + ((i - (count - 1) / 2) * 0.2);
+                            let bombSuri = this.projectiles.create(this.player.x, this.player.y, bombKey).setDisplaySize(40, 40).setDepth(9999);
+                            bombSuri.damage = 7 + (bombLv - 1) * 3; // 1렙 시 7 데미지
+                            bombSuri.pierce = 0;
+                            bombSuri.isBomb = true;
+                            
+                            this.tweens.add({
+                                targets: bombSuri,
+                                rotation: '+=6.28',
+                                duration: 250,
+                                repeat: -1
+                            });
+
+                            this.physics.velocityFromRotation(angle, 450, bombSuri.body.velocity);
+                        }
+
+                        this.lastSkillTimes.bomb = time;
+                    }
                 }
             }
 
@@ -793,6 +843,8 @@
                 }
             }
 
+            // 요구사항 1.2: 기폭찰 터지는 이펙트 explosion_vfx.png 로 변경
+            // 요구사항 1.5: 기폭찰 피해 범위를 주인공 크기(약 45px 반경) 정도로 제한
             handleProjectileHit(projectile, enemy) {
                 this.damageEnemy(enemy, projectile.damage);
 
@@ -801,10 +853,10 @@
                     let explosionX = projectile.x;
                     let explosionY = projectile.y;
                     
-                    let explosionKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri_vfx';
-                    let explosion = this.physics.add.sprite(explosionX, explosionY, explosionKey).setDisplaySize(120, 120).setDepth(9999);
+                    let explosionKey = this.textures.exists('explosion_vfx') ? 'explosion_vfx' : 'suri_vfx';
+                    let explosion = this.physics.add.sprite(explosionX, explosionY, explosionKey).setDisplaySize(65, 65).setDepth(9999);
                     
-                    let areaRadius = 80;
+                    let areaRadius = 45; // 주인공 크기 정도의 피해 범위
                     this.enemies.getChildren().forEach(e => {
                         if (e.active && e !== enemy) {
                             let dist = Phaser.Math.Distance.Between(explosionX, explosionY, e.x, e.y);
@@ -814,7 +866,7 @@
                         }
                     });
 
-                    this.tweens.add({ targets: explosion, scaleX: 1.4, scaleY: 1.4, alpha: 0, duration: 250, onComplete: () => explosion.destroy() });
+                    this.tweens.add({ targets: explosion, scaleX: 1.3, scaleY: 1.3, alpha: 0, duration: 250, onComplete: () => explosion.destroy() });
                 }
 
                 if (projectile.pierce <= 0) {
@@ -860,6 +912,7 @@
                 }
             }
 
+            // 요구사항 1.5: 주인공 1~3레벨 경험치 요구량 50% 단축
             collectExp(player, exp) {
                 if (this.isLevelUpOpen) return;
                 exp.destroy();
@@ -869,10 +922,16 @@
                 if (this.playerStats.exp >= this.playerStats.maxExp) {
                     this.playerStats.level++;
                     this.playerStats.exp = 0;
-                    // 요구사항 3: 20% 감소된 경험치 공식
-                    this.playerStats.maxExp = Math.floor(this.playerStats.maxExp * 1.44) + 8;
-                    this.levelText.setText(`LV.${this.playerStats.level}`);
                     
+                    if (this.playerStats.level === 2) {
+                        this.playerStats.maxExp = 12; // 1->2렙 50% 수준
+                    } else if (this.playerStats.level === 3) {
+                        this.playerStats.maxExp = 18; // 2->3렙 50% 수준
+                    } else {
+                        this.playerStats.maxExp = Math.floor(this.playerStats.maxExp * 1.44) + 8;
+                    }
+
+                    this.levelText.setText(`LV.${this.playerStats.level}`);
                     this.showLevelUpUI();
                 }
                 this.expBar.setSize((this.playerStats.exp / this.playerStats.maxExp) * 200, 16);
@@ -907,12 +966,9 @@
             }
 
             // ==========================================
-            // 원칙 2 준수: GameScene 내부 직접 UI 생성
+            // 원칙 2 준수: GameScene 내부 직접 UI 생성 (독립 Scene 사용 금지)
             // 원칙 6 준수: 레벨업 보상 카드는 세로 정렬 방식
             // 원칙 7 준수: Depth 계층 정밀 관리 (Overlay:20000, Card:20001, Text/Icon:20002)
-            // 요구사항 1 해결: Phaser Container 제거 및 독립 Element 배열 처리로 포인터 전달 완벽 보장
-            // 요구사항 2 해결: 제목 Y축 하향 (isMobile ? 190 : 150)
-            // 요구사항 3 해결: 마우스 hover 시 테두리 반짝이 glowing 이펙트 추가
             // ==========================================
             clearLevelUpUI() {
                 if (this.levelUpElements) {
@@ -949,14 +1005,14 @@
                 this.levelUpElements.push(title);
 
                 const rewardPool = [
-                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
-                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게 수룡을 날립니다.', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
+                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방(3렙시 양방향)에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
+                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '강력한 수룡탄을 발사합니다. (레벨당 개수 증가)', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
                     { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형 수리검을 던집니다.', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
-                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 좁은 구역에 범위 피해를 줍니다.', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
+                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 좁은 구역에 폭발 범위 피해를 줍니다.', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
                     { id: 'hp', type: 'normal', name: '체력 한계 돌파', desc: '최대 체력을 +20 늘리고 체력을 회복합니다.', statKey: 'maxHpLv', icon: 'box', maxLv: 10 },
                     { id: 'speed', type: 'normal', name: '족경술: 이속 증가', desc: '플레이어 이동속도를 증가시킵니다.', statKey: 'speedLv', icon: 'box', maxLv: 5 },
                     { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 기본 투사체의 관통 횟수 +1', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
-                    { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '투사체 발사 수가 +1 증가합니다.', statKey: 'clone', icon: 'scroll_clone', maxLv: 3 },
+                    { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '기본/기폭찰/나선수리검 투사체 수가 +1 증가합니다.', statKey: 'clone', icon: 'scroll_clone', maxLv: 3 },
                     { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위를 넓힙니다.', statKey: 'magnet', icon: 'scroll_magnet', maxLv: 5 }
                 ];
 
@@ -1024,7 +1080,7 @@
                         this.levelUpElements.push(lvTxt);
                     }
 
-                    // 요구사항 3: Hover 시 테두리 반짝이는 이펙트 (Tween Pulse)
+                    // Hover 시 등급 테두리 반짝이는 이펙트
                     let hoverTween = null;
 
                     cardBg.on('pointerover', () => {
@@ -1060,7 +1116,6 @@
                 });
             }
 
-            // 요구사항 1 & 2: 골드 상점 화면 잘림 방지 및 이벤트 확실 처리
             showShopUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
