@@ -92,7 +92,7 @@
             }
         }
 
-        // 요구사항 2: 상단 여백 보정 (y: 68px)
+        // 상단 여백 보정 (y: 68px) 및 잘림 방지
         function createMuteButton(scene) {
             let muteBtn = scene.add.text(scene.scale.width - 45, 68, isMuted ? '🔇' : '🔊', { fontSize: '34px' })
                 .setOrigin(0.5)
@@ -178,6 +178,10 @@
                 this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
                 this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
                 
+                // 추가 요구사항 1 & 3: 병량환 및 고기 회복 아이템 이미지
+                this.load.image('ninja_posion', '/static/img/survive/reword/ninja_posion.png');
+                this.load.image('meat', '/static/img/survive/reword/meat.png');
+
                 // 원칙 6: 골드 주머니 경로 보존
                 this.load.image('goldpocket', '/static/img/survive/reword/goldpocket.png');
 
@@ -227,7 +231,7 @@
                 let startY = isMobile ? this.scale.height - 230 : this.scale.height - 130;
                 let startX = isMobile ? this.scale.width / 2 - 140 : this.scale.width / 2 - 180;
                 let upgradeX = isMobile ? this.scale.width / 2 + 140 : this.scale.width / 2 + 180;
-                let baseSize = isMobile ? 180 : 220;
+                let baseSize = isMobile ? 190 : 220;
 
                 let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(baseSize, baseSize).setInteractive({ useHandCursor: true });
                 if(startBtn.preFX) {
@@ -397,7 +401,7 @@
                     hp: 100, maxHp: 100, speed: 160, damage: 5, attackDelay: 1100,
                     level: 1, exp: 0, maxExp: 8, gold: 0, magnetRange: 150,
                     fire: 0, water: 0, wind: 0, bomb: 0, pierce: 0, clone: 0, magnet: 0,
-                    maxHpLv: 0, speedLv: 0, healLv: 0
+                    rationPill: 0, maxHpLv: 0, speedLv: 0, healLv: 0
                 };
 
                 this.lastAttackTime = 0;
@@ -464,14 +468,20 @@
                 this.enemies = this.physics.add.group();
                 this.projectiles = this.physics.add.group();
                 this.expItems = this.physics.add.group();
+                this.specialExpItems = this.physics.add.group();
                 this.goldItems = this.physics.add.group();
+                this.rareBoxItems = this.physics.add.group();
+                this.meatItems = this.physics.add.group();
 
                 this.physics.add.collider(this.player, this.obstacles);
                 this.physics.add.collider(this.enemies, this.obstacles);
                 this.physics.add.overlap(this.player, this.enemies, this.handlePlayerHit, null, this);
                 this.physics.add.overlap(this.projectiles, this.enemies, this.handleProjectileHit, null, this);
                 this.physics.add.overlap(this.player, this.expItems, this.collectExp, null, this);
+                this.physics.add.overlap(this.player, this.specialExpItems, this.collectSpecialExp, null, this);
                 this.physics.add.overlap(this.player, this.goldItems, this.collectGold, null, this);
+                this.physics.add.overlap(this.player, this.rareBoxItems, this.collectRareBox, null, this);
+                this.physics.add.overlap(this.player, this.meatItems, this.collectMeat, null, this);
 
                 this.setupUI();
 
@@ -609,24 +619,16 @@
                     if (enemy.updateLogic) enemy.updateLogic();
                 });
 
-                // 경험치 자력
-                this.expItems.getChildren().forEach(item => {
-                    let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, item.x, item.y);
-                    if (dist < this.playerStats.magnetRange) {
-                        this.physics.moveToObject(item, this.player, 320);
-                    } else {
-                        item.body.setVelocity(0, 0);
-                    }
-                });
-
-                // 골드 자력 수집
-                this.goldItems.getChildren().forEach(goldItem => {
-                    let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, goldItem.x, goldItem.y);
-                    if (dist < this.playerStats.magnetRange) {
-                        this.physics.moveToObject(goldItem, this.player, 320);
-                    } else {
-                        goldItem.body.setVelocity(0, 0);
-                    }
+                // 일반/특수 경험치 자력 수집
+                [this.expItems, this.specialExpItems, this.goldItems, this.rareBoxItems, this.meatItems].forEach(group => {
+                    group.getChildren().forEach(item => {
+                        let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, item.x, item.y);
+                        if (dist < this.playerStats.magnetRange) {
+                            this.physics.moveToObject(item, this.player, 340);
+                        } else {
+                            item.body.setVelocity(0, 0);
+                        }
+                    });
                 });
             }
 
@@ -660,7 +662,7 @@
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
 
-                // 요구사항 1.3 & 1.4: 화둔 호화구의 술 (1렙 기준 ~1.5타로 처치, 멀티히트이므로 쿨타임/데미지 상승폭 완만)
+                // 요구사항 1.3 & 1.4: 화둔 호화구의 술 (1렙 기준 ~1.5타로 처치)
                 // 요구사항 1.4: 3렙 이상 강화 시 반대 방향으로도 발사
                 // 요구사항 1.6: 화둔은 분신술(clone) 적용 제외
                 if (this.playerStats.fire > 0) {
@@ -681,7 +683,7 @@
                             if (this.textures.exists('fire_stream')) {
                                 fire = this.physics.add.sprite(this.player.x, this.player.y, 'fire_stream')
                                     .setDisplaySize(200, 120)
-                                    .setRotation(streamAngle + Math.PI) // 기본 이미지가 <- 로 정렬되어 있으므로 + Math.PI
+                                    .setRotation(streamAngle + Math.PI)
                                     .setDepth(9999);
                             } else {
                                 fire = this.add.rectangle(this.player.x, this.player.y, 200, 80, 0xff4400, 0.6).setDepth(9999);
@@ -704,7 +706,7 @@
                     }
                 }
 
-                // 요구사항 1.3 & 1.4: 수둔 수룡탄 (1렙 1타 확정 처치: 데미지 10, 쿨타임/데미지 상승폭 가파름)
+                // 요구사항 1.3 & 1.4: 수둔 수룡탄 (1렙 1타 확정 처치: 데미지 10)
                 // 요구사항 1.4: 2렙부터 2개 발사, 1렙 증가마다 1개씩 추가 (Lv1=1, Lv2=2, Lv3=3...)
                 // 요구사항 1.6: 수둔은 분신술(clone) 적용 제외
                 if (this.playerStats.water > 0 && target) {
@@ -716,12 +718,12 @@
                         let angleBase = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
                         let waterKey = this.textures.exists('water_dragon') ? 'water_dragon' : 'suri';
                         
-                        let waterCount = waterLv; // 1렙 1개, 2렙 2개, 3렙 3개...
+                        let waterCount = waterLv;
                         for (let i = 0; i < waterCount; i++) {
                             let angle = angleBase + ((i - (waterCount - 1) / 2) * 0.22);
                             let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
                             water.rotation = angle + Math.PI / 2;
-                            water.damage = 10 + (waterLv - 1) * 4; // 1렙 시 10 데미지 (슬라임 1타 처치)
+                            water.damage = 10 + (waterLv - 1) * 4;
                             water.pierce = 0;
                             water.isBomb = false;
                             this.physics.velocityFromRotation(angle, 420, water.body.velocity);
@@ -731,7 +733,7 @@
                     }
                 }
 
-                // 요구사항 1.3 & 1.4: 풍둔 나선수리검 (1렙 기준 ~1.5타 처치, 멀티히트이므로 상승폭 낮음)
+                // 요구사항 1.3 & 1.4: 풍둔 나선수리검 (~1.5타 처치)
                 // 요구사항 1.6: 나선수리검은 분신술(clone) 적용 대상!
                 if (this.playerStats.wind > 0) {
                     let windLv = this.playerStats.wind;
@@ -775,7 +777,7 @@
                         for (let i = 0; i < count; i++) {
                             let angle = angleBase + ((i - (count - 1) / 2) * 0.2);
                             let bombSuri = this.projectiles.create(this.player.x, this.player.y, bombKey).setDisplaySize(40, 40).setDepth(9999);
-                            bombSuri.damage = 7 + (bombLv - 1) * 3; // 1렙 시 7 데미지
+                            bombSuri.damage = 7 + (bombLv - 1) * 3;
                             bombSuri.pierce = 0;
                             bombSuri.isBomb = true;
                             
@@ -819,6 +821,7 @@
                     let enemy = this.enemies.create(ex, ey, key).setScale(0.26);
                     enemy.id = Phaser.Utils.String.UUID();
                     enemy.isType1 = isType1;
+                    enemy.isNamed = false;
 
                     let baseHp = 10;
                     if (this.elapsedTime > 180) baseHp += Math.floor((this.elapsedTime - 180) / 15) * 2;
@@ -843,6 +846,48 @@
                 }
             }
 
+            // 추가 요구사항 1: 네임드 특수 몬스터 스폰 (매 1분 30초 = 90초마다)
+            spawnNamedMonster() {
+                let angle = Math.random() * Math.PI * 2;
+                let ex = this.player.x + Math.cos(angle) * 850;
+                let ey = this.player.y + Math.sin(angle) * 850;
+
+                let isType1 = Math.random() < 0.5;
+                let key = isType1 ? 'sli1' : 'ssli1';
+                let namedEnemy = this.enemies.create(ex, ey, key).setScale(0.45);
+                namedEnemy.id = Phaser.Utils.String.UUID();
+                namedEnemy.isType1 = isType1;
+                namedEnemy.isNamed = true;
+
+                let baseHp = 10;
+                if (this.elapsedTime > 180) baseHp += Math.floor((this.elapsedTime - 180) / 15) * 2;
+                let namedHp = baseHp * 15; // 체력 15배
+                namedEnemy.hp = namedHp;
+                namedEnemy.maxHp = namedHp;
+                namedEnemy.hpBar = this.add.graphics().setDepth(100);
+
+                // 요구사항 2: 보라색 계열 (Plum: 0x8B008B / 0xDDA0DD) 틴트 및 반짝이는 테두리
+                namedEnemy.setTint(0x8B008B);
+                if (namedEnemy.preFX) {
+                    namedEnemy.preFX.addGlow(0xDDA0DD, 4, 0, false);
+                }
+
+                namedEnemy.update = () => {
+                    this.physics.moveToObject(namedEnemy, this.player, 72);
+                    let vx = namedEnemy.body.velocity.x;
+                    let vy = namedEnemy.body.velocity.y;
+                    let prefix = namedEnemy.isType1 ? 'sli' : 'ssli';
+
+                    if (Math.abs(vx) > Math.abs(vy)) {
+                        if (vx < 0) namedEnemy.setTexture(prefix + '3');
+                        else if (vx > 0) namedEnemy.setTexture(prefix + '4');
+                    } else if (Math.abs(vy) > 0) {
+                        if (vy > 0) namedEnemy.setTexture(prefix + '1');
+                        else if (vy < 0) namedEnemy.setTexture(prefix + '2');
+                    }
+                };
+            }
+
             // 요구사항 1.2: 기폭찰 터지는 이펙트 explosion_vfx.png 로 변경
             // 요구사항 1.5: 기폭찰 피해 범위를 주인공 크기(약 45px 반경) 정도로 제한
             handleProjectileHit(projectile, enemy) {
@@ -856,7 +901,7 @@
                     let explosionKey = this.textures.exists('explosion_vfx') ? 'explosion_vfx' : 'suri_vfx';
                     let explosion = this.physics.add.sprite(explosionX, explosionY, explosionKey).setDisplaySize(65, 65).setDepth(9999);
                     
-                    let areaRadius = 45; // 주인공 크기 정도의 피해 범위
+                    let areaRadius = 45;
                     this.enemies.getChildren().forEach(e => {
                         if (e.active && e !== enemy) {
                             let dist = Phaser.Math.Distance.Between(explosionX, explosionY, e.x, e.y);
@@ -879,13 +924,33 @@
             damageEnemy(enemy, dmg) {
                 playRandomSFX(this, 'hit_impact', 0.3);
                 enemy.hp -= dmg;
-                enemy.setTint(0xffffff);
-                this.time.delayedCall(100, () => enemy.clearTint());
+                enemy.setTint(enemy.isNamed ? 0x8B008B : 0xffffff);
+                this.time.delayedCall(100, () => {
+                    if (enemy.active) enemy.setTint(enemy.isNamed ? 0x8B008B : 0xffffff);
+                });
 
                 if (enemy.hp <= 0) {
                     if (enemy.hpBar) enemy.hpBar.destroy();
-                    this.expItems.create(enemy.x, enemy.y, 'sli_drop1').setScale(0.3);
-                    if (Math.random() < 0.1) this.goldItems.create(enemy.x, enemy.y, 'sli_drop3').setScale(0.3);
+
+                    if (enemy.isNamed) {
+                        // 네임드 처치 시: rare_box 및 40배 대형 경험치 드롭
+                        let box = this.rareBoxItems.create(enemy.x, enemy.y, 'rare_box').setDisplaySize(48, 48);
+                        if (box.preFX) box.preFX.addGlow(0xffcc00, 4);
+
+                        let specExp = this.specialExpItems.create(enemy.x + 20, enemy.y, 'sli_drop1').setDisplaySize(42, 42);
+                        specExp.setTint(0xff00ff);
+                        if (specExp.preFX) specExp.preFX.addGlow(0xff00ff, 4);
+                    } else {
+                        // 일반 슬라임 처치 시: 기본 경험치 + 10% 골드 + 5% 고기
+                        this.expItems.create(enemy.x, enemy.y, 'sli_drop1').setScale(0.3);
+                        if (Math.random() < 0.1) this.goldItems.create(enemy.x, enemy.y, 'sli_drop3').setScale(0.3);
+                        
+                        // 추가 요구사항 3: 5% 확률로 30 HP 회복 고기 드롭
+                        if (Math.random() < 0.05) {
+                            this.meatItems.create(enemy.x, enemy.y, 'meat').setDisplaySize(32, 32);
+                        }
+                    }
+
                     enemy.destroy();
                 }
             }
@@ -893,7 +958,9 @@
             handlePlayerHit(player, enemy) {
                 if (this.isInvincible || this.isLevelUpOpen) return;
 
-                this.playerStats.hp -= 10;
+                // 네임드는 공격력 2배 (20 데미지)
+                let damageAmount = enemy.isNamed ? 20 : 10;
+                this.playerStats.hp -= damageAmount;
                 this.updateHpUI();
                 this.isInvincible = true;
 
@@ -912,29 +979,57 @@
                 }
             }
 
-            // 요구사항 1.5: 주인공 1~3레벨 경험치 요구량 50% 단축
             collectExp(player, exp) {
                 if (this.isLevelUpOpen) return;
                 exp.destroy();
                 playRandomSFX(this, 'pickup', 0.4);
                 this.playerStats.exp += 1;
+                this.checkLevelUp();
+            }
 
+            // 추가 요구사항 1: 40배 대형 경험치 획득
+            collectSpecialExp(player, specExp) {
+                if (this.isLevelUpOpen) return;
+                specExp.destroy();
+                playRandomSFX(this, 'pickup', 0.6);
+                this.playerStats.exp += 40;
+                this.checkLevelUp();
+            }
+
+            // 추가 요구사항 1: rare_box 획득 시 [레어] 등급 보상만 1회 출력
+            collectRareBox(player, box) {
+                if (this.isLevelUpOpen) return;
+                box.destroy();
+                playRandomSFX(this, 'pickup', 0.6);
+                this.showLevelUpUI(true); // isRareOnly = true
+            }
+
+            // 추가 요구사항 3: 고기 획득 시 체력 +30 회복
+            collectMeat(player, meat) {
+                if (this.isLevelUpOpen) return;
+                meat.destroy();
+                playRandomSFX(this, 'pickup', 0.6);
+                this.playerStats.hp = Math.min(this.playerStats.hp + 30, this.playerStats.maxHp);
+                this.updateHpUI();
+            }
+
+            checkLevelUp() {
                 if (this.playerStats.exp >= this.playerStats.maxExp) {
                     this.playerStats.level++;
-                    this.playerStats.exp = 0;
+                    this.playerStats.exp -= this.playerStats.maxExp;
                     
                     if (this.playerStats.level === 2) {
-                        this.playerStats.maxExp = 12; // 1->2렙 50% 수준
+                        this.playerStats.maxExp = 12;
                     } else if (this.playerStats.level === 3) {
-                        this.playerStats.maxExp = 18; // 2->3렙 50% 수준
+                        this.playerStats.maxExp = 18;
                     } else {
                         this.playerStats.maxExp = Math.floor(this.playerStats.maxExp * 1.44) + 8;
                     }
 
                     this.levelText.setText(`LV.${this.playerStats.level}`);
-                    this.showLevelUpUI();
+                    this.showLevelUpUI(false);
                 }
-                this.expBar.setSize((this.playerStats.exp / this.playerStats.maxExp) * 200, 16);
+                this.expBar.setSize(Math.min(1, this.playerStats.exp / this.playerStats.maxExp) * 200, 16);
             }
 
             collectGold(player, gold) {
@@ -953,6 +1048,11 @@
                 this.timerText.setText(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
 
                 this.enemies.getChildren().forEach(e => { if (e.update) e.update(); });
+
+                // 추가 요구사항 1: 매 1분 30초(90초)마다 네임드 특수 몬스터 스폰
+                if (this.elapsedTime > 0 && this.elapsedTime % 90 === 0) {
+                    this.spawnNamedMonster();
+                }
 
                 if (this.elapsedTime === this.stageData.time) {
                     playRandomSFX(this, 'boss_warning', 0.8);
@@ -981,7 +1081,7 @@
                 this.physics.resume();
             }
 
-            showLevelUpUI() {
+            showLevelUpUI(isRareOnly = false) {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
                 playRandomSFX(this, 'level_up');
@@ -998,7 +1098,8 @@
                 });
                 this.levelUpElements.push(overlay);
 
-                let title = this.add.text(this.scale.width / 2, isMobile ? 180 : 140, 'LEVEL UP!', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' })
+                let titleStr = isRareOnly ? 'RARE REWARD!' : 'LEVEL UP!';
+                let title = this.add.text(this.scale.width / 2, isMobile ? 180 : 140, titleStr, { fontSize: '48px', fill: isRareOnly ? '#ffea00' : '#ffcc00', fontStyle: 'bold' })
                     .setOrigin(0.5)
                     .setScrollFactor(0)
                     .setDepth(20002);
@@ -1009,6 +1110,8 @@
                     { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '강력한 수룡탄을 발사합니다. (레벨당 개수 증가)', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
                     { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형 수리검을 던집니다.', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
                     { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 좁은 구역에 폭발 범위 피해를 줍니다.', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
+                    // 요구사항 2: 공격속도 & 공격력 통합 강화 (닌자 비전: 병량환)
+                    { id: 'rationPill', type: 'normal', name: '닌자 비전: 병량환', desc: '공격속도가 대폭 상승하고 공격력이 +2 증가합니다.', statKey: 'rationPill', icon: 'ninja_posion', maxLv: 3 },
                     { id: 'hp', type: 'normal', name: '체력 한계 돌파', desc: '최대 체력을 +20 늘리고 체력을 회복합니다.', statKey: 'maxHpLv', icon: 'box', maxLv: 10 },
                     { id: 'speed', type: 'normal', name: '족경술: 이속 증가', desc: '플레이어 이동속도를 증가시킵니다.', statKey: 'speedLv', icon: 'box', maxLv: 5 },
                     { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 기본 투사체의 관통 횟수 +1', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
@@ -1016,7 +1119,12 @@
                     { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위를 넓힙니다.', statKey: 'magnet', icon: 'scroll_magnet', maxLv: 5 }
                 ];
 
-                let available = rewardPool.filter(r => (this.playerStats[r.statKey] || 0) < r.maxLv);
+                let filteredPool = rewardPool;
+                if (isRareOnly) {
+                    filteredPool = rewardPool.filter(r => r.type === 'rare');
+                }
+
+                let available = filteredPool.filter(r => (this.playerStats[r.statKey] || 0) < r.maxLv);
                 if (available.length < 3) {
                     while(available.length < 3) {
                         available.push({ id: 'heal', type: 'normal', name: '체력 회복', desc: '체력을 즉시 20 회복합니다.', statKey: 'healLv', icon: 'box', maxLv: 999 });
@@ -1160,7 +1268,12 @@
                 if (!this.playerStats[reward.statKey]) this.playerStats[reward.statKey] = 0;
                 this.playerStats[reward.statKey]++;
 
-                if (reward.id === 'hp') { this.playerStats.maxHp += 20; this.playerStats.hp += 20; }
+                if (reward.id === 'rationPill') {
+                    // 공격속도 대폭 증가 (3렙 기준 400ms = 1초당 2.5회) + 데미지 +2
+                    this.playerStats.attackDelay = Math.max(400, 1100 - (this.playerStats.rationPill * 233));
+                    this.playerStats.damage += 2;
+                }
+                else if (reward.id === 'hp') { this.playerStats.maxHp += 20; this.playerStats.hp += 20; }
                 else if (reward.id === 'speed') { this.playerStats.speed += 12; }
                 else if (reward.id === 'magnet') { this.playerStats.magnetRange += 40; }
                 else if (reward.id === 'heal') { this.playerStats.hp = Math.min(this.playerStats.hp + 20, this.playerStats.maxHp); }
