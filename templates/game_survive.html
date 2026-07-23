@@ -35,7 +35,7 @@
         let isMuted = false;
         let globalBGM = null;
 
-        // 원칙 3: BGM 중복 방지 재생 헬퍼 (전체 코드 통틀어 단 1개 선언 유지)
+        // 원칙 3: BGM 단일 선언 (중복 재생 방지 필수 조건문 유지)
         function playBGM(scene, key) {
             if (globalBGM && globalBGM.key === key && globalBGM.isPlaying) {
                 return; 
@@ -79,7 +79,7 @@
             }
         }
 
-        // 원칙 4: SFX 랜덤 호출 헬퍼
+        // 원칙 4: SFX 호출 시 'button' 인자 정밀 전달
         function playRandomSFX(scene, baseKey, volume = 0.5) {
             if (isMuted) return;
             let num = Math.random() < 0.5 ? '1' : '2';
@@ -92,14 +92,16 @@
             }
         }
 
+        // 요구사항 1 & 2: 사운드 버튼 위치 상단으로 조정 및 한 줄 정렬 지원
         function createMuteButton(scene) {
-            let muteBtn = scene.add.text(scene.scale.width - 40, 40, isMuted ? '🔇' : '🔊', { fontSize: '32px' })
+            let muteBtn = scene.add.text(scene.scale.width - 45, 48, isMuted ? '🔇' : '🔊', { fontSize: '32px' })
                 .setOrigin(0.5)
                 .setScrollFactor(0)
                 .setDepth(10000)
-                .setInteractive();
+                .setInteractive({ useHandCursor: true });
 
-            muteBtn.on('pointerdown', () => {
+            muteBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                if (event) event.stopPropagation();
                 playRandomSFX(scene, 'button');
                 isMuted = !isMuted;
                 scene.sound.mute = isMuted;
@@ -112,12 +114,13 @@
         }
 
         // ==========================================
-        // 0. Preload Scene (원칙 1: 리소스 흔적 보존)
+        // 0. Preload Scene (원칙 1: 미구현 리소스 보존)
         // ==========================================
         class PreloadScene extends Phaser.Scene {
             constructor() { super({ key: 'PreloadScene' }); }
 
             preload() {
+                // 요구사항 2: 상단 잘림 방지 Y좌표 하향
                 this.add.text(this.scale.width / 2, this.scale.height / 2, '로딩 중...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
 
                 this.load.image('main_bg', '/static/img/survive/main.png');
@@ -173,7 +176,7 @@
                 this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
                 this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
                 
-                // 골드 주머니 이미지 (원칙 6)
+                // 원칙 6: 골드 주머니 경로 보존
                 this.load.image('goldpocket', '/static/img/survive/reword/goldpocket.png');
 
                 ['sli', 'ssli'].forEach(prefix => {
@@ -211,12 +214,21 @@
 
                 createMuteButton(this);
 
-                let startY = isMobile ? this.scale.height - 220 : this.scale.height - 120;
-                let startX = isMobile ? this.scale.width / 2 - 140 : this.scale.width / 2 - 180;
-                let upgradeX = isMobile ? this.scale.width / 2 + 140 : this.scale.width / 2 + 180;
-                let baseSize = isMobile ? 160 : 220;
+                // 요구사항 6: 모바일 반응형 크기 조절 (글자 잘림 문제 해결 및 버튼 확대)
+                let titleText = this.add.text(this.scale.width / 2, isMobile ? 120 : 100, 'NCS SURVIVE', {
+                    fontSize: isMobile ? '48px' : '64px',
+                    fill: '#ffcc00',
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 6
+                }).setOrigin(0.5);
 
-                let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(baseSize, baseSize).setInteractive();
+                let startY = isMobile ? this.scale.height - 230 : this.scale.height - 130;
+                let startX = isMobile ? this.scale.width / 2 - 150 : this.scale.width / 2 - 180;
+                let upgradeX = isMobile ? this.scale.width / 2 + 150 : this.scale.width / 2 + 180;
+                let baseSize = isMobile ? 190 : 220; // 모바일 환경 버튼 확대
+
+                let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(baseSize, baseSize).setInteractive({ useHandCursor: true });
                 if(startBtn.preFX) {
                     startBtn.preFX.setPadding(32);
                     let startGlow = startBtn.preFX.addGlow(0xffcc00, 4, 0, false);
@@ -235,7 +247,7 @@
                     this.scene.start('StageSelectScene');
                 });
 
-                let upgradeBtn = this.add.image(upgradeX, startY, 'game_upgrade').setDisplaySize(baseSize, baseSize).setInteractive();
+                let upgradeBtn = this.add.image(upgradeX, startY, 'game_upgrade').setDisplaySize(baseSize, baseSize).setInteractive({ useHandCursor: true });
                 if(upgradeBtn.preFX) {
                     upgradeBtn.preFX.setPadding(32);
                     let upgradeGlow = upgradeBtn.preFX.addGlow(0xffcc00, 4, 0, false);
@@ -256,7 +268,7 @@
 
                 let exitBtn = this.add.text(this.scale.width / 2, this.scale.height - 40, '메인 허브로 돌아가기', {
                     fontSize: '22px', fill: '#aaa', backgroundColor: '#222', padding: { x: 15, y: 8 }, borderRadius: 8
-                }).setOrigin(0.5).setInteractive();
+                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
                 
                 exitBtn.on('pointerover', () => exitBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 exitBtn.on('pointerout', () => exitBtn.setBackgroundColor('#222').setFill('#aaa'));
@@ -281,7 +293,7 @@
 
                 let backBtn = this.add.text(this.scale.width / 2, this.scale.height - 120, '뒤로가기', {
                     fontSize: '28px', fill: '#fff', backgroundColor: '#444', padding: { x: 25, y: 12 }
-                }).setOrigin(0.5).setInteractive();
+                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
                 backBtn.on('pointerover', () => backBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 backBtn.on('pointerout', () => backBtn.setBackgroundColor('#444').setFill('#fff'));
@@ -335,7 +347,7 @@
                         fontSize: '18px', fill: '#ddaa55', align: 'center', fontStyle: 'bold'
                     }).setOrigin(0.5);
 
-                    hitBox.setInteractive();
+                    hitBox.setInteractive({ useHandCursor: true });
                     hitBox.on('pointerover', () => {
                         hitBox.setFillStyle(0x443322);
                         hitBox.setStrokeStyle(3, 0xffcc00);
@@ -352,7 +364,7 @@
 
                 let backBtn = this.add.text(this.scale.width / 2, this.scale.height - 80, '메인 메뉴로', {
                     fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 20, y: 10 }
-                }).setOrigin(0.5).setInteractive();
+                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
                 backBtn.on('pointerover', () => backBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 backBtn.on('pointerout', () => backBtn.setBackgroundColor('#555').setFill('#fff'));
@@ -466,27 +478,29 @@
                 this.time.addEvent({ delay: 1000, callback: this.spawnEnemies, callbackScope: this, loop: true });
             }
 
+            // 요구사항 1 & 2: 골드 및 사운드 상단 한 줄 배치 & 상단 잘림 현상 방지 Y축 조정
             setupUI() {
-                this.timerText = this.add.text(this.scale.width / 2, 40, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-                this.levelText = this.add.text(30, 30, 'LV.1', { fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
+                this.timerText = this.add.text(this.scale.width / 2, 48, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+                this.levelText = this.add.text(30, 40, 'LV.1', { fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
 
-                this.expBarBg = this.add.rectangle(130, 70, 200, 16, 0x333333).setScrollFactor(0).setDepth(1000);
-                this.expBar = this.add.rectangle(30, 70, 0, 16, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+                this.expBarBg = this.add.rectangle(130, 78, 200, 16, 0x333333).setScrollFactor(0).setDepth(1000);
+                this.expBar = this.add.rectangle(30, 78, 0, 16, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                this.hpText = this.add.text(30, 95, 'HP: 100 / 100', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
-                this.playerHpBg = this.add.rectangle(130, 130, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
-                this.playerHpBar = this.add.rectangle(30, 130, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+                this.hpText = this.add.text(30, 102, 'HP: 100 / 100', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
+                this.playerHpBg = this.add.rectangle(130, 134, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
+                this.playerHpBar = this.add.rectangle(30, 134, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                // 원칙 6: goldpocket.png 아이콘 경로 고정
+                // 상단 한 줄 배치: 골드 아이콘과 골드 텍스트의 Y좌표를 음소거 버튼과 동일한 48px로 설정
                 if (this.textures.exists('goldpocket')) {
-                    this.goldIcon = this.add.image(this.scale.width - 160, 80, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(1000).setInteractive();
+                    this.goldIcon = this.add.image(this.scale.width - 170, 48, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
                 } else {
-                    this.goldIcon = this.add.text(this.scale.width - 160, 80, '💰', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000).setInteractive();
+                    this.goldIcon = this.add.text(this.scale.width - 170, 48, '💰', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
                 }
 
-                this.goldText = this.add.text(this.scale.width - 120, 80, '0', { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1000).setInteractive();
+                this.goldText = this.add.text(this.scale.width - 135, 48, '0', { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
 
-                const openShop = () => {
+                const openShop = (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
                     this.showShopUI();
                 };
                 this.goldIcon.on('pointerdown', openShop);
@@ -499,13 +513,14 @@
                 this.playerHpBar.setSize(200 * hpPct, 20);
             }
 
+            // 요구사항 7: 팝업 시 터치 이벤트 간섭 방지
             setupVirtualJoystick() {
                 this.joyBase = this.add.circle(0, 0, 60, 0xffffff, 0.2).setScrollFactor(0).setDepth(9999).setVisible(false);
                 this.joyThumb = this.add.circle(0, 0, 30, 0xffffff, 0.5).setScrollFactor(0).setDepth(10000).setVisible(false);
 
                 this.input.on('pointerdown', (pointer) => {
-                    if (this.isLevelUpOpen) return;
-                    if (pointer.x > this.scale.width - 80 && pointer.y < 80) return;
+                    if (this.isLevelUpOpen) return; // 팝업 열림 시 조이스틱 무시
+                    if (pointer.x > this.scale.width - 180 && pointer.y < 90) return; // 상단 우측 버튼 터치 구역 예외
                     this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
                     this.joyThumb.setPosition(pointer.x, pointer.y).setVisible(true);
                 });
@@ -588,12 +603,23 @@
                     if (enemy.updateLogic) enemy.updateLogic();
                 });
 
+                // 경험치 아이콘 자력 끌림 처리
                 this.expItems.getChildren().forEach(item => {
                     let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, item.x, item.y);
                     if (dist < this.playerStats.magnetRange) {
-                        this.physics.moveToObject(item, this.player, 300);
+                        this.physics.moveToObject(item, this.player, 320);
                     } else {
                         item.body.setVelocity(0, 0);
+                    }
+                });
+
+                // 요구사항 5: 드랍된 골드의 자력 획득 범위를 경험치 아이콘과 동일한 수준으로 보정
+                this.goldItems.getChildren().forEach(goldItem => {
+                    let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, goldItem.x, goldItem.y);
+                    if (dist < this.playerStats.magnetRange) {
+                        this.physics.moveToObject(goldItem, this.player, 320);
+                    } else {
+                        goldItem.body.setVelocity(0, 0);
                     }
                 });
             }
@@ -624,17 +650,18 @@
                 }
             }
 
+            // 요구사항 4: 스킬 데미지 밸런싱 패치 (초기 슬라임 HP 10 기준 2대 정도 때려야 잡히도록 패치)
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
 
-                // 2번 항목: 화둔 호화구의 술 방향/각도 보정 (<- 기본 이미지를 타겟 각도에 맞춰 + Math.PI 적용)
+                // 화둔: 데미지 3 (슬라임 기준 3~4타 타격 필요)
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 3500) {
                     playRandomSFX(this, 'skill_fire', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
                     
                     let fire;
                     if (this.textures.exists('fire_stream')) {
-                        // fire_stream.png가 왼쪽(<-) 이미지이므로 angle + Math.PI 회전 적용
+                        // 화둔 호화구의 술 방향 보정 (<- 이미지 방향 고려 angle + Math.PI 적용)
                         fire = this.physics.add.sprite(this.player.x, this.player.y, 'fire_stream')
                             .setDisplaySize(200, 120)
                             .setRotation(angle + Math.PI)
@@ -644,7 +671,7 @@
                         this.physics.add.existing(fire);
                     }
 
-                    fire.damage = 2 + (this.playerStats.fire * 2.5);
+                    fire.damage = 1.5 + (this.playerStats.fire * 1.5); // 1렙 뎀 3.0
                     fire.hitEnemies = [];
 
                     this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
@@ -657,6 +684,7 @@
                     this.lastSkillTimes.fire = time;
                 }
 
+                // 수둔: 데미지 5 (슬라임 기준 정확히 2타 필요)
                 if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + 3000 && target) {
                     playRandomSFX(this, 'skill_water', 0.6);
                     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -664,20 +692,21 @@
                     
                     let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
                     water.rotation = angle + Math.PI / 2;
-                    water.damage = 3 + (this.playerStats.water * 3);
+                    water.damage = 3 + (this.playerStats.water * 2); // 1렙 뎀 5.0
                     water.pierce = 0;
                     water.isBomb = false;
                     this.physics.velocityFromRotation(angle, 400, water.body.velocity);
                     this.lastSkillTimes.water = time;
                 }
 
+                // 풍둔 나선수리검: 데미지 1 (다연발 타격으로 2~3회 스쳐야 처치)
                 if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
                     playRandomSFX(this, 'skill_wind', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
                     let windKey = this.textures.exists('rasenshuriken') ? 'rasenshuriken' : 'suri';
 
                     let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
-                    wind.damage = 2 + (this.playerStats.wind * 2);
+                    wind.damage = 0.5 + (this.playerStats.wind * 0.5); // 1렙 뎀 1.0
                     wind.pierce = 999;
                     wind.isBomb = false;
                     
@@ -687,18 +716,26 @@
                     this.lastSkillTimes.wind = time;
                 }
 
-                // 3번 항목: 기폭찰 수리검 발사 기능 구현 (관통 x, 명중 위치 범위 피해)
+                // 요구사항 4: 기폭찰 수리검 크기 60% 축소 + 회전하며 날아가는 연출 + 1렙 데미지 4로 2.5타 밸런스 조정
                 if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
                     let bombKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri';
 
-                    let bombSuri = this.projectiles.create(this.player.x, this.player.y, bombKey).setDisplaySize(50, 50).setDepth(9999);
-                    bombSuri.rotation = angle + Math.PI / 2;
-                    bombSuri.damage = 8 + (this.playerStats.bomb * 4);
-                    bombSuri.pierce = 0; // 관통 불가 (명중 시 즉시 폭발)
-                    bombSuri.isBomb = true; // 기폭찰 범위 피해 식별 플래그
+                    // 기존 50px -> 60% 축소된 20px 크기 설정
+                    let bombSuri = this.projectiles.create(this.player.x, this.player.y, bombKey).setDisplaySize(20, 20).setDepth(9999);
+                    bombSuri.damage = 2 + (this.playerStats.bomb * 2); // 1렙 뎀 4.0
+                    bombSuri.pierce = 0;
+                    bombSuri.isBomb = true;
                     
+                    // 회전하며 날아가는 무한 롤링 이펙트
+                    this.tweens.add({
+                        targets: bombSuri,
+                        rotation: '+=6.28',
+                        duration: 300,
+                        repeat: -1
+                    });
+
                     this.physics.velocityFromRotation(angle, 450, bombSuri.body.velocity);
                     this.lastSkillTimes.bomb = time;
                 }
@@ -730,7 +767,7 @@
                     enemy.id = Phaser.Utils.String.UUID();
                     enemy.isType1 = isType1;
 
-                    let baseHp = 10;
+                    let baseHp = 10; // 기본 슬라임 체력 10
                     if (this.elapsedTime > 180) baseHp += Math.floor((this.elapsedTime - 180) / 15) * 2;
                     enemy.hp = baseHp;
                     enemy.maxHp = baseHp;
@@ -753,7 +790,6 @@
                 }
             }
 
-            // 3번 항목: 기폭찰 수리검 충돌 처리 (관통 없이 맞은 좁은 구역 범위 폭발 피해)
             handleProjectileHit(projectile, enemy) {
                 this.damageEnemy(enemy, projectile.damage);
 
@@ -763,9 +799,9 @@
                     let explosionY = projectile.y;
                     
                     let explosionKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri_vfx';
-                    let explosion = this.physics.add.sprite(explosionX, explosionY, explosionKey).setDisplaySize(140, 140).setDepth(9999);
+                    let explosion = this.physics.add.sprite(explosionX, explosionY, explosionKey).setDisplaySize(120, 120).setDepth(9999);
                     
-                    // 폭발 범위 피해 (좁은 범위 에어리어 피해)
+                    // 좁은 범위 에어리어 폭발 피해
                     let areaRadius = 80;
                     this.enemies.getChildren().forEach(e => {
                         if (e.active && e !== enemy) {
@@ -776,7 +812,7 @@
                         }
                     });
 
-                    this.tweens.add({ targets: explosion, scaleX: 1.5, scaleY: 1.5, alpha: 0, duration: 250, onComplete: () => explosion.destroy() });
+                    this.tweens.add({ targets: explosion, scaleX: 1.4, scaleY: 1.4, alpha: 0, duration: 250, onComplete: () => explosion.destroy() });
                 }
 
                 if (projectile.pierce <= 0) {
@@ -822,6 +858,7 @@
                 }
             }
 
+            // 요구사항 3: 레벨업 요구 경험치량 20% 감소 조정
             collectExp(player, exp) {
                 if (this.isLevelUpOpen) return;
                 exp.destroy();
@@ -831,10 +868,10 @@
                 if (this.playerStats.exp >= this.playerStats.maxExp) {
                     this.playerStats.level++;
                     this.playerStats.exp = 0;
-                    this.playerStats.maxExp = Math.floor(this.playerStats.maxExp * 1.8) + 10;
+                    // 기존 Math.floor(maxExp * 1.8) + 10 에서 20% 감소된 1.44배율 공식 적용
+                    this.playerStats.maxExp = Math.floor(this.playerStats.maxExp * 1.44) + 8;
                     this.levelText.setText(`LV.${this.playerStats.level}`);
                     
-                    // 레벨업 팝업 호출 (원칙 2: GameScene 내부 직접 UI 컨테이너 방식)
                     this.showLevelUpUI();
                 }
                 this.expBar.setSize((this.playerStats.exp / this.playerStats.maxExp) * 200, 16);
@@ -869,8 +906,8 @@
             }
 
             // ==========================================
-            // 원칙 2 준수: 독립 Scene Stack Rendering 꼬임 방지를 위해 GameScene 내부 카메라 좌표 기반 UI 컨테이너 생성
-            // 1번 항목: 1개 층에 가로로 3개가 보여지는 레벨업 보상 카드 구조
+            // 원칙 2 준수: 독립 Scene Stack 렌더링 꼬임 방지를 위해 GameScene 내부 카메라 좌표 직접 UI 컨테이너 생성
+            // 요구사항 7 원인 해결: 버튼 오버레이 이벤트 전파(stopPropagation) 및 Depth 완벽 수정을 통한 클릭 반응형 해결
             // ==========================================
             showLevelUpUI() {
                 this.isLevelUpOpen = true;
@@ -879,8 +916,14 @@
 
                 this.levelUpContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(20000);
 
-                // 반투명 암전 배경
-                let overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85).setInteractive();
+                // 터치 흡수 배경 사각형
+                let overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85)
+                    .setInteractive();
+                
+                overlay.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
+                });
+
                 this.levelUpContainer.add(overlay);
 
                 let title = this.add.text(this.scale.width / 2, isMobile ? 180 : 130, 'LEVEL UP!', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5);
@@ -908,7 +951,6 @@
                 let shuffled = Phaser.Utils.Array.Shuffle([...available]);
                 let selected = shuffled.slice(0, 3);
 
-                // 1번 요청 반영: 1개 층(가로)에 3개 카드가 정렬되도록 계산
                 let cardWidth = isMobile ? 210 : 340;
                 let cardHeight = isMobile ? 380 : 420;
                 let cardSpacing = isMobile ? 225 : 370;
@@ -921,7 +963,7 @@
 
                     let cardBg = this.add.rectangle(posX, cardY, cardWidth, cardHeight, isRare ? 0x3d2b00 : 0x112233, 0.95)
                         .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
-                        .setInteractive();
+                        .setInteractive({ useHandCursor: true });
 
                     let iconKey = reward.icon || 'box';
                     if (!this.textures.exists(iconKey)) iconKey = (isRare ? 'rare_box' : 'box');
@@ -943,7 +985,8 @@
                     cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x664400 : 0x224466));
                     cardBg.on('pointerout', () => cardBg.setFillStyle(isRare ? 0x3d2b00 : 0x112233));
                     
-                    cardBg.on('pointerdown', () => {
+                    cardBg.on('pointerdown', (pointer, localX, localY, event) => {
+                        if (event) event.stopPropagation();
                         playRandomSFX(this, 'button');
                         this.applyReward(reward);
                         this.levelUpContainer.destroy();
@@ -953,24 +996,33 @@
                 });
             }
 
+            // 골드 클릭 시 상점 UI
             showShopUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
                 
                 let shopContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(20000);
-                let overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85).setInteractive();
+                
+                let overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85)
+                    .setInteractive();
+
+                overlay.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
+                });
+
                 let title = this.add.text(this.scale.width / 2, this.scale.height / 2 - 100, '골드 상점', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5);
                 let desc = this.add.text(this.scale.width / 2, this.scale.height / 2, '구현 준비 중...', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5);
 
                 let closeBtn = this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, '닫기', {
                     fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 15 }
-                }).setOrigin(0.5).setInteractive();
+                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
                 shopContainer.add([overlay, title, desc, closeBtn]);
 
                 closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#555').setFill('#fff'));
-                closeBtn.on('pointerdown', () => {
+                closeBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
                     playRandomSFX(this, 'button');
                     shopContainer.destroy();
                     this.isLevelUpOpen = false;
