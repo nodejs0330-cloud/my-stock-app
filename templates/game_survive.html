@@ -92,12 +92,12 @@
             }
         }
 
-        // 요구사항 1 & 2: 사운드 버튼 위치 상단으로 조정 및 한 줄 정렬 지원
+        // 요구사항 1 & 2: 사운드 버튼 위치 상단 여백 확보 (y: 68px)
         function createMuteButton(scene) {
-            let muteBtn = scene.add.text(scene.scale.width - 45, 48, isMuted ? '🔇' : '🔊', { fontSize: '32px' })
+            let muteBtn = scene.add.text(scene.scale.width - 45, 68, isMuted ? '🔇' : '🔊', { fontSize: '34px' })
                 .setOrigin(0.5)
                 .setScrollFactor(0)
-                .setDepth(10000)
+                .setDepth(10005)
                 .setInteractive({ useHandCursor: true });
 
             muteBtn.on('pointerdown', (pointer, localX, localY, event) => {
@@ -120,8 +120,8 @@
             constructor() { super({ key: 'PreloadScene' }); }
 
             preload() {
-                // 요구사항 2: 상단 잘림 방지 Y좌표 하향
-                this.add.text(this.scale.width / 2, this.scale.height / 2, '로딩 중...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
+                // 요구사항 2: 상단 잘림 방지 Y좌표 하향 및 로딩 위치 보정
+                this.add.text(this.scale.width / 2, this.scale.height / 2 + 20, '로딩 중...', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
 
                 this.load.image('main_bg', '/static/img/survive/main.png');
                 this.load.image('game_start', '/static/img/survive/game_start.png');
@@ -176,7 +176,7 @@
                 this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
                 this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
                 
-                // 원칙 6: 골드 주머니 경로 보존
+                // 원칙 6: 골드 주머니 경로 보존 (static/img/survive/reword/goldpocket.png)
                 this.load.image('goldpocket', '/static/img/survive/reword/goldpocket.png');
 
                 ['sli', 'ssli'].forEach(prefix => {
@@ -214,9 +214,9 @@
 
                 createMuteButton(this);
 
-                // 요구사항 6: 모바일 반응형 크기 조절 (글자 잘림 문제 해결 및 버튼 확대)
-                let titleText = this.add.text(this.scale.width / 2, isMobile ? 120 : 100, 'NCS SURVIVE', {
-                    fontSize: isMobile ? '48px' : '64px',
+                // 요구사항 6: 모바일 반응형 타이틀 및 크기 조절
+                let titleText = this.add.text(this.scale.width / 2, isMobile ? 140 : 120, 'NCS SURVIVE', {
+                    fontSize: isMobile ? '46px' : '64px',
                     fill: '#ffcc00',
                     fontStyle: 'bold',
                     stroke: '#000000',
@@ -224,9 +224,9 @@
                 }).setOrigin(0.5);
 
                 let startY = isMobile ? this.scale.height - 230 : this.scale.height - 130;
-                let startX = isMobile ? this.scale.width / 2 - 150 : this.scale.width / 2 - 180;
-                let upgradeX = isMobile ? this.scale.width / 2 + 150 : this.scale.width / 2 + 180;
-                let baseSize = isMobile ? 190 : 220; // 모바일 환경 버튼 확대
+                let startX = isMobile ? this.scale.width / 2 - 140 : this.scale.width / 2 - 180;
+                let upgradeX = isMobile ? this.scale.width / 2 + 140 : this.scale.width / 2 + 180;
+                let baseSize = isMobile ? 180 : 220;
 
                 let startBtn = this.add.image(startX, startY, 'game_start').setDisplaySize(baseSize, baseSize).setInteractive({ useHandCursor: true });
                 if(startBtn.preFX) {
@@ -242,7 +242,8 @@
                         this.tweens.add({ targets: startBtn, scaleX: startBtn.scaleX / 1.05, scaleY: startBtn.scaleY / 1.05, duration: 100 });
                     });
                 }
-                startBtn.on('pointerdown', () => {
+                startBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
                     playRandomSFX(this, 'button');
                     this.scene.start('StageSelectScene');
                 });
@@ -261,7 +262,8 @@
                         this.tweens.add({ targets: upgradeBtn, scaleX: upgradeBtn.scaleX / 1.05, scaleY: upgradeBtn.scaleY / 1.05, duration: 100 });
                     });
                 }
-                upgradeBtn.on('pointerdown', () => {
+                upgradeBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
                     playRandomSFX(this, 'button');
                     this.scene.start('UpgradeScene');
                 });
@@ -272,7 +274,8 @@
                 
                 exitBtn.on('pointerover', () => exitBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 exitBtn.on('pointerout', () => exitBtn.setBackgroundColor('#222').setFill('#aaa'));
-                exitBtn.on('pointerdown', () => {
+                exitBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
                     playRandomSFX(this, 'button');
                     window.location.href = '/game';
                 });
@@ -288,7 +291,7 @@
             create() {
                 playBGM(this, 'survive_main');
                 createMuteButton(this);
-                this.add.text(this.scale.width / 2, 120, '무기 및 능력 강화', { fontSize: '40px', fill: '#ffcc00' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 140, '무기 및 능력 강화', { fontSize: '40px', fill: '#ffcc00' }).setOrigin(0.5);
                 this.add.text(this.scale.width / 2, this.scale.height / 2, '골드를 소모하여 영구 능력을 강화합니다.\n(업데이트 예정)', { fontSize: '24px', fill: '#fff', align: 'center' }).setOrigin(0.5);
 
                 let backBtn = this.add.text(this.scale.width / 2, this.scale.height - 120, '뒤로가기', {
@@ -297,7 +300,8 @@
 
                 backBtn.on('pointerover', () => backBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 backBtn.on('pointerout', () => backBtn.setBackgroundColor('#444').setFill('#fff'));
-                backBtn.on('pointerdown', () => {
+                backBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
                     playRandomSFX(this, 'button');
                     this.scene.start('TitleScene');
                 });
@@ -316,7 +320,7 @@
                 }
 
                 createMuteButton(this);
-                this.add.text(this.scale.width / 2, 80, '스테이지 선택', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 90, '스테이지 선택', { fontSize: '40px', fill: '#fff' }).setOrigin(0.5);
 
                 const stages = [
                     { id: 1, name: 'Stage 1: 슬라임 던전', time: 600, bossKey: 'boss_sli0' },
@@ -332,7 +336,7 @@
                     let row = isMobile ? Math.floor(index / 2) : Math.floor(index / 3);
 
                     let cardX = isMobile ? (this.scale.width / 2) - 160 + (col * 320) : (this.scale.width / 2) - 340 + (col * 340);
-                    let cardY = isMobile ? 240 + (row * 240) : 260 + (row * 220);
+                    let cardY = isMobile ? 250 + (row * 240) : 270 + (row * 220);
 
                     let hitBox = this.add.rectangle(cardX, cardY, 280, 180, 0x222222, 0.85).setStrokeStyle(3, 0xaa7722);
 
@@ -356,7 +360,8 @@
                         hitBox.setFillStyle(0x222222);
                         hitBox.setStrokeStyle(3, 0xaa7722);
                     });
-                    hitBox.on('pointerdown', () => {
+                    hitBox.on('pointerdown', (pointer, localX, localY, event) => {
+                        if (event) event.stopPropagation();
                         playRandomSFX(this, 'button');
                         this.scene.start('GameScene', { stageData: stage });
                     });
@@ -368,7 +373,8 @@
 
                 backBtn.on('pointerover', () => backBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 backBtn.on('pointerout', () => backBtn.setBackgroundColor('#555').setFill('#fff'));
-                backBtn.on('pointerdown', () => {
+                backBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if (event) event.stopPropagation();
                     playRandomSFX(this, 'button');
                     this.scene.start('TitleScene');
                 });
@@ -398,6 +404,7 @@
                 this.isInvincible = false;
                 this.joystickVector = { x: 0, y: 0 };
                 this.isLevelUpOpen = false;
+                this.levelUpElements = []; // 원칙 2 & 요구사항 1: 컨테이너 버그 방지용 배열 관리
             }
 
             create() {
@@ -478,26 +485,26 @@
                 this.time.addEvent({ delay: 1000, callback: this.spawnEnemies, callbackScope: this, loop: true });
             }
 
-            // 요구사항 1 & 2: 골드 및 사운드 상단 한 줄 배치 & 상단 잘림 현상 방지 Y축 조정
+            // 요구사항 1 & 2: 사운드 및 골드 UI 상단 Y: 68px 한 줄 정렬 및 여백 확보
             setupUI() {
-                this.timerText = this.add.text(this.scale.width / 2, 48, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-                this.levelText = this.add.text(30, 40, 'LV.1', { fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
+                this.timerText = this.add.text(this.scale.width / 2, 68, '00:00', { fontSize: '32px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(10000);
+                this.levelText = this.add.text(30, 48, 'LV.1', { fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(10000);
 
-                this.expBarBg = this.add.rectangle(130, 78, 200, 16, 0x333333).setScrollFactor(0).setDepth(1000);
-                this.expBar = this.add.rectangle(30, 78, 0, 16, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+                this.expBarBg = this.add.rectangle(130, 86, 200, 16, 0x333333).setScrollFactor(0).setDepth(10000);
+                this.expBar = this.add.rectangle(30, 86, 0, 16, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
-                this.hpText = this.add.text(30, 102, 'HP: 100 / 100', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
-                this.playerHpBg = this.add.rectangle(130, 134, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
-                this.playerHpBar = this.add.rectangle(30, 134, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+                this.hpText = this.add.text(30, 110, 'HP: 100 / 100', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(10000);
+                this.playerHpBg = this.add.rectangle(130, 142, 200, 20, 0x330000).setScrollFactor(0).setDepth(10000);
+                this.playerHpBar = this.add.rectangle(30, 142, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
-                // 상단 한 줄 배치: 골드 아이콘과 골드 텍스트의 Y좌표를 음소거 버튼과 동일한 48px로 설정
+                // 골드 아이콘 & 텍스트 상단 Y: 68px 정렬
                 if (this.textures.exists('goldpocket')) {
-                    this.goldIcon = this.add.image(this.scale.width - 170, 48, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
+                    this.goldIcon = this.add.image(this.scale.width - 170, 68, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(10005).setInteractive({ useHandCursor: true });
                 } else {
-                    this.goldIcon = this.add.text(this.scale.width - 170, 48, '💰', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
+                    this.goldIcon = this.add.text(this.scale.width - 170, 68, '💰', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(10005).setInteractive({ useHandCursor: true });
                 }
 
-                this.goldText = this.add.text(this.scale.width - 135, 48, '0', { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1000).setInteractive({ useHandCursor: true });
+                this.goldText = this.add.text(this.scale.width - 135, 68, '0', { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10005).setInteractive({ useHandCursor: true });
 
                 const openShop = (pointer, localX, localY, event) => {
                     if (event) event.stopPropagation();
@@ -513,14 +520,14 @@
                 this.playerHpBar.setSize(200 * hpPct, 20);
             }
 
-            // 요구사항 7: 팝업 시 터치 이벤트 간섭 방지
+            // 요구사항 1 해결: 팝업 시 가상 조이스틱 터치 완벽 차단
             setupVirtualJoystick() {
-                this.joyBase = this.add.circle(0, 0, 60, 0xffffff, 0.2).setScrollFactor(0).setDepth(9999).setVisible(false);
-                this.joyThumb = this.add.circle(0, 0, 30, 0xffffff, 0.5).setScrollFactor(0).setDepth(10000).setVisible(false);
+                this.joyBase = this.add.circle(0, 0, 60, 0xffffff, 0.2).setScrollFactor(0).setDepth(14999).setVisible(false);
+                this.joyThumb = this.add.circle(0, 0, 30, 0xffffff, 0.5).setScrollFactor(0).setDepth(15000).setVisible(false);
 
                 this.input.on('pointerdown', (pointer) => {
-                    if (this.isLevelUpOpen) return; // 팝업 열림 시 조이스틱 무시
-                    if (pointer.x > this.scale.width - 180 && pointer.y < 90) return; // 상단 우측 버튼 터치 구역 예외
+                    if (this.isLevelUpOpen) return; // 팝업 시 조이스틱 터치 즉시 무시
+                    if (pointer.x > this.scale.width - 180 && pointer.y < 100) return; // 상단 우측 버튼 구역 예외
                     this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
                     this.joyThumb.setPosition(pointer.x, pointer.y).setVisible(true);
                 });
@@ -603,7 +610,7 @@
                     if (enemy.updateLogic) enemy.updateLogic();
                 });
 
-                // 경험치 아이콘 자력 끌림 처리
+                // 경험치 자력
                 this.expItems.getChildren().forEach(item => {
                     let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, item.x, item.y);
                     if (dist < this.playerStats.magnetRange) {
@@ -613,7 +620,7 @@
                     }
                 });
 
-                // 요구사항 5: 드랍된 골드의 자력 획득 범위를 경험치 아이콘과 동일한 수준으로 보정
+                // 요구사항 5: 골드 자력 수집 범위 동일 조정
                 this.goldItems.getChildren().forEach(goldItem => {
                     let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, goldItem.x, goldItem.y);
                     if (dist < this.playerStats.magnetRange) {
@@ -650,18 +657,16 @@
                 }
             }
 
-            // 요구사항 4: 스킬 데미지 밸런싱 패치 (초기 슬라임 HP 10 기준 2대 정도 때려야 잡히도록 패치)
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
 
-                // 화둔: 데미지 3 (슬라임 기준 3~4타 타격 필요)
+                // 화둔 호화구
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 3500) {
                     playRandomSFX(this, 'skill_fire', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
                     
                     let fire;
                     if (this.textures.exists('fire_stream')) {
-                        // 화둔 호화구의 술 방향 보정 (<- 이미지 방향 고려 angle + Math.PI 적용)
                         fire = this.physics.add.sprite(this.player.x, this.player.y, 'fire_stream')
                             .setDisplaySize(200, 120)
                             .setRotation(angle + Math.PI)
@@ -671,7 +676,7 @@
                         this.physics.add.existing(fire);
                     }
 
-                    fire.damage = 1.5 + (this.playerStats.fire * 1.5); // 1렙 뎀 3.0
+                    fire.damage = 1.5 + (this.playerStats.fire * 1.5);
                     fire.hitEnemies = [];
 
                     this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
@@ -684,7 +689,7 @@
                     this.lastSkillTimes.fire = time;
                 }
 
-                // 수둔: 데미지 5 (슬라임 기준 정확히 2타 필요)
+                // 수둔 수룡탄
                 if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + 3000 && target) {
                     playRandomSFX(this, 'skill_water', 0.6);
                     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -692,21 +697,21 @@
                     
                     let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
                     water.rotation = angle + Math.PI / 2;
-                    water.damage = 3 + (this.playerStats.water * 2); // 1렙 뎀 5.0
+                    water.damage = 3 + (this.playerStats.water * 2);
                     water.pierce = 0;
                     water.isBomb = false;
                     this.physics.velocityFromRotation(angle, 400, water.body.velocity);
                     this.lastSkillTimes.water = time;
                 }
 
-                // 풍둔 나선수리검: 데미지 1 (다연발 타격으로 2~3회 스쳐야 처치)
+                // 풍둔 나선수리검
                 if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
                     playRandomSFX(this, 'skill_wind', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
                     let windKey = this.textures.exists('rasenshuriken') ? 'rasenshuriken' : 'suri';
 
                     let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
-                    wind.damage = 0.5 + (this.playerStats.wind * 0.5); // 1렙 뎀 1.0
+                    wind.damage = 0.5 + (this.playerStats.wind * 0.5);
                     wind.pierce = 999;
                     wind.isBomb = false;
                     
@@ -716,19 +721,17 @@
                     this.lastSkillTimes.wind = time;
                 }
 
-                // 요구사항 4: 기폭찰 수리검 크기 60% 축소 + 회전하며 날아가는 연출 + 1렙 데미지 4로 2.5타 밸런스 조정
+                // 요구사항 4: 기폭찰 수리검 크기 60% 축소 + 롤링 애니메이션
                 if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
                     let bombKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri';
 
-                    // 기존 50px -> 60% 축소된 20px 크기 설정
                     let bombSuri = this.projectiles.create(this.player.x, this.player.y, bombKey).setDisplaySize(20, 20).setDepth(9999);
-                    bombSuri.damage = 2 + (this.playerStats.bomb * 2); // 1렙 뎀 4.0
+                    bombSuri.damage = 2 + (this.playerStats.bomb * 2);
                     bombSuri.pierce = 0;
                     bombSuri.isBomb = true;
                     
-                    // 회전하며 날아가는 무한 롤링 이펙트
                     this.tweens.add({
                         targets: bombSuri,
                         rotation: '+=6.28',
@@ -767,7 +770,7 @@
                     enemy.id = Phaser.Utils.String.UUID();
                     enemy.isType1 = isType1;
 
-                    let baseHp = 10; // 기본 슬라임 체력 10
+                    let baseHp = 10;
                     if (this.elapsedTime > 180) baseHp += Math.floor((this.elapsedTime - 180) / 15) * 2;
                     enemy.hp = baseHp;
                     enemy.maxHp = baseHp;
@@ -801,7 +804,6 @@
                     let explosionKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri_vfx';
                     let explosion = this.physics.add.sprite(explosionX, explosionY, explosionKey).setDisplaySize(120, 120).setDepth(9999);
                     
-                    // 좁은 범위 에어리어 폭발 피해
                     let areaRadius = 80;
                     this.enemies.getChildren().forEach(e => {
                         if (e.active && e !== enemy) {
@@ -858,7 +860,6 @@
                 }
             }
 
-            // 요구사항 3: 레벨업 요구 경험치량 20% 감소 조정
             collectExp(player, exp) {
                 if (this.isLevelUpOpen) return;
                 exp.destroy();
@@ -868,7 +869,7 @@
                 if (this.playerStats.exp >= this.playerStats.maxExp) {
                     this.playerStats.level++;
                     this.playerStats.exp = 0;
-                    // 기존 Math.floor(maxExp * 1.8) + 10 에서 20% 감소된 1.44배율 공식 적용
+                    // 요구사항 3: 20% 감소된 경험치 공식
                     this.playerStats.maxExp = Math.floor(this.playerStats.maxExp * 1.44) + 8;
                     this.levelText.setText(`LV.${this.playerStats.level}`);
                     
@@ -906,127 +907,197 @@
             }
 
             // ==========================================
-            // 원칙 2 준수: 독립 Scene Stack 렌더링 꼬임 방지를 위해 GameScene 내부 카메라 좌표 직접 UI 컨테이너 생성
-            // 요구사항 7 원인 해결: 버튼 오버레이 이벤트 전파(stopPropagation) 및 Depth 완벽 수정을 통한 클릭 반응형 해결
+            // 원칙 2 준수: GameScene 내부 직접 UI 생성
+            // 원칙 6 준수: 레벨업 보상 카드는 세로 정렬 방식
+            // 원칙 7 준수: Depth 계층 정밀 관리 (Overlay:20000, Card:20001, Text/Icon:20002)
+            // 요구사항 1 해결: Phaser Container 제거 및 독립 Element 배열 처리로 포인터 전달 완벽 보장
+            // 요구사항 2 해결: 제목 Y축 하향 (isMobile ? 190 : 150)
+            // 요구사항 3 해결: 마우스 hover 시 테두리 반짝이 glowing 이펙트 추가
             // ==========================================
+            clearLevelUpUI() {
+                if (this.levelUpElements) {
+                    this.levelUpElements.forEach(el => {
+                        if (el && el.destroy) el.destroy();
+                    });
+                    this.levelUpElements = [];
+                }
+                this.isLevelUpOpen = false;
+                this.physics.resume();
+            }
+
             showLevelUpUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
                 playRandomSFX(this, 'level_up');
 
-                this.levelUpContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(20000);
+                this.levelUpElements = [];
 
-                // 터치 흡수 배경 사각형
                 let overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85)
+                    .setScrollFactor(0)
+                    .setDepth(20000)
                     .setInteractive();
                 
                 overlay.on('pointerdown', (pointer, localX, localY, event) => {
                     if (event) event.stopPropagation();
                 });
+                this.levelUpElements.push(overlay);
 
-                this.levelUpContainer.add(overlay);
-
-                let title = this.add.text(this.scale.width / 2, isMobile ? 180 : 130, 'LEVEL UP!', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5);
-                this.levelUpContainer.add(title);
+                let title = this.add.text(this.scale.width / 2, isMobile ? 180 : 140, 'LEVEL UP!', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' })
+                    .setOrigin(0.5)
+                    .setScrollFactor(0)
+                    .setDepth(20002);
+                this.levelUpElements.push(title);
 
                 const rewardPool = [
-                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어\n피해를 줍니다.', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
-                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게\n수룡을 날립니다.', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
-                    { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형\n수리검을 던집니다.', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
-                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 좁은 구역에\n범위 피해를 줍니다.', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
-                    { id: 'hp', type: 'normal', name: '체력 한계 돌파', desc: '최대 체력을 +20 늘리고\n체력을 회복합니다.', statKey: 'maxHpLv', icon: 'box', maxLv: 10 },
-                    { id: 'speed', type: 'normal', name: '족경술: 이속 증가', desc: '플레이어 이동속도를\n증가시킵니다.', statKey: 'speedLv', icon: 'box', maxLv: 5 },
-                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 기본 투사체의\n관통 횟수 +1', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
-                    { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '투사체 발사 수 +1\n증가합니다.', statKey: 'clone', icon: 'scroll_clone', maxLv: 3 },
-                    { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위를\n넓힙니다.', statKey: 'magnet', icon: 'scroll_magnet', maxLv: 5 }
+                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜어 피해를 줍니다.', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
+                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '가장 가까운 적에게 수룡을 날립니다.', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
+                    { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '관통하는 대형 수리검을 던집니다.', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
+                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 시 좁은 구역에 범위 피해를 줍니다.', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
+                    { id: 'hp', type: 'normal', name: '체력 한계 돌파', desc: '최대 체력을 +20 늘리고 체력을 회복합니다.', statKey: 'maxHpLv', icon: 'box', maxLv: 10 },
+                    { id: 'speed', type: 'normal', name: '족경술: 이속 증가', desc: '플레이어 이동속도를 증가시킵니다.', statKey: 'speedLv', icon: 'box', maxLv: 5 },
+                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 기본 투사체의 관통 횟수 +1', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
+                    { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '투사체 발사 수가 +1 증가합니다.', statKey: 'clone', icon: 'scroll_clone', maxLv: 3 },
+                    { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '아이템 획득 범위를 넓힙니다.', statKey: 'magnet', icon: 'scroll_magnet', maxLv: 5 }
                 ];
 
                 let available = rewardPool.filter(r => (this.playerStats[r.statKey] || 0) < r.maxLv);
                 if (available.length < 3) {
                     while(available.length < 3) {
-                        available.push({ id: 'heal', type: 'normal', name: '체력 회복', desc: '체력을 즉시\n20 회복합니다.', statKey: 'healLv', icon: 'box', maxLv: 999 });
+                        available.push({ id: 'heal', type: 'normal', name: '체력 회복', desc: '체력을 즉시 20 회복합니다.', statKey: 'healLv', icon: 'box', maxLv: 999 });
                     }
                 }
 
                 let shuffled = Phaser.Utils.Array.Shuffle([...available]);
                 let selected = shuffled.slice(0, 3);
 
-                let cardWidth = isMobile ? 210 : 340;
-                let cardHeight = isMobile ? 380 : 420;
-                let cardSpacing = isMobile ? 225 : 370;
-                let startX = (this.scale.width / 2) - cardSpacing;
-                let cardY = this.scale.height / 2 + 30;
+                // 원칙 6: 레벨업 보상 카드 세로 정렬 배치
+                let cardWidth = isMobile ? 620 : 680;
+                let cardHeight = isMobile ? 140 : 125;
+                let cardSpacing = isMobile ? 160 : 145;
+                let startY = isMobile ? (this.scale.height / 2) - 130 : (this.scale.height / 2) - 100;
+                let cardX = this.scale.width / 2;
 
                 selected.forEach((reward, idx) => {
-                    let posX = startX + (idx * cardSpacing);
+                    let posY = startY + (idx * cardSpacing);
                     let isRare = reward.type === 'rare';
+                    let normalColor = 0x00aaff;
+                    let rareColor = 0xffcc00;
+                    let strokeColor = isRare ? rareColor : normalColor;
 
-                    let cardBg = this.add.rectangle(posX, cardY, cardWidth, cardHeight, isRare ? 0x3d2b00 : 0x112233, 0.95)
-                        .setStrokeStyle(3, isRare ? 0xffcc00 : 0x00aaff)
+                    let cardBg = this.add.rectangle(cardX, posY, cardWidth, cardHeight, isRare ? 0x3d2b00 : 0x112233, 0.95)
+                        .setStrokeStyle(3, strokeColor)
+                        .setScrollFactor(0)
+                        .setDepth(20001)
                         .setInteractive({ useHandCursor: true });
+                    this.levelUpElements.push(cardBg);
 
                     let iconKey = reward.icon || 'box';
                     if (!this.textures.exists(iconKey)) iconKey = (isRare ? 'rare_box' : 'box');
 
-                    let icon = this.add.image(posX, cardY - 110, iconKey).setDisplaySize(85, 85);
+                    let icon = this.add.image(cardX - (cardWidth / 2) + 65, posY, iconKey)
+                        .setDisplaySize(75, 75)
+                        .setScrollFactor(0)
+                        .setDepth(20002);
+                    this.levelUpElements.push(icon);
 
                     let curLv = this.playerStats[reward.statKey] || 0;
-                    let nameTxt = this.add.text(posX, cardY - 20, reward.name, { fontSize: isMobile ? '18px' : '20px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold', align: 'center', wordWrap: { width: cardWidth - 20 } }).setOrigin(0.5);
-                    let descTxt = this.add.text(posX, cardY + 45, reward.desc, { fontSize: isMobile ? '13px' : '15px', fill: '#cccccc', align: 'center' }).setOrigin(0.5);
-                    
-                    let lvTxt = null;
-                    if(reward.id !== 'heal') {
-                        lvTxt = this.add.text(posX, cardY + 130, `Lv.${curLv} ➔ Lv.${curLv + 1}\n(Max: Lv.${reward.maxLv})`, { fontSize: isMobile ? '12px' : '14px', fill: '#00ffcc', align: 'center' }).setOrigin(0.5);
+                    let textStartX = cardX - (cardWidth / 2) + 130;
+
+                    let nameTxt = this.add.text(textStartX, posY - 36, reward.name, {
+                        fontSize: isMobile ? '20px' : '22px',
+                        fill: isRare ? '#ffdd00' : '#ffffff',
+                        fontStyle: 'bold'
+                    }).setScrollFactor(0).setDepth(20002);
+                    this.levelUpElements.push(nameTxt);
+
+                    let descTxt = this.add.text(textStartX, posY - 8, reward.desc, {
+                        fontSize: isMobile ? '14px' : '15px',
+                        fill: '#cccccc'
+                    }).setScrollFactor(0).setDepth(20002);
+                    this.levelUpElements.push(descTxt);
+
+                    if (reward.id !== 'heal') {
+                        let lvTxt = this.add.text(textStartX, posY + 18, `레벨: Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, {
+                            fontSize: isMobile ? '13px' : '14px',
+                            fill: '#00ffcc'
+                        }).setScrollFactor(0).setDepth(20002);
+                        this.levelUpElements.push(lvTxt);
                     }
 
-                    this.levelUpContainer.add([cardBg, icon, nameTxt, descTxt]);
-                    if(lvTxt) this.levelUpContainer.add(lvTxt);
+                    // 요구사항 3: Hover 시 테두리 반짝이는 이펙트 (Tween Pulse)
+                    let hoverTween = null;
 
-                    cardBg.on('pointerover', () => cardBg.setFillStyle(isRare ? 0x664400 : 0x224466));
-                    cardBg.on('pointerout', () => cardBg.setFillStyle(isRare ? 0x3d2b00 : 0x112233));
-                    
+                    cardBg.on('pointerover', () => {
+                        cardBg.setFillStyle(isRare ? 0x664400 : 0x224466);
+                        cardBg.setStrokeStyle(5, isRare ? 0xffea00 : 0x00e1ff);
+                        
+                        hoverTween = this.tweens.add({
+                            targets: cardBg,
+                            alpha: { from: 0.85, to: 1.0 },
+                            scaleX: 1.02,
+                            scaleY: 1.02,
+                            duration: 250,
+                            yoyo: true,
+                            repeat: -1
+                        });
+                    });
+
+                    cardBg.on('pointerout', () => {
+                        if (hoverTween) { hoverTween.stop(); hoverTween = null; }
+                        cardBg.setScale(1.0);
+                        cardBg.setAlpha(0.95);
+                        cardBg.setFillStyle(isRare ? 0x3d2b00 : 0x112233);
+                        cardBg.setStrokeStyle(3, strokeColor);
+                    });
+
                     cardBg.on('pointerdown', (pointer, localX, localY, event) => {
                         if (event) event.stopPropagation();
+                        if (hoverTween) { hoverTween.stop(); }
                         playRandomSFX(this, 'button');
                         this.applyReward(reward);
-                        this.levelUpContainer.destroy();
-                        this.isLevelUpOpen = false;
-                        this.physics.resume();
+                        this.clearLevelUpUI();
                     });
                 });
             }
 
-            // 골드 클릭 시 상점 UI
+            // 요구사항 1 & 2: 골드 상점 화면 잘림 방지 및 이벤트 확실 처리
             showShopUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
-                
-                let shopContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(20000);
-                
+                playRandomSFX(this, 'button');
+
+                this.levelUpElements = [];
+
                 let overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85)
+                    .setScrollFactor(0)
+                    .setDepth(20000)
                     .setInteractive();
 
                 overlay.on('pointerdown', (pointer, localX, localY, event) => {
                     if (event) event.stopPropagation();
                 });
+                this.levelUpElements.push(overlay);
 
-                let title = this.add.text(this.scale.width / 2, this.scale.height / 2 - 100, '골드 상점', { fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5);
-                let desc = this.add.text(this.scale.width / 2, this.scale.height / 2, '구현 준비 중...', { fontSize: '28px', fill: '#fff' }).setOrigin(0.5);
+                let title = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, '골드 상점', {
+                    fontSize: '48px', fill: '#ffcc00', fontStyle: 'bold'
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
-                let closeBtn = this.add.text(this.scale.width / 2, this.scale.height / 2 + 120, '닫기', {
-                    fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 15 }
-                }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+                let desc = this.add.text(this.scale.width / 2, this.scale.height / 2 - 20, '구현 준비 중...', {
+                    fontSize: '28px', fill: '#ffffff', fontStyle: 'bold'
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
-                shopContainer.add([overlay, title, desc, closeBtn]);
+                let closeBtn = this.add.text(this.scale.width / 2, this.scale.height / 2 + 100, '닫기', {
+                    fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 35, y: 12 }
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
+
+                this.levelUpElements.push(title, desc, closeBtn);
 
                 closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#555').setFill('#fff'));
                 closeBtn.on('pointerdown', (pointer, localX, localY, event) => {
                     if (event) event.stopPropagation();
                     playRandomSFX(this, 'button');
-                    shopContainer.destroy();
-                    this.isLevelUpOpen = false;
-                    this.physics.resume();
+                    this.clearLevelUpUI();
                 });
             }
 
