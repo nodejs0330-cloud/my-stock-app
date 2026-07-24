@@ -728,6 +728,151 @@ def api_admin_ai_logs(code):
         "logs": [{"prompt": l['PROMPT'], "time": l['CREATED_AT']} for l in logs]
     }
 
+# ==========================================
+# NCS SURVIVE 전용 API (유저 스탯, 영구 강화, 보스 스킬, 기록 저장)
+# ==========================================
+
+@app.route('/api/survive/user_data', methods=['GET'])
+def api_survive_user_data():
+    if 'user_id' not in session:
+        return {"error": "로그인이 필요합니다."}, 401
+    
+    user_id = session['user_id']
+    db = get_db()
+    
+    # 1. 유저 보유 골드 조회
+    user = db.execute('SELECT ID, NAME, SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+    survive_gold = user['SURVIVE_GOLD'] if user and user['SURVIVE_GOLD'] is not None else 0
+    
+    # 2. 영구 강화 데이터 조회 (없으면 기본값 0으로 초기 생성)
+    upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+    if not upgrades:
+        db.execute('''
+            INSERT INTO GAME_UPGRADES (USER_ID, ATTACK_SPEED_LV, MOVE_SPEED_LV, ATTACK_POWER_LV, MAX_HP_LV, MAGNET_RANGE_LV, DEFENSE_LV, EXP_BONUS_LV)
+            VALUES (?, 0, 0, 0, 0, 0, 0, 0)
+        ''', (user_id,))
+        db.commit()
+        upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+    
+    # 3. 해금된 보스 스킬 목록 조회
+    unlocked_skills = db.execute('SELECT SKILL_KEY, STAGE_ID FROM UNLOCKED_BOSS_SKILLS WHERE USER_ID = ? AND IS_UNLOCKED = 1', (user_id,)).fetchall()
+    unlocked_list = [{"skill_key": s['SKILL_KEY'], "stage_id": s['STAGE_ID']} for s in unlocked_skills]
+    
+    return {
+        "success": True,
+        "survive_gold": survive_gold,
+        "upgrades": {
+            "attack_speed_lv": upgrades['ATTACK_SPEED_LV'],
+            "move_speed_lv": upgrades['MOVE_SPEED_LV'],
+            "attack_power_lv": upgrades['ATTACK_POWER_LV'],
+            "max_hp_lv": upgrades['MAX_HP_LV'],
+            "magnet_range_lv": upgrades['MAGNET_RANGE_LV'],
+            "defense_lv": upgrades['DEFENSE_LV'],
+            "exp_bonus_lv": upgrades['EXP_BONUS_LV']
+        },
+        "unlocked_boss_skills": unlocked_list
+    }
+
+
+@app.route('/api/survive/upgrade', methods=['POST'])
+def api_survive_upgrade():
+    if 'user_id' not in session:
+        return {"error": "로그인이 필요합니다."}, 401
+    
+    user_id = session['user_id']
+    data = request.json or {}
+    stat_type = data.get('stat_type') # e.g. 'ATTACK_POWER_LV', 'MAX_HP_LV'
+    
+    allowed_stats = [
+        'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 
+        'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV'
+    ]
+    if stat_type not in allowed_stats:
+        return {"error": "올바르지 않은 강화 항목입니다."}, 400
+        
+    db = get_db()
+    user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+    current_gold = user['SURVIVE_GOLD'] if user and user['SURVIVE_GOLD'] is not None else 0
+    
+    upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+    current_lv = upgrades[stat_type] if upgrades else 0
+    
+    # 레벨당 필요 골드 계산 공식 (예: 기본 100골드 + (현재레벨 * 150))
+    cost = 100 + (current_lv * 150)
+    
+    if current_gold < cost:
+        return {"error": "골드가 부족합니다."}, 400
+        
+    # 골드 차감 및 레벨 업그레이드
+    db.execute('UPDATE USERS SET SURVIVE_GOLD = SURVIVE_GOLD - ? WHERE ID = ?', (cost, user_id))
+    db.execute(f'UPDATE GAME_UPGRADES SET {stat_type} = {stat_type} + 1, UPDATED_AT = CURRENT_TIMESTAMP WHERE USER_ID = ?', (user_id,))
+    db.commit()
+    
+    updated_user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+    updated_upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+    
+    return {
+        "success": True,
+        "new_gold": updated_user['SURVIVE_GOLD'],
+        "new_level": updated_upgrades[stat_type]
+    }
+
+
+@app.route('/api/survive/save_result', methods=['POST'])
+def api_survive_save_result():
+    if 'user_id' not in session:
+        return {"error": "로그인이 필요합니다."}, 401
+    
+    user_id = session['user_id']
+    data = request.json or {}
+    
+    stage_id = int(data.get('stage_id', 1))
+    clear_time = int(data.get('clear_time', 0))
+    earned_gold = int(data.get('earned_gold', 0))
+    player_level = int(data.get('player_level', 1))
+    is_clear = 1 if data.get('is_clear') else 0
+    
+    # 각 스테이지별 해금할 보스 스킬 매핑
+    STAGE_BOSS_SKILLS = {
+        1: 'boss_sli_wave',          # 스테이지 1 보스 스킬
+        2: 'boss_skeleton_strike',   # 스테이지 2 보스 스킬
+        3: 'boss_volcano_meteor',    # 스테이지 3 보스 스킬
+        4: 'boss_abyss_laser',       # 스테이지 4 보스 스킬
+        5: 'boss_temple_shockwave',  # 스테이지 5 보스 스킬
+        6: 'boss_apocalypse_storm'   # 스테이지 6 보스 스킬
+    }
+    
+    db = get_db()
+    
+    # 1. 획득한 골드 유저 누적 골드에 합산
+    db.execute('UPDATE USERS SET SURVIVE_GOLD = COALESCE(SURVIVE_GOLD, 0) + ? WHERE ID = ?', (earned_gold, user_id))
+    
+    # 2. 게임 클리어 기록 작성
+    db.execute('''
+        INSERT INTO GAME_RECORDS (USER_ID, STAGE_ID, CLEAR_TIME, EARNED_GOLD, PLAYER_LEVEL, IS_CLEAR)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (user_id, stage_id, clear_time, earned_gold, player_level, is_clear))
+    
+    unlocked_skill_key = None
+    # 3. 스테이지 클리어 성공 시 해당 스테이지 보스 스킬 해금 처리
+    if is_clear == 1 and stage_id in STAGE_BOSS_SKILLS:
+        skill_key = STAGE_BOSS_SKILLS[stage_id]
+        db.execute('''
+            INSERT OR REPLACE INTO UNLOCKED_BOSS_SKILLS (USER_ID, SKILL_KEY, STAGE_ID, IS_UNLOCKED)
+            VALUES (?, ?, ?, 1)
+        ''', (user_id, skill_key, stage_id))
+        unlocked_skill_key = skill_key
+        
+    db.commit()
+    
+    updated_user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+    
+    return {
+        "success": True,
+        "total_gold": updated_user['SURVIVE_GOLD'],
+        "unlocked_skill": unlocked_skill_key
+    }
+
 if __name__ == '__main__':
     if not DATABASE_URL and not os.path.exists(DATABASE): init_db()
     app.run(host='0.0.0.0', port=5000, debug=True)
