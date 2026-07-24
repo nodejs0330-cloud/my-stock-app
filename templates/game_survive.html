@@ -27,7 +27,6 @@
     <div id="game-container"></div>
 
     <script>
-        // PC / 모바일 판별
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
         const GAME_WIDTH = isMobile ? 720 : 1280;
         const GAME_HEIGHT = isMobile ? 1280 : 720;
@@ -35,7 +34,7 @@
         let isMuted = false;
         let globalBGM = null;
 
-        // DB에서 받아올 유저 글로벌 데이터 관리 객체
+        // DB에서 받아올 유저 글로벌 데이터 객체
         let USER_GLOBAL_DATA = {
             survive_gold: 0,
             upgrades: {
@@ -50,7 +49,6 @@
             unlocked_boss_skills: []
         };
 
-        // 원칙 3: BGM 단일 선언 (중복 재생 방지 조건문 준수)
         function playBGM(scene, key) {
             if (globalBGM && globalBGM.key === key && globalBGM.isPlaying) {
                 return; 
@@ -65,7 +63,7 @@
             }
         }
 
-        // 원칙 1: 미래 구현용 몬스터/보스 SFX 레지스터 보존
+        // 미래 구현용 몬스터/보스 SFX 레지스터 보존 (원칙 1)
         const MONSTER_SFX_REGISTRY = {
             boss_platypus_attack: ['boss_platypus_attack1', 'boss_platypus_attack2'],
             boss_thunder_strike:  ['boss_thunder_strike1',  'boss_thunder_strike2'],
@@ -94,7 +92,6 @@
             }
         }
 
-        // 원칙 4: SFX 랜덤 호출 헬퍼
         function playRandomSFX(scene, baseKey, volume = 0.5) {
             if (isMuted) return;
             let num = Math.random() < 0.5 ? '1' : '2';
@@ -126,9 +123,6 @@
             return muteBtn;
         }
 
-        // ==========================================
-        // 0. Preload Scene (원칙 1: 리소스 흔적 보존)
-        // ==========================================
         class PreloadScene extends Phaser.Scene {
             constructor() { super({ key: 'PreloadScene' }); }
 
@@ -194,7 +188,6 @@
                 this.load.image('scroll_clone', '/static/img/survive/reword/scroll_clone.png');
                 this.load.image('scroll_magnet', '/static/img/survive/reword/scroll_magnet.png');
                 
-                // 원칙 6: 골드 주머니 경로 고정
                 this.load.image('goldpocket', '/static/img/survive/reword/goldpocket.png');
 
                 ['sli', 'ssli'].forEach(prefix => {
@@ -213,7 +206,6 @@
             }
 
             create() {
-                // DB에서 사용자 정보 및 영구 강화 스탯 불러오기
                 fetch('/api/survive/user_data')
                     .then(res => res.json())
                     .then(data => {
@@ -233,9 +225,6 @@
             }
         }
 
-        // ==========================================
-        // 1. Title Scene
-        // ==========================================
         class TitleScene extends Phaser.Scene {
             constructor() { super({ key: 'TitleScene' }); }
 
@@ -247,7 +236,6 @@
 
                 createMuteButton(this);
 
-                // 누적 골드 상단 표시
                 this.add.image(40, 40, 'goldpocket').setDisplaySize(32, 32).setScrollFactor(0);
                 this.goldTxt = this.add.text(65, 40, `${USER_GLOBAL_DATA.survive_gold}`, { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0);
 
@@ -307,9 +295,6 @@
             }
         }
 
-        // ==========================================
-        // 2. Upgrade Scene (영구 강화 상점)
-        // ==========================================
         class UpgradeScene extends Phaser.Scene {
             constructor() { super({ key: 'UpgradeScene' }); }
 
@@ -339,11 +324,10 @@
                     let posY = startY + (idx * itemHeight);
                     let cost = 100 + (item.currentLv * 150);
 
-                    let cardBg = this.add.rectangle(cx, posY, isMobile ? 640 : 750, 55, 0x222233, 0.9)
-                        .setStrokeStyle(2, 0x4466aa);
+                    this.add.rectangle(cx, posY, isMobile ? 640 : 750, 55, 0x222233, 0.9).setStrokeStyle(2, 0x4466aa);
 
-                    let nameTxt = this.add.text(cx - (isMobile ? 290 : 340), posY - 12, `${item.name} (Lv.${item.currentLv})`, { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' });
-                    let descTxt = this.add.text(cx - (isMobile ? 290 : 340), posY + 8, item.desc, { fontSize: '13px', fill: '#aaaaaa' });
+                    this.add.text(cx - (isMobile ? 290 : 340), posY - 12, `${item.name} (Lv.${item.currentLv})`, { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' });
+                    this.add.text(cx - (isMobile ? 290 : 340), posY + 8, item.desc, { fontSize: '13px', fill: '#aaaaaa' });
 
                     let buyBtn = this.add.text(cx + (isMobile ? 210 : 260), posY, `강화 (${cost} G)`, {
                         fontSize: '16px', fill: '#fff', backgroundColor: '#aa6600', padding: { x: 12, y: 6 }
@@ -380,9 +364,6 @@
             }
         }
 
-        // ==========================================
-        // 3. Stage Select Scene
-        // ==========================================
         class StageSelectScene extends Phaser.Scene {
             constructor() { super({ key: 'StageSelectScene' }); }
 
@@ -451,9 +432,6 @@
             }
         }
 
-        // ==========================================
-        // 4. Game Scene (인게임)
-        // ==========================================
         class GameScene extends Phaser.Scene {
             constructor() { super({ key: 'GameScene' }); }
 
@@ -461,7 +439,6 @@
                 this.stageData = data.stageData;
                 this.elapsedTime = 0;
 
-                // DB 영구 강화 수치 합산 초기화
                 let up = USER_GLOBAL_DATA.upgrades;
                 let baseHp = 100 + (up.max_hp_lv * 15);
                 let baseAtk = 5 + (up.attack_power_lv * 1);
@@ -532,7 +509,7 @@
                 this.player = this.physics.add.sprite(8000, 8000, 'hero_1').setScale(0.4);
                 this.player.setCollideWorldBounds(true);
                 
-                // 원칙 5: 주인공 정밀 히트박스 축소 설정
+                // 주인공 정밀 히트박스 축소 설정 (원칙 5)
                 this.player.body.setSize(this.player.width * 0.35, this.player.height * 0.35);
                 this.player.body.setOffset(this.player.width * 0.325, this.player.height * 0.55);
 
@@ -581,7 +558,6 @@
                 this.playerHpBg = this.add.rectangle(130, 148, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
                 this.playerHpBar = this.add.rectangle(30, 148, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                // 원칙 6: goldpocket.png 아이콘 경로 사용
                 if (this.textures.exists('goldpocket')) {
                     this.goldIcon = this.add.image(this.scale.width - 160, 68, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(1000).setInteractive();
                 } else {
@@ -739,7 +715,7 @@
                     suri.damage = this.playerStats.damage;
                     suri.pierce = this.playerStats.pierce;
                     suri.isBomb = false;
-                    suri.knockback = 15;
+                    suri.knockback = 15; // 기본 수리검 넉백 유지
 
                     this.physics.velocityFromRotation(angle, 500, suri.body.velocity);
                 }
@@ -748,18 +724,26 @@
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
 
+                // 1. 화둔: 60% 크기 축소(56x34), 정면 전방 시작점 오프셋(48px), 누끼 제외 히트박스, 넉백 12px 적용
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 3500) {
                     playRandomSFX(this, 'skill_fire', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
                     
                     const createFireStream = (fireAngle) => {
-                        let offsetX = Math.cos(fireAngle) * 45;
-                        let offsetY = Math.sin(fireAngle) * 45;
-                        
-                        let fire = this.physics.add.sprite(this.player.x + offsetX, this.player.y + offsetY, 'fire_stream')
-                            .setDisplaySize(140, 84)
+                        // 머리끝/캐릭터 전방(48px 위치)에서 생성되어 뒤쪽으로 이미지가 걸쳐 데미지가 들어가지 않도록 시작점 이동
+                        let spawnDist = 48;
+                        let posX = this.player.x + Math.cos(fireAngle) * spawnDist;
+                        let posY = this.player.y + Math.sin(fireAngle) * spawnDist;
+
+                        let fire = this.physics.add.sprite(posX, posY, 'fire_stream')
+                            .setDisplaySize(56, 34) // 기존 대비 60% 축소
                             .setRotation(fireAngle + Math.PI)
                             .setDepth(9999);
+
+                        // 정밀 충돌 판정 (외곽 누끼 제외)
+                        if (fire.body) {
+                            fire.body.setSize(48, 26);
+                        }
 
                         fire.damage = 7.0 + (this.playerStats.fire * 5.0);
                         fire.hitEnemies = [];
@@ -768,7 +752,7 @@
                             if (!f.hitEnemies.includes(enemy.id)) {
                                 f.hitEnemies.push(enemy.id);
                                 this.damageEnemy(enemy, f.damage);
-                                this.applyKnockback(enemy, fireAngle, 25);
+                                this.applyKnockback(enemy, fireAngle, 12); // 넉백 50% 감축 (12px)
                             }
                         });
                         this.tweens.add({ targets: fire, alpha: 0, scaleX: 1.1, scaleY: 1.1, duration: 500, onComplete: () => fire.destroy() });
@@ -782,6 +766,7 @@
                     this.lastSkillTimes.fire = time;
                 }
 
+                // 2. 수둔: 넉백 10px 적용
                 if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + (3200 - (this.playerStats.water * 200)) && target) {
                     playRandomSFX(this, 'skill_water', 0.6);
                     let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -795,12 +780,13 @@
                         water.damage = 10 + (this.playerStats.water * 4);
                         water.pierce = 0;
                         water.isBomb = false;
-                        water.knockback = 20;
+                        water.knockback = 10; // 넉백 50% 감축 (10px)
                         this.physics.velocityFromRotation(angle, 420, water.body.velocity);
                     }
                     this.lastSkillTimes.water = time;
                 }
 
+                // 3. 풍둔 나선수리검: 넉백 17px 적용
                 if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
                     playRandomSFX(this, 'skill_wind', 0.6);
                     let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
@@ -813,7 +799,7 @@
                         wind.damage = 7.0 + (this.playerStats.wind * 2.5);
                         wind.pierce = 999;
                         wind.isBomb = false;
-                        wind.knockback = 35;
+                        wind.knockback = 17; // 넉백 50% 감축 (17px)
                         wind.hitEnemies = [];
 
                         this.tweens.add({ targets: wind, rotation: wind.rotation + Math.PI * 10, duration: 2500 });
@@ -823,6 +809,7 @@
                     this.lastSkillTimes.wind = time;
                 }
 
+                // 4. 기폭찰 수리검: 넉백 10px 적용
                 if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -838,13 +825,14 @@
                         bombSuri.damage = 4.0 + (this.playerStats.bomb * 2.0);
                         bombSuri.pierce = 0;
                         bombSuri.isBomb = true;
-                        bombSuri.knockback = 20;
+                        bombSuri.knockback = 10; // 넉백 50% 감축 (10px)
                         
                         this.physics.velocityFromRotation(angle, 450, bombSuri.body.velocity);
                     }
                     this.lastSkillTimes.bomb = time;
                 }
 
+                // 5. 토둔 토류벽: 넉백 42px 적용
                 if (this.playerStats.earth > 0 && time > this.lastSkillTimes.earth + (7000 - (this.playerStats.earth * 400))) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     
@@ -870,7 +858,7 @@
                                         wall.hitEnemies.push(e.id);
                                         this.damageEnemy(e, wall.damage);
                                     }
-                                    this.applyKnockback(e, pushAngle, 85);
+                                    this.applyKnockback(e, pushAngle, 42); // 넉백 50% 감축 (42px)
                                 }
                             });
                         }
@@ -946,6 +934,7 @@
                     };
                 }
 
+                // 네임드 특수 몬스터 스폰 (맑은 라이트 플럼/라벤더 색상 적용: 0xDDA0DD)
                 if (this.elapsedTime > 0 && this.elapsedTime % 90 === 0 && this.elapsedTime !== this.lastNamedSpawnTime) {
                     this.lastNamedSpawnTime = this.elapsedTime;
                     let angle = Math.random() * Math.PI * 2;
@@ -957,8 +946,9 @@
                     namedEnemy.isType1 = true;
                     namedEnemy.isNamed = true;
 
-                    namedEnemy.setTint(0x8B008B);
-                    if(namedEnemy.preFX) namedEnemy.preFX.addGlow(0xDA70D6, 5, 0, false);
+                    // 연하고 맑은 플럼 틴트 및 반짝임 효과
+                    namedEnemy.setTint(0xDDA0DD);
+                    if(namedEnemy.preFX) namedEnemy.preFX.addGlow(0xEE82EE, 5, 0, false);
 
                     let baseHp = 10;
                     if (this.elapsedTime > 60) baseHp += Math.floor((this.elapsedTime - 60) / 20) * 4;
@@ -972,7 +962,7 @@
                     };
 
                     let warn = this.add.text(this.scale.width / 2, 160, '⚠ 네임드 특수 슬라임 등장! ⚠', {
-                        fontSize: '32px', fill: '#DA70D6', fontStyle: 'bold'
+                        fontSize: '32px', fill: '#EE82EE', fontStyle: 'bold'
                     }).setOrigin(0.5).setScrollFactor(0);
                     this.time.delayedCall(2500, () => warn.destroy());
                 }
@@ -1003,7 +993,7 @@
                             let dist = Phaser.Math.Distance.Between(explosionX, explosionY, e.x, e.y);
                             if (dist <= areaRadius) {
                                 this.damageEnemy(e, projectile.damage * 0.8);
-                                this.applyKnockback(e, Phaser.Math.Angle.Between(explosionX, explosionY, e.x, e.y), 20);
+                                this.applyKnockback(e, Phaser.Math.Angle.Between(explosionX, explosionY, e.x, e.y), 10); // 기폭찰 폭발 넉백 10px
                             }
                         }
                     });
@@ -1024,7 +1014,7 @@
                 enemy.setTint(0xffffff);
                 this.time.delayedCall(100, () => {
                     if(enemy.active) {
-                        if(enemy.isNamed) enemy.setTint(0x8B008B);
+                        if(enemy.isNamed) enemy.setTint(0xDDA0DD);
                         else enemy.clearTint();
                     }
                 });
@@ -1039,10 +1029,18 @@
                         let bigExp = this.expItems.create(enemy.x + 20, enemy.y, 'sli_drop1').setDisplaySize(50, 50);
                         bigExp.expAmount = 40;
                         if(bigExp.preFX) bigExp.preFX.addGlow(0x00ffcc, 5, 0, false);
+
+                        // 네임드 처치 시 골드 3개 동시 드롭
+                        for (let g = 0; g < 3; g++) {
+                            let gx = enemy.x + Phaser.Math.Between(-25, 25);
+                            let gy = enemy.y + Phaser.Math.Between(-25, 25);
+                            this.goldItems.create(gx, gy, 'sli_drop3').setScale(0.3);
+                        }
                     } else {
                         this.expItems.create(enemy.x, enemy.y, 'sli_drop1').setScale(0.3);
                         
-                        if (Math.random() < 0.1) this.goldItems.create(enemy.x, enemy.y, 'sli_drop3').setScale(0.3);
+                        // 일반 슬라임 골드 드롭 확률 1% (0.01)로 감축
+                        if (Math.random() < 0.01) this.goldItems.create(enemy.x, enemy.y, 'sli_drop3').setScale(0.3);
                         
                         if (Math.random() < 0.005) {
                             let meat = this.meatItems.create(enemy.x, enemy.y, 'meat').setDisplaySize(35, 35);
@@ -1063,7 +1061,7 @@
                 if (this.isInvincible || this.isLevelUpOpen) return;
 
                 let rawDmg = enemy.isNamed ? 20 : 10;
-                let realDmg = Math.max(1, rawDmg - this.playerStats.defense); // 방어력 수치 반영
+                let realDmg = Math.max(1, rawDmg - this.playerStats.defense);
 
                 this.playerStats.hp -= realDmg;
                 this.updateHpUI();
@@ -1081,16 +1079,14 @@
                     playRandomSFX(this, 'game_over');
                     this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', { fontSize: '64px', fill: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
                     
-                    // DB 결과 저장 (사망)
                     this.saveGameResult(false);
-                    
                     this.time.delayedCall(2500, () => this.scene.start('StageSelectScene'));
                 }
             }
 
             collectExp(player, exp) {
                 if (this.isLevelUpOpen) return;
-                let amount = (exp.expAmount || 1) * this.playerStats.expBonus; // 경험치 획득 증가 반영
+                let amount = (exp.expAmount || 1) * this.playerStats.expBonus;
                 exp.destroy();
                 playRandomSFX(this, 'pickup', 0.4);
                 this.playerStats.exp += amount;
@@ -1157,7 +1153,6 @@
 
                 this.enemies.getChildren().forEach(e => { if (e.update) e.update(); });
 
-                // 제한시간 달성 시 스테이지 클리어
                 if (this.elapsedTime === this.stageData.time) {
                     playRandomSFX(this, 'boss_warning', 0.8);
                     playBGM(this, 'final_boss');
@@ -1167,15 +1162,12 @@
                     }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
                     
                     this.physics.pause();
-                    
-                    // DB 결과 저장 (클리어)
                     this.saveGameResult(true);
 
                     this.time.delayedCall(3000, () => this.scene.start('StageSelectScene'));
                 }
             }
 
-            // DB 게임 결과 저장 API 호출
             saveGameResult(isClear) {
                 fetch('/api/survive/save_result', {
                     method: 'POST',
@@ -1200,9 +1192,6 @@
                 .catch(err => console.error("결과 저장 중 오류:", err));
             }
 
-            // ==========================================
-            // 원칙 2 & 원칙 6 준수: 카메라 좌표 기반 UI 생성 및 세로 정렬 카드
-            // ==========================================
             showLevelUpUI(isRareOnly = false) {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
@@ -1215,7 +1204,7 @@
                     .setDepth(20000)
                     .setInteractive();
 
-                let titleTxt = isRareOnly ? '★ 레어 보상 상획득! ★' : 'LEVEL UP!';
+                let titleTxt = isRareOnly ? '★ 레어 보상 획득! ★' : 'LEVEL UP!';
                 let titleColor = isRareOnly ? '#ffdd00' : '#ffcc00';
 
                 let title = this.add.text(this.scale.width / 2, isMobile ? 120 : 100, titleTxt, { fontSize: '42px', fill: titleColor, fontStyle: 'bold' })
@@ -1340,7 +1329,6 @@
                 this.physics.resume();
             }
 
-            // 인게임 골드 상점 (해금된 보스 스킬 소환 구매 지원)
             showShopUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
@@ -1382,8 +1370,6 @@
                                 this.goldText.setText(`${this.playerStats.gold}`);
                                 goldInfo.setText(`획득한 골드: ${this.playerStats.gold} G`);
                                 playRandomSFX(this, 'skill_fire');
-                                
-                                // 보스 스킬 스크롤 소환 연출 및 발동
                                 alert(`보스 스킬 [${sk.skill_key}] 발동!`);
                             } else {
                                 playRandomSFX(this, 'button');
