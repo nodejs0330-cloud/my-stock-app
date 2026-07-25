@@ -161,7 +161,7 @@
                     this.load.audio(`${key}2`, `/static/sfx/survive/${key}2.mp3`);
                 });
 
-                // 1. 신규 스킬/보스 SFX 로드
+                // 신규 스킬/보스 SFX 로드
                 for(let i=1; i<=3; i++) this.load.audio(`skill_bolt${i}`, `/static/sfx/survive/skill_bolt${i}.mp3`);
                 for(let i=1; i<=2; i++) this.load.audio(`boss_skill_used${i}`, `/static/sfx/survive/boss_skill_used${i}.mp3`);
                 for(let i=1; i<=4; i++) this.load.audio(`stage1_skill${i}`, `/static/sfx/survive/stage1_skill${i}.mp3`);
@@ -192,7 +192,6 @@
                 this.load.image('scroll_earth_wall', '/static/img/survive/reword/scroll_earth_wall.png');
                 this.load.image('ninja_posion', '/static/img/survive/reword/ninja_posion.png');
                 
-                // 2. 신규 아이콘 경로 적용
                 this.load.image('ninja_hp_posion', '/static/img/survive/reword/ninja_hp_posion.png');
                 this.load.image('ninja_speed', '/static/img/survive/reword/ninja_speed.png');
                 this.load.image('clear_box', '/static/img/survive/reword/clear_box.png');
@@ -273,14 +272,13 @@
                 this.add.image(40, 40, 'goldpocket').setDisplaySize(32, 32).setScrollFactor(0);
                 this.goldTxt = this.add.text(65, 40, `${USER_GLOBAL_DATA.survive_gold}`, { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0);
 
-                // 8. 관리자 전용 톱니바퀴 버튼
                 let gearBtn = this.add.text(this.scale.width - 90, 68, '⚙️', { fontSize: '30px' }).setOrigin(0.5).setInteractive();
                 gearBtn.on('pointerdown', () => {
                     playRandomSFX(this, 'button');
                     let pw = prompt("관리자 비밀번호를 입력하세요:");
                     if (pw === "6974") {
                         isTestMode = true;
-                        alert("✅ [관리자 모드] 바로 보스 만나기 모드가 활성화되었습니다.\n(1분 뒤 보스 출현 / 시작 시 15개 보상 지급 / DB 기록 없음)");
+                        alert("✅ [관리자 모드] 바로 보스 만나기 모드가 활성화되었습니다.\n(1분 뒤 보스 출현 / 시작 시 15개 보상 큐 지급 / DB 기록 없음)");
                     } else if (pw !== null) {
                         alert("❌ 비밀번호가 올바르지 않습니다.");
                     }
@@ -559,7 +557,6 @@
                 this.isLevelUpOpen = false;
                 this.lastNamedSpawnTime = 0;
 
-                // 보스 및 잡몹 통제 변수
                 this.boss = null;
                 this.bossProjectiles = this.physics.add.group();
                 this.isBossSpawned = false;
@@ -567,8 +564,10 @@
                 this.killedEnemiesCount = 0;
                 this.bossSkillTimer = 0;
 
-                // 3. 주인공 필살기 쿨타임 변수 (50초)
                 this.heroSkillCooldown = 0;
+
+                // 1. 테스트 모드 15개 보상 순차 대기 큐
+                this.pendingLevelUps = isTestMode ? 15 : 0;
             }
 
             create() {
@@ -581,7 +580,6 @@
                 this.bgTile.setTileScale(0.25, 0.25);
 
                 this.obstacles = this.physics.add.staticGroup();
-                // 5. 까만색 스폰 오류 타일 및 경계 오차 보정
                 for (let i = 0; i < 40; i++) {
                     let cx = Phaser.Math.Between(2000, 14000);
                     let cy = Phaser.Math.Between(2000, 14000);
@@ -628,19 +626,19 @@
                     left: Phaser.Input.Keyboard.KeyCodes.A, right: Phaser.Input.Keyboard.KeyCodes.D
                 });
 
-                // 스페이스바 필살기 발동 키 설정
                 this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+                // 3. PC 키보드 '1' 키 스킬 매핑
+                this.numOneKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
+                this.numpadOneKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_ONE);
 
                 this.setupVirtualJoystick();
 
                 this.time.addEvent({ delay: 1000, callback: this.updateGameLogic, callbackScope: this, loop: true });
                 this.time.addEvent({ delay: 1000, callback: this.spawnEnemies, callbackScope: this, loop: true });
 
-                // 8. 관리자 테스트 모드 발동 처리
-                if (isTestMode) {
-                    for(let i=0; i<15; i++) {
-                        this.time.delayedCall(i * 300, () => this.showLevelUpUI(false));
-                    }
+                // 1. 테스트 모드 첫 번째 레벨업 보상 창 즉시 1개 오픈
+                if (this.pendingLevelUps > 0) {
+                    this.showLevelUpUI(false);
                 }
             }
 
@@ -660,10 +658,11 @@
                 this.playerHpBg = this.add.rectangle(130, 148, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
                 this.playerHpBar = this.add.rectangle(30, 148, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                // 3. 주인공 필살기 UI (좌측 상단 네모 박스)
-                this.heroSkillBtn = this.add.image(280, 55, 'hero_main').setDisplaySize(48, 48).setScrollFactor(0).setDepth(1000).setInteractive();
-                this.heroSkillOverlay = this.add.rectangle(280, 55, 48, 48, 0x000000, 0.6).setScrollFactor(0).setDepth(1001).setVisible(false);
-                this.heroSkillText = this.add.text(280, 55, '', { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1002);
+                // 2. 주인공 스킬 UI: HP 바 아래 (X: 55, Y: 195) 명확한 황금 테두리 박스 배치
+                this.add.rectangle(55, 195, 56, 56, 0x111122, 0.9).setStrokeStyle(3, 0xffcc00).setScrollFactor(0).setDepth(1000);
+                this.heroSkillBtn = this.add.image(55, 195, 'hero_main').setDisplaySize(48, 48).setScrollFactor(0).setDepth(1001).setInteractive();
+                this.heroSkillOverlay = this.add.rectangle(55, 195, 50, 50, 0x000000, 0.65).setScrollFactor(0).setDepth(1002).setVisible(false);
+                this.heroSkillText = this.add.text(55, 195, '', { fontSize: '20px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1003);
 
                 this.heroSkillBtn.on('pointerdown', () => this.useHeroActiveSkill());
 
@@ -680,15 +679,14 @@
                 this.goldText.on('pointerdown', openShop);
             }
 
-            // 3. 주인공 궁극기 스킬 (360도 60연사 수리검 + 풍성한 연사 SFX 연출)
+            // 4. 수리검 80발 연사 (360도 40발씩 2회 연속, 100ms 시차)
             useHeroActiveSkill() {
                 if (this.heroSkillCooldown > 0 || this.isLevelUpOpen) return;
 
-                this.heroSkillCooldown = 50; // 50초 쿨타임
+                this.heroSkillCooldown = 50; 
                 this.heroSkillOverlay.setVisible(true);
                 this.heroSkillText.setText('50');
 
-                // 우측 하단 hero_main.png 컷인 애니메이션
                 let cutIn = this.add.image(this.scale.width - 120, this.scale.height - 120, 'hero_main')
                     .setDisplaySize(180, 180).setScrollFactor(0).setDepth(20000).setAlpha(0);
 
@@ -697,7 +695,6 @@
                     onComplete: () => cutIn.destroy()
                 });
 
-                // 300ms 동안 시차를 두고 hero_skill1,2,3 교차 다중 연사 사운드 발동
                 for(let s=0; s<6; s++) {
                     this.time.delayedCall(s * 50, () => {
                         let sfxNum = (s % 3) + 1;
@@ -707,16 +704,20 @@
                     });
                 }
 
-                // 360도 60발 기본 수리검 폭사
-                for (let i = 0; i < 60; i++) {
-                    let angle = (Math.PI * 2 / 60) * i;
-                    let suri = this.projectiles.create(this.player.x, this.player.y, 'suri').setScale(0.2).setDepth(9999);
-                    suri.rotation = angle + Math.PI / 2;
-                    suri.damage = (this.playerStats.damage * 1.5) * this.playerStats.damageMultiplier;
-                    suri.pierce = 2;
-                    suri.isBomb = false;
-                    suri.knockback = 18;
-                    this.physics.velocityFromRotation(angle, 600, suri.body.velocity);
+                // 4. 총 80발 (40발 x 2웨이브)
+                for (let wave = 0; wave < 2; wave++) {
+                    this.time.delayedCall(wave * 100, () => {
+                        for (let i = 0; i < 40; i++) {
+                            let angle = (Math.PI * 2 / 40) * i + (wave * 0.08);
+                            let suri = this.projectiles.create(this.player.x, this.player.y, 'suri').setScale(0.2).setDepth(9999);
+                            suri.rotation = angle + Math.PI / 2;
+                            suri.damage = (this.playerStats.damage * 1.5) * this.playerStats.damageMultiplier;
+                            suri.pierce = 2;
+                            suri.isBomb = false;
+                            suri.knockback = 18;
+                            this.physics.velocityFromRotation(angle, 600, suri.body.velocity);
+                        }
+                    });
                 }
             }
 
@@ -757,14 +758,13 @@
                 });
             }
 
-            // 4-1. 네임드 30%, 보스 60% 넉백 감쇄 적용
             applyKnockback(enemy, angle, force) {
                 if (!enemy || !enemy.active) return;
                 enemy.knockbackTimer = this.time.now + 250;
                 
                 let factor = 1.0;
-                if (enemy.isBoss) factor = 0.40; // 60% 감쇄 (40%만 밀려남)
-                else if (enemy.isNamed) factor = 0.70; // 30% 감쇄 (70%만 밀려남)
+                if (enemy.isBoss) factor = 0.40; 
+                else if (enemy.isNamed) factor = 0.70; 
 
                 let finalForce = force * factor * 7;
                 let kx = Math.cos(angle) * finalForce;
@@ -778,7 +778,10 @@
                     return;
                 }
 
-                if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+                // 3. Space 키 및 숫자 1키 스킬 입력 연동
+                if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || 
+                    Phaser.Input.Keyboard.JustDown(this.numOneKey) || 
+                    Phaser.Input.Keyboard.JustDown(this.numpadOneKey)) {
                     this.useHeroActiveSkill();
                 }
 
@@ -856,7 +859,6 @@
                 pullGroup(this.fieldMagnetItems);
             }
 
-            // 4-2. 보스 몬스터 최우선 타겟팅 지원
             getClosestEnemy() {
                 if (this.boss && this.boss.active) return this.boss;
                 let closest = null;
@@ -902,7 +904,7 @@
                 let fireWindPierceBonus = pierceLv > 0 ? (1.20 + (pierceLv - 1) * 0.05) : 1.0;
                 let waterBombPierceBonus = pierceLv > 0 ? (1.50 + (pierceLv - 1) * 0.05) : 1.0;
 
-                // 4. 화둔 쿨타임 반감 (1.75초) 및 크기 2.5배 확대 (140x85)
+                // 화둔
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 1750) {
                     playRandomSFX(this, 'skill_fire', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
@@ -913,7 +915,7 @@
                         let posY = this.player.y + Math.sin(fireAngle) * spawnDist;
 
                         let fire = this.physics.add.sprite(posX, posY, 'fire_stream')
-                            .setDisplaySize(140, 85) // 2.5배 확대
+                            .setDisplaySize(140, 85)
                             .setRotation(fireAngle + Math.PI)
                             .setDepth(9999);
 
@@ -944,7 +946,7 @@
                     this.lastSkillTimes.fire = time;
                 }
 
-                // 4. 수둔 쿨타임 반감 (1.6초)
+                // 수둔
                 if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + (1600 - (this.playerStats.water * 100)) && target) {
                     playRandomSFX(this, 'skill_water', 0.6);
                     let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -967,15 +969,14 @@
                     this.lastSkillTimes.water = time;
                 }
 
-                // 1. 신규 스킬 [뇌둔 (Lightning)] 쿨타임 4초 -> 최소 2초
+                // 뇌둔
                 if (this.playerStats.bolt > 0) {
                     let boltCd = Math.max(2000, 4000 - (this.playerStats.bolt * 400));
                     if (time > this.lastSkillTimes.bolt + boltCd) {
-                        // skill_bolt1 ~ skill_bolt3 무작위 재생
                         let sNum = Phaser.Math.Between(1, 3);
                         if(!isMuted && this.cache.audio.exists(`skill_bolt${sNum}`)) this.sound.play(`skill_bolt${sNum}`, { volume: 0.6 });
 
-                        let boltCount = 1 + (this.playerStats.bolt - 1) * 3; // 1렙당 3개씩 증가
+                        let boltCount = 1 + (this.playerStats.bolt - 1) * 3;
                         let boltDmg = 12 + (this.playerStats.bolt * 6);
 
                         for(let b=0; b<boltCount; b++) {
@@ -1098,10 +1099,9 @@
                 }
             }
 
-            // 6. Stage 1 오리너구리 보스 스폰 로직
             spawnBoss() {
                 this.isBossSpawned = true;
-                this.stopNormalSpawns = true; // 일반 몬스터 스폰 중단
+                this.stopNormalSpawns = true;
 
                 playBGM(this, 'final_boss');
 
@@ -1113,7 +1113,6 @@
                 this.boss.isBoss = true;
                 this.boss.isNamed = true;
 
-                // 6-2. 체력 = 네임드(150)의 10배 = 1500
                 this.boss.hp = 1500;
                 this.boss.maxHp = 1500;
                 this.boss.hpBar = this.add.graphics().setDepth(100);
@@ -1124,7 +1123,6 @@
                 this.time.delayedCall(3000, () => warn.destroy());
             }
 
-            // 6.3 보스 AI 패턴 및 스킬 발동
             updateBossAI(time) {
                 if (!this.boss || !this.boss.active) return;
 
@@ -1132,7 +1130,6 @@
 
                 this.physics.moveToObject(this.boss, this.player, 60);
 
-                // 6-1. 보스 모션 적용 (오른쪽 이동 시 flipX 연동)
                 let vx = this.boss.body.velocity.x;
                 let vy = this.boss.body.velocity.y;
 
@@ -1147,24 +1144,20 @@
                     this.boss.setFlipX(false);
                 }
 
-                // 6-2. 보스 기본 공격 (3초마다 붕어빵 투척)
                 if (!this.lastBossAtkTime || time > this.lastBossAtkTime + 3000) {
                     this.fireBossGoldenFish(this.player.x, this.player.y, 20, 250);
                     this.lastBossAtkTime = time;
                 }
 
-                // 6-3. 보스 패턴 스킬 쿨타임 (12초마다 트리플샷, 소환, 융단폭격 무작위 발동)
                 if (!this.lastBossSkillTime || time > this.lastBossSkillTime + 12000) {
                     let randSkill = Phaser.Math.Between(1, 3);
                     if (randSkill === 1) {
-                        // 트리플 샷
                         for(let t=0; t<3; t++) {
                             this.time.delayedCall(t * 200, () => {
                                 if(this.boss && this.boss.active) this.fireBossGoldenFish(this.player.x, this.player.y, 15, 380);
                             });
                         }
                     } else if (randSkill === 2) {
-                        // 동료 소환 (30마리 속도 +30% 블루 슬라임)
                         for(let s=0; s<30; s++) {
                             let sa = Math.random() * Math.PI * 2;
                             let sx = this.boss.x + Math.cos(sa) * 120;
@@ -1175,7 +1168,6 @@
                             minion.update = () => { this.physics.moveToObject(minion, this.player, 88); };
                         }
                     } else if (randSkill === 3) {
-                        // 6.3 필살기 (붕어빵 융단폭격 50발 + 컷인 시각화)
                         let bSkillNum = Phaser.Math.Between(1, 2);
                         if(!isMuted && this.cache.audio.exists(`boss_skill_used${bSkillNum}`)) this.sound.play(`boss_skill_used${bSkillNum}`, { volume: 0.8 });
 
@@ -1317,7 +1309,6 @@
                     if (enemy.hpBar) enemy.hpBar.destroy();
                     this.killedEnemiesCount++;
 
-                    // 6-5. 보스 사망 시 스테이지 클리어 처리 및 리포트창 출력
                     if (enemy.isBoss) {
                         enemy.destroy();
                         this.physics.pause();
@@ -1350,7 +1341,6 @@
                 }
             }
 
-            // 6-5. 클리어 리포트 창 구현 (/reward/clear_box.png 포함)
             showClearReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
@@ -1372,9 +1362,13 @@
                     fontSize: '24px', fill: '#fff', backgroundColor: '#00aa66', padding: { x: 30, y: 12 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001).setInteractive();
 
+                // 5. 버튼 마우스 호버 효과 원복
+                okBtn.on('pointerover', () => okBtn.setBackgroundColor('#aa7722').setFill('#fff'));
+                okBtn.on('pointerout', () => okBtn.setBackgroundColor('#00aa66').setFill('#fff'));
+
                 okBtn.on('pointerdown', () => {
                     playRandomSFX(this, 'button');
-                    isTestMode = false; // 테스트 모드 1회성 해제
+                    isTestMode = false; 
                     this.scene.start('TitleScene');
                 });
             }
@@ -1402,7 +1396,7 @@
                     this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', { fontSize: '64px', fill: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
                     
                     if (!isTestMode) this.saveGameResult(false);
-                    isTestMode = false; // 테스트 모드 1회성 리셋
+                    isTestMode = false; 
                     this.time.delayedCall(2500, () => this.scene.start('StageSelectScene'));
                 }
             }
@@ -1472,7 +1466,6 @@
                 if (this.isLevelUpOpen) return;
                 this.elapsedTime++;
 
-                // 주인공 필살기 쿨타임 카운트다운
                 if (this.heroSkillCooldown > 0) {
                     this.heroSkillCooldown--;
                     if (this.heroSkillCooldown <= 0) {
@@ -1490,7 +1483,6 @@
 
                 this.enemies.getChildren().forEach(e => { if (e.update) e.update(); });
 
-                // 보스 등장 타임 검사 (테스트 모드는 60초, 일반 모드는 제한시간 도달 시)
                 let targetBossTime = isTestMode ? 60 : this.stageData.time;
                 if (this.elapsedTime >= targetBossTime && !this.isBossSpawned) {
                     this.spawnBoss();
@@ -1533,7 +1525,7 @@
                     .setDepth(20000)
                     .setInteractive();
 
-                let titleTxt = isRareOnly ? '★ 레어 보상 획득! ★' : 'LEVEL UP!';
+                let titleTxt = isRareOnly ? '★ 레어 보상 획득! ★' : (this.pendingLevelUps > 0 ? `LEVEL UP! (남은 보상: ${this.pendingLevelUps}개)` : 'LEVEL UP!');
                 let titleColor = isRareOnly ? '#ffdd00' : '#ffcc00';
 
                 let title = this.add.text(this.scale.width / 2, isMobile ? 120 : 100, titleTxt, { fontSize: '42px', fill: titleColor, fontStyle: 'bold' })
@@ -1543,7 +1535,6 @@
 
                 this.levelUpElements.push(overlay, title);
 
-                // 1, 2. 신규 스킬 [뇌둔] 및 변경된 체력/이속 아이콘 반영 보상 풀
                 const rewardPool = [
                     { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜습니다. (Lv.3이상 전/후방 분사)', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
                     { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '적을 향해 강력한 수룡탄을 발사합니다.', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
@@ -1597,7 +1588,6 @@
                         .setScrollFactor(0)
                         .setDepth(20002);
 
-                    // 2. 신규 아이콘 이미지 세부 크기 보정
                     if (iconKey === 'ninja_hp_posion') {
                         icon.setDisplaySize(40, 58);
                     } else if (iconKey === 'ninja_speed') {
@@ -1622,6 +1612,32 @@
                     this.levelUpElements.push(cardBg, icon, nameTxt, descTxt);
                     if(lvTxt) this.levelUpElements.push(lvTxt);
 
+                    // 5-1. 레벨업 보상 카드 glowTween 호버 바운스 애니메이션 100% 완전 원복
+                    let glowTween = null;
+
+                    cardBg.on('pointerover', (pointer, localX, localY, event) => {
+                        if(event) event.stopPropagation();
+                        cardBg.setFillStyle(isRare ? 0x664400 : 0x224466);
+                        
+                        glowTween = this.tweens.add({
+                            targets: cardBg,
+                            scaleX: 1.02,
+                            scaleY: 1.02,
+                            duration: 150,
+                            yoyo: true,
+                            repeat: -1
+                        });
+                    });
+
+                    cardBg.on('pointerout', (pointer, localX, localY, event) => {
+                        if(event) event.stopPropagation();
+                        cardBg.setFillStyle(isRare ? 0x3d2b00 : 0x112233);
+                        if(glowTween) {
+                            glowTween.stop();
+                            cardBg.setScale(1);
+                        }
+                    });
+
                     cardBg.on('pointerdown', (pointer, localX, localY, event) => {
                         if(event) event.stopPropagation();
                         playRandomSFX(this, 'button');
@@ -1631,11 +1647,21 @@
                 });
             }
 
+            // 1. 테스트 모드 15개 보상 큐 연쇄 팝업 처리
             closeLevelUpUI() {
                 if (this.levelUpElements) {
                     this.levelUpElements.forEach(el => el.destroy());
                     this.levelUpElements = [];
                 }
+
+                if (this.pendingLevelUps > 0) {
+                    this.pendingLevelUps--;
+                    if (this.pendingLevelUps > 0) {
+                        this.time.delayedCall(100, () => this.showLevelUpUI(false));
+                        return;
+                    }
+                }
+
                 this.isLevelUpOpen = false;
                 this.physics.resume();
             }
@@ -1696,6 +1722,10 @@
                 let closeBtn = this.add.text(cx, closeBtnY, '닫기', {
                     fontSize: isMobile ? '24px' : '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 10 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
+
+                // 5. 지워졌던 닫기 버튼 마우스 호버 이펙트 100% 원복
+                closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#aa7722').setFill('#fff'));
+                closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#555').setFill('#fff'));
 
                 this.shopElements.push(closeBtn);
 
