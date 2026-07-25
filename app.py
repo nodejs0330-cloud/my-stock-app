@@ -724,7 +724,7 @@ def api_admin_ai_logs(code):
 
 
 # ==========================================
-# NCS SURVIVE 전용 API (방어 예외 처리 강화)
+# NCS SURVIVE 전용 API (방어 예외 처리 강화 및 매핑 수정)
 # ==========================================
 
 @app.route('/api/survive/user_data', methods=['GET'])
@@ -737,15 +737,21 @@ def api_survive_user_data():
     try:
         db = get_db()
         
-        # 1. 유저 보유 골드 조회
-        user = db.execute('SELECT ID, NAME, SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+        # 1. 유저 보유 골드 안전 조회
+        user_row = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
         survive_gold = 0
-        if user and 'SURVIVE_GOLD' in user.keys() and user['SURVIVE_GOLD'] is not None:
-            survive_gold = user['SURVIVE_GOLD']
+        if user_row:
+            if isinstance(user_row, dict):
+                survive_gold = user_row.get('SURVIVE_GOLD') or user_row.get('survive_gold') or 0
+            else:
+                try: survive_gold = user_row['SURVIVE_GOLD']
+                except: 
+                    try: survive_gold = user_row[0]
+                    except: survive_gold = 0
         
-        # 2. 영구 강화 데이터 조회
-        upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
-        if not upgrades:
+        # 2. 영구 강화 데이터 안전 조회 및 생성
+        upgrades_row = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+        if not upgrades_row:
             try:
                 db.execute('''
                     INSERT INTO GAME_UPGRADES (USER_ID, ATTACK_SPEED_LV, MOVE_SPEED_LV, ATTACK_POWER_LV, MAX_HP_LV, MAGNET_RANGE_LV, DEFENSE_LV, EXP_BONUS_LV, CLONE_LV)
@@ -754,41 +760,54 @@ def api_survive_user_data():
                 db.commit()
             except Exception:
                 pass
-            upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+            upgrades_row = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
+        # Row 객체를 대소문자 무관 dict로 변환
+        upgrades_dict = {}
+        if upgrades_row:
+            if hasattr(upgrades_row, 'keys'):
+                for k in upgrades_row.keys():
+                    upgrades_dict[str(k).upper()] = upgrades_row[k]
+            elif isinstance(upgrades_row, (list, tuple)):
+                # 순서 보장 매핑
+                cols = ['ID', 'USER_ID', 'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV']
+                for idx, col in enumerate(cols):
+                    if idx < len(upgrades_row):
+                        upgrades_dict[col] = upgrades_row[idx]
+
         # 3. 해금된 보스 스킬 목록 조회
         unlocked_list = []
         try:
             unlocked_skills = db.execute('SELECT SKILL_KEY, STAGE_ID FROM UNLOCKED_BOSS_SKILLS WHERE USER_ID = ? AND IS_UNLOCKED = 1', (user_id,)).fetchall()
             if unlocked_skills:
-                unlocked_list = [{"skill_key": s['SKILL_KEY'], "stage_id": s['STAGE_ID']} for s in unlocked_skills]
+                for s in unlocked_skills:
+                    if hasattr(s, 'keys'):
+                        unlocked_list.append({"skill_key": s['SKILL_KEY'], "stage_id": s['STAGE_ID']})
+                    else:
+                        unlocked_list.append({"skill_key": s[0], "stage_id": s[1]})
         except Exception:
             pass
 
-        # 안전 칼럼 매핑
-        def get_stat(key):
-            if upgrades and key in upgrades.keys() and upgrades[key] is not None:
-                return upgrades[key]
-            return 0
+        def get_lv(key):
+            return int(upgrades_dict.get(key, 0) or 0)
 
         return {
             "success": True,
-            "survive_gold": survive_gold,
+            "survive_gold": int(survive_gold or 0),
             "upgrades": {
-                "attack_speed_lv": get_stat('ATTACK_SPEED_LV'),
-                "move_speed_lv": get_stat('MOVE_SPEED_LV'),
-                "attack_power_lv": get_stat('ATTACK_POWER_LV'),
-                "max_hp_lv": get_stat('MAX_HP_LV'),
-                "magnet_range_lv": get_stat('MAGNET_RANGE_LV'),
-                "defense_lv": get_stat('DEFENSE_LV'),
-                "exp_bonus_lv": get_stat('EXP_BONUS_LV'),
-                "clone_lv": get_stat('CLONE_LV')
+                "attack_speed_lv": get_lv('ATTACK_SPEED_LV'),
+                "move_speed_lv": get_lv('MOVE_SPEED_LV'),
+                "attack_power_lv": get_lv('ATTACK_POWER_LV'),
+                "max_hp_lv": get_lv('MAX_HP_LV'),
+                "magnet_range_lv": get_lv('MAGNET_RANGE_LV'),
+                "defense_lv": get_lv('DEFENSE_LV'),
+                "exp_bonus_lv": get_lv('EXP_BONUS_LV'),
+                "clone_lv": get_lv('CLONE_LV')
             },
             "unlocked_boss_skills": unlocked_list
         }
     except Exception as e:
         print(f"API ERROR (/api/survive/user_data): {e}")
-        # DB 에러가 나더라도 JSON으로 안전 응답 (프론트 파싱 에러 방지)
         return {
             "success": True,
             "survive_gold": 0,
@@ -807,7 +826,7 @@ def api_survive_upgrade():
     
     user_id = session['user_id']
     data = request.json or {}
-    stat_type = data.get('stat_type')
+    stat_type = str(data.get('stat_type', '')).upper()
     
     allowed_stats = [
         'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 
@@ -819,13 +838,22 @@ def api_survive_upgrade():
     try:
         db = get_db()
         user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
-        current_gold = user['SURVIVE_GOLD'] if user and 'SURVIVE_GOLD' in user.keys() and user['SURVIVE_GOLD'] is not None else 0
+        current_gold = 0
+        if user:
+            current_gold = user['SURVIVE_GOLD'] if hasattr(user, 'keys') and 'SURVIVE_GOLD' in user.keys() else user[0]
+        current_gold = int(current_gold or 0)
         
         upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
-        
         current_lv = 0
-        if upgrades and stat_type in upgrades.keys() and upgrades[stat_type] is not None:
-            current_lv = upgrades[stat_type]
+        if upgrades:
+            if hasattr(upgrades, 'keys') and stat_type in upgrades.keys():
+                current_lv = upgrades[stat_type] or 0
+            elif isinstance(upgrades, (list, tuple)):
+                cols = ['ID', 'USER_ID', 'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV']
+                if stat_type in cols:
+                    current_lv = upgrades[cols.index(stat_type)] or 0
+
+        current_lv = int(current_lv or 0)
 
         if stat_type == 'CLONE_LV':
             if current_lv >= 1:
@@ -835,7 +863,7 @@ def api_survive_upgrade():
             cost = 100 + (current_lv * 150)
         
         if current_gold < cost:
-            return {"error": "골드가 부족합니다.", "success": False}, 400
+            return {"error": f"골드가 부족합니다. (필요: {cost}G, 보유: {current_gold}G)", "success": False}, 400
             
         db.execute('UPDATE USERS SET SURVIVE_GOLD = SURVIVE_GOLD - ? WHERE ID = ?', (cost, user_id))
         db.execute(f'UPDATE GAME_UPGRADES SET {stat_type} = {stat_type} + 1, UPDATED_AT = CURRENT_TIMESTAMP WHERE USER_ID = ?', (user_id,))
@@ -844,12 +872,15 @@ def api_survive_upgrade():
         updated_user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
         updated_upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
-        new_level = updated_upgrades[stat_type] if updated_upgrades and stat_type in updated_upgrades.keys() else 1
+        new_gold = updated_user['SURVIVE_GOLD'] if hasattr(updated_user, 'keys') else updated_user[0]
+        new_level = current_lv + 1
+        if updated_upgrades and hasattr(updated_upgrades, 'keys') and stat_type in updated_upgrades.keys():
+            new_level = updated_upgrades[stat_type]
 
         return {
             "success": True,
-            "new_gold": updated_user['SURVIVE_GOLD'],
-            "new_level": new_level
+            "new_gold": int(new_gold or 0),
+            "new_level": int(new_level or 1)
         }
     except Exception as e:
         print(f"API ERROR (/api/survive/upgrade): {e}")
@@ -901,10 +932,11 @@ def api_survive_save_result():
         db.commit()
         
         updated_user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
+        tot_gold = updated_user['SURVIVE_GOLD'] if hasattr(updated_user, 'keys') else updated_user[0]
         
         return {
             "success": True,
-            "total_gold": updated_user['SURVIVE_GOLD'] if updated_user else 0,
+            "total_gold": int(tot_gold or 0),
             "unlocked_skill": unlocked_skill_key
         }
     except Exception as e:
