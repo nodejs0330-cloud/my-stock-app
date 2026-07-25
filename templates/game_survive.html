@@ -509,7 +509,7 @@
                     defense: up.defense_lv * 1, expBonus: 1 + (up.exp_bonus_lv * 0.1),
                     level: 1, exp: 0, maxExp: 8, gold: 0, magnetRange: baseMagnet,
                     fire: 0, water: 0, wind: 0, bomb: 0, earth: 0, posionLv: 0,
-                    damageMultiplier: 1.0, // 병량환 데미지 +10% 배율 변수
+                    damageMultiplier: 1.0, 
                     pierce: 0, clone: 0, magnet: 0, maxHpLv: 0, speedLv: 0, healLv: 0
                 };
 
@@ -775,8 +775,9 @@
                     let angle = angleBase + ((i - (count - 1) / 2) * 0.2);
 
                     suri.rotation = angle + Math.PI / 2;
-                    // 병량환 데미지 10% 배율 적용
                     suri.damage = this.playerStats.damage * this.playerStats.damageMultiplier;
+                    
+                    // 기본 수리검만 [관통의 인]에 의해 관통 횟수가 증가함
                     suri.pierce = this.playerStats.pierce;
                     suri.isBomb = false;
                     suri.knockback = 15;
@@ -787,8 +788,15 @@
 
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
+                let pierceLv = this.playerStats.pierce;
 
-                // 1. 화둔: 3렙 이상 데미지 폭 상향 (+15%: 5.0 -> 5.75) 및 병량환 배율 연동
+                // [관통의 인] 화둔/나선 수리검 데미지 보너스 (Lv.1: 20%, 이후 +5% 단리)
+                let fireWindPierceBonus = pierceLv > 0 ? (1.20 + (pierceLv - 1) * 0.05) : 1.0;
+                
+                // [관통의 인] 수둔/기폭찰 데미지 보너스 (Lv.1: 50%, 이후 +5% 단리)
+                let waterBombPierceBonus = pierceLv > 0 ? (1.50 + (pierceLv - 1) * 0.05) : 1.0;
+
+                // 1. 화둔 (관통의 인 20% + 5%n 데미지 보너스 적용)
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 3500) {
                     playRandomSFX(this, 'skill_fire', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
@@ -809,7 +817,7 @@
 
                         let fireLv = this.playerStats.fire;
                         let baseDmg = 7.0 + (fireLv <= 2 ? fireLv * 5.0 : 10.0 + (fireLv - 2) * 5.75);
-                        fire.damage = baseDmg * this.playerStats.damageMultiplier;
+                        fire.damage = baseDmg * this.playerStats.damageMultiplier * fireWindPierceBonus;
                         fire.hitEnemies = [];
 
                         this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
@@ -830,7 +838,7 @@
                     this.lastSkillTimes.fire = time;
                 }
 
-                // 2. 수둔: 3렙 이상 데미지 폭 상향 (+15%: 4.0 -> 4.6) 및 병량환 배율 연동
+                // 2. 수둔 (관통 불가 pierce=0 고정, 관통의 인 50% + 5%n 데미지 보너스 적용)
                 if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + (3200 - (this.playerStats.water * 200)) && target) {
                     playRandomSFX(this, 'skill_water', 0.6);
                     let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -844,8 +852,8 @@
                         let angle = baseAngle + ((i - (count - 1) / 2) * 0.25);
                         let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
                         water.rotation = angle + Math.PI / 2;
-                        water.damage = baseDmg * this.playerStats.damageMultiplier;
-                        water.pierce = 0;
+                        water.damage = baseDmg * this.playerStats.damageMultiplier * waterBombPierceBonus;
+                        water.pierce = 0; // 관통 불가 고정
                         water.isBomb = false;
                         water.knockback = 10;
                         this.physics.velocityFromRotation(angle, 420, water.body.velocity);
@@ -853,7 +861,7 @@
                     this.lastSkillTimes.water = time;
                 }
 
-                // 3. 풍둔 나선수리검: 3렙 이상 데미지 폭 상향 (+15%: 2.5 -> 2.875) 및 병량환 배율 연동
+                // 3. 풍둔 나선수리검 (관통의 인 20% + 5%n 데미지 보너스 적용)
                 if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
                     playRandomSFX(this, 'skill_wind', 0.6);
                     let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
@@ -866,7 +874,7 @@
                     for (let i = 0; i < count; i++) {
                         let angle = baseAngle + ((i - (count - 1) / 2) * 0.3);
                         let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
-                        wind.damage = baseDmg * this.playerStats.damageMultiplier;
+                        wind.damage = baseDmg * this.playerStats.damageMultiplier * fireWindPierceBonus;
                         wind.pierce = 999;
                         wind.isBomb = false;
                         wind.knockback = 17;
@@ -879,7 +887,7 @@
                     this.lastSkillTimes.wind = time;
                 }
 
-                // 4. 기폭찰 수리검: 3렙 이상 데미지 폭 상향 (+15%: 2.0 -> 2.3) 및 병량환 배율 연동
+                // 4. 기폭찰 수리검 (관통 불가 pierce=0 고정, 관통의 인 50% + 5%n 데미지 보너스 적용)
                 if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -895,8 +903,8 @@
                         
                         this.tweens.add({ targets: bombSuri, rotation: '+=12.56', duration: 1000, repeat: -1 });
 
-                        bombSuri.damage = baseDmg * this.playerStats.damageMultiplier;
-                        bombSuri.pierce = 0;
+                        bombSuri.damage = baseDmg * this.playerStats.damageMultiplier * waterBombPierceBonus;
+                        bombSuri.pierce = 0; // 관통 불가 고정
                         bombSuri.isBomb = true;
                         bombSuri.knockback = 10;
                         
@@ -905,7 +913,7 @@
                     this.lastSkillTimes.bomb = time;
                 }
 
-                // 5. 토둔 토류벽: 3렙 이상 데미지 폭 상향 (+15%: 4.0 -> 4.6) 및 병량환 배율 연동
+                // 5. 토둔 토류벽
                 if (this.playerStats.earth > 0 && time > this.lastSkillTimes.earth + (7000 - (this.playerStats.earth * 400))) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     
@@ -985,7 +993,6 @@
                         baseHp += Math.floor((this.elapsedTime - 60) / 20) * 4;
                     }
 
-                    // 남은 시간 절반 타이밍부터 스폰되는 강해진 슬라임 블루 틴트 적용
                     let halfTime = Math.floor(this.stageData.time / 2);
                     if (this.elapsedTime >= halfTime) {
                         enemy.setTint(0x4488FF); 
@@ -1015,7 +1022,6 @@
                     };
                 }
 
-                // 네임드 특수 슬라임 스폰
                 if (this.elapsedTime > 0 && this.elapsedTime % 90 === 0 && this.elapsedTime !== this.lastNamedSpawnTime) {
                     this.lastNamedSpawnTime = this.elapsedTime;
                     let angle = Math.random() * Math.PI * 2;
@@ -1077,7 +1083,8 @@
                     let explosionKey = this.textures.exists('explosion_vfx') ? 'explosion_vfx' : 'suri_vfx';
                     let explosion = this.physics.add.sprite(explosionX, explosionY, explosionKey).setDisplaySize(90, 90).setDepth(9999);
                     
-                    let areaRadius = 45;
+                    // 기폭찰 폭발 데미지 영역 35px 정밀 축소 적용
+                    let areaRadius = 35;
                     this.enemies.getChildren().forEach(e => {
                         if (e.active && e !== enemy) {
                             let dist = Phaser.Math.Distance.Between(explosionX, explosionY, e.x, e.y);
@@ -1306,16 +1313,17 @@
 
                 this.levelUpElements.push(overlay, title);
 
+                // 보상 풀: 나선수리검 레어 승격 및 관통의 인 문구 변경 반영
                 const rewardPool = [
                     { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜습니다. (Lv.3이상 전/후방 분사)', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
                     { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '적을 향해 강력한 수룡탄을 발사합니다.', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
-                    { id: 'wind', type: 'normal', name: '풍둔: 나선 수리검', desc: '적을 1회 스쳐 관통하는 회전 수리검을 던집니다.', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
                     { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 위치에서 즉시 범위 폭발을 일으킵니다.', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
                     { id: 'earth', type: 'normal', name: '토둔: 토류벽', desc: '주변에 토류벽을 생성하여 적을 크게 밀쳐냅니다.', statKey: 'earth', icon: 'scroll_earth_wall', maxLv: 5 },
                     { id: 'posion', type: 'normal', name: '닌자 비전: 병량환', desc: '공격속도가 대폭 상승하고 모든 스킬 데미지가 +10% 증가합니다.', statKey: 'posionLv', icon: 'ninja_posion', maxLv: 3 },
                     { id: 'hp', type: 'normal', name: '체력 한계 돌파', desc: '최대 체력을 +20 늘리고 체력을 회복합니다.', statKey: 'maxHpLv', icon: 'box', maxLv: 10 },
                     { id: 'speed', type: 'normal', name: '족경술: 이속 증가', desc: '플레이어의 이동속도를 증가시킵니다.', statKey: 'speedLv', icon: 'box', maxLv: 5 },
-                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '모든 기본 투사체의 관통 횟수 +1', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
+                    { id: 'wind', type: 'rare', name: '[레어] 풍둔: 나선 수리검', desc: '적을 관통하며 상대를 갈아버리는 나선수리검을 던집니다.', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
+                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '기본 수리검 관통+1 (수둔/기폭찰 데미지 +50%, 화둔/나선 데미지 +20% 증가)', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
                     { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '기본공격, 기폭찰, 나선수리검 발사 수 +1', statKey: 'clone', icon: 'scroll_clone', maxLv: 3 },
                     { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '경험치 보석 및 골드 획득 범위를 넓힙니다.', statKey: 'magnet', icon: 'scroll_magnet', maxLv: 5 }
                 ];
@@ -1432,8 +1440,8 @@
                     .setDepth(20000)
                     .setInteractive();
 
-                let title = this.add.text(this.scale.width / 2, 100, '인게임 골드 상점', { fontSize: '42px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
-                let goldInfo = this.add.text(this.scale.width / 2, 150, `획득한 골드: ${this.playerStats.gold} G`, { fontSize: '22px', fill: '#ffd700' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
+                let title = this.add.text(this.scale.width / 2, 90, '인게임 골드 상점', { fontSize: isMobile ? '34px' : '42px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
+                let goldInfo = this.add.text(this.scale.width / 2, 135, `획득한 골드: ${this.playerStats.gold} G`, { fontSize: isMobile ? '18px' : '22px', fill: '#ffd700' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
                 this.shopElements.push(overlay, title, goldInfo);
 
@@ -1441,17 +1449,17 @@
                 let cx = this.scale.width / 2;
 
                 if (unlockedSkills.length === 0) {
-                    let noSkillTxt = this.add.text(cx, 280, '해금된 보스 스킬이 없습니다.\n스테이지를 클리어하면 보스 스킬이 해금됩니다!', { fontSize: '20px', fill: '#aaa', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
+                    let noSkillTxt = this.add.text(cx, 260, '해금된 보스 스킬이 없습니다.\n스테이지를 클리어하면 보스 스킬이 해금됩니다!', { fontSize: isMobile ? '18px' : '20px', fill: '#aaa', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
                     this.shopElements.push(noSkillTxt);
                 } else {
                     unlockedSkills.forEach((sk, idx) => {
-                        let posY = 220 + (idx * 80);
+                        let posY = 200 + (idx * 75);
                         let cost = 50;
 
-                        let card = this.add.rectangle(cx, posY, 550, 65, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20001);
-                        let skTxt = this.add.text(cx - 240, posY - 10, `[보스 스킬] ${sk.skill_key}`, { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(20002);
+                        let card = this.add.rectangle(cx, posY, isMobile ? 620 : 550, 60, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20001);
+                        let skTxt = this.add.text(cx - (isMobile ? 270 : 240), posY - 10, `[보스 스킬] ${sk.skill_key}`, { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(20002);
                         
-                        let buyBtn = this.add.text(cx + 170, posY, `구매 (${cost}G)`, {
+                        let buyBtn = this.add.text(cx + (isMobile ? 200 : 170), posY, `구매 (${cost}G)`, {
                             fontSize: '16px', fill: '#fff', backgroundColor: '#00aa66', padding: { x: 12, y: 6 }
                         }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
 
@@ -1473,8 +1481,10 @@
                     });
                 }
 
-                let closeBtn = this.add.text(cx, this.scale.height - 80, '닫기', {
-                    fontSize: '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 12 }
+                // 모바일 환경을 위해 닫기 버튼 위치 및 레이아웃 최적화 (scale.height - 100)
+                let closeBtnY = isMobile ? this.scale.height - 100 : this.scale.height - 80;
+                let closeBtn = this.add.text(cx, closeBtnY, '닫기', {
+                    fontSize: isMobile ? '24px' : '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 10 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
 
                 this.shopElements.push(closeBtn);
@@ -1498,7 +1508,6 @@
                 this.playerStats[reward.statKey]++;
 
                 if (reward.id === 'posion') {
-                    // 병량환: 공격대기시간 감소 및 전체 데미지 +10% 곱연산 배율 적용
                     this.playerStats.attackDelay = Math.max(400, 1100 - (this.playerStats.posionLv * 233));
                     this.playerStats.damageMultiplier += 0.10;
                 }
