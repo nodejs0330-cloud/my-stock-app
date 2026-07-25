@@ -107,7 +107,6 @@
             }
         }
 
-        // 스피커 버튼 패딩 및 Y축 위치 보정 (잘림 완전 방지)
         function createMuteButton(scene) {
             let muteBtn = scene.add.text(scene.scale.width - 45, 80, isMuted ? '🔇' : '🔊', { 
                 fontSize: '32px',
@@ -147,7 +146,8 @@
                 this.load.image('duck2', '/static/img/survive/monster/duck/duck2.png');
                 this.load.image('duck3', '/static/img/survive/monster/duck/duck3.png');
                 this.load.image('golden_fish', '/static/img/survive/monster/duck/golden_fish.png');
-                this.load.image('duck_skill', '/static/img/survive/monster/duck/duck_skill.jpeg');
+                // 확장자 변경: duck_skill.jpeg -> duck_skill.png
+                this.load.image('duck_skill', '/static/img/survive/monster/duck/duck_skill.png');
 
                 // BGM 로드
                 this.load.audio('survive_main', '/static/bgm/survive/survive_main.mp3');
@@ -181,7 +181,7 @@
                 this.load.image('hero_3', '/static/img/survive/hero/hero_3.png');
                 this.load.image('hero_4', '/static/img/survive/hero/hero_4.png');
                 this.load.image('hero_main', '/static/img/survive/hero/hero_main.png');
-                this.load.image('hero_dead', '/static/img/survive/hero/hero_dead.png'); // 8. 사망 이미지 로드
+                this.load.image('hero_dead', '/static/img/survive/hero/hero_dead.png');
 
                 this.load.image('suri', '/static/img/survive/eqi/suri.png');
                 this.load.image('suri_vfx', '/static/img/survive/effect/suri_throw_vfx.png');
@@ -225,9 +225,11 @@
                     }
                 });
 
+                // 타일 및 데코 리소스 로드
                 this.load.image('grass1', '/static/img/survive/tile/grass1.png');
                 this.load.image('grass4', '/static/img/survive/tile/grass4.png');
                 this.load.image('grass5', '/static/img/survive/tile/grass5.png');
+                this.load.image('branch', '/static/img/survive/tile/branch.png'); // 데코 나뭇가지 추가
                 this.load.image('rock1', '/static/img/survive/tile/rock1.png');
                 this.load.image('rock2', '/static/img/survive/tile/rock2.png');
                 this.load.image('rock3', '/static/img/survive/tile/rock3.png');
@@ -579,7 +581,6 @@
                 this.stopNormalSpawns = false;
                 this.killedEnemiesCount = 0;
 
-                // 8-1. 보스 누적 입힌 피해량 및 남은 체력 추적용 변수
                 this.bossDamageDealt = 0;
                 this.bossRemainingHp = 0;
 
@@ -596,32 +597,48 @@
                 this.physics.world.setBounds(0, 0, 16000, 16000);
                 this.physics.pause();
 
-                // 1. 고정 타일 배치 복원 (월드 전체 크기 커버 및 검은색 영역 완전 제거)
+                // 1. 소형 규격 믹스 타일링 배경 복원 (Scale 0.25 적용)
                 this.bgTile = this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1').setDepth(-10);
-                this.bgTile.setTileScale(0.3, 0.3);
+                this.bgTile.setTileScale(0.25, 0.25);
 
-                // 1. grass4 / grass5 자연스러운 혼합 레이어 배치
-                for (let gx = 1000; gx < 15000; gx += 800) {
-                    for (let gy = 1000; gy < 15000; gy += 800) {
-                        let randTex = Phaser.Math.RND.pick(['grass4', 'grass5', null]);
-                        if (randTex) {
-                            let gDeco = this.add.image(gx + Phaser.Math.Between(-100, 100), gy + Phaser.Math.Between(-100, 100), randTex)
+                // 1. grass4 세밀 디테일 타일 배치 (Scale 0.25)
+                for (let gx = 500; gx < 15500; gx += 400) {
+                    for (let gy = 500; gy < 15500; gy += 400) {
+                        if (Phaser.Math.Between(1, 100) <= 25) {
+                            let g4 = this.add.image(gx + Phaser.Math.Between(-50, 50), gy + Phaser.Math.Between(-50, 50), 'grass4')
                                 .setDepth(-9)
-                                .setAlpha(0.6)
-                                .setScale(0.8);
+                                .setScale(0.25)
+                                .setAlpha(0.7);
                         }
                     }
                 }
 
+                // 1. grass5 (위아래 흙길) 세로길 & 회전 가로길 십자/네거리 연속 배치 (Scale 0.25)
+                // (1) 세로 길 (X: 8000 라인 축)
+                for (let ry = 0; ry <= 16000; ry += 64) {
+                    this.add.image(8000, ry, 'grass5').setDepth(-8).setScale(0.25);
+                }
+                // (2) 가로 길 (Y: 8000 라인 축 - 90도 회전 적용)
+                for (let rx = 0; rx <= 16000; rx += 64) {
+                    this.add.image(rx, 8000, 'grass5').setDepth(-8).setScale(0.25).setRotation(Math.PI / 2);
+                }
+
+                // 1. branch.png 나뭇가지 및 자연물 빈번 배치
+                for (let b = 0; b < 250; b++) {
+                    let bx = Phaser.Math.Between(500, 15500);
+                    let by = Phaser.Math.Between(500, 15500);
+                    this.add.image(bx, by, 'branch').setDepth(-7).setScale(0.3).setRotation(Math.random() * Math.PI * 2);
+                }
+
                 this.obstacles = this.physics.add.staticGroup();
-                
-                // 1. 나무, 바위 장애물 수 및 숲 클러스터 확장
-                for (let i = 0; i < 150; i++) {
+
+                // 1. 숲 장애물(나무, 바위) 빈도 대폭 상향 (200개 무작위 + 12개 울창한 숲 클러스터 구역)
+                for (let i = 0; i < 200; i++) {
                     let cx = Phaser.Math.Between(1000, 15000);
                     let cy = Phaser.Math.Between(1000, 15000);
-                    if (Phaser.Math.Distance.Between(cx, cy, 8000, 8000) < 600) continue;
+                    if (Phaser.Math.Distance.Between(cx, cy, 8000, 8000) < 500) continue;
 
-                    let type = Phaser.Math.RND.pick(['tree1', 'tree2', 'tree1', 'rock1', 'rock2', 'rock3']);
+                    let type = Phaser.Math.RND.pick(['tree1', 'tree2', 'tree1', 'tree2', 'rock1', 'rock2', 'rock3']);
                     let obs = this.obstacles.create(cx, cy, type).setScale(1.0);
                     
                     if (type.startsWith('tree')) {
@@ -633,16 +650,16 @@
                     }
                 }
 
-                // 빽빽한 나무숲 클러스터 8구역 생성
-                for (let c = 0; c < 8; c++) {
-                    let clusterX = Phaser.Math.Between(2000, 14000);
-                    let clusterY = Phaser.Math.Between(2000, 14000);
-                    if (Phaser.Math.Distance.Between(clusterX, clusterY, 8000, 8000) < 1200) continue;
+                // 12개 울창한 숲 클러스터 구역
+                for (let c = 0; c < 12; c++) {
+                    let clusterX = Phaser.Math.Between(1500, 14500);
+                    let clusterY = Phaser.Math.Between(1500, 14500);
+                    if (Phaser.Math.Distance.Between(clusterX, clusterY, 8000, 8000) < 1000) continue;
 
-                    for (let t = 0; t < 6; t++) {
-                        let tx = clusterX + Phaser.Math.Between(-150, 150);
-                        let ty = clusterY + Phaser.Math.Between(-150, 150);
-                        let tree = this.obstacles.create(tx, ty, Phaser.Math.RND.pick(['tree1', 'tree2'])).setScale(1.0);
+                    for (let t = 0; t < 8; t++) {
+                        let tx = clusterX + Phaser.Math.Between(-160, 160);
+                        let ty = clusterY + Phaser.Math.Between(-160, 160);
+                        let tree = this.obstacles.create(tx, ty, Phaser.Math.RND.pick(['tree1', 'tree2'])).setScale(1.05);
                         tree.body.setSize(tree.width * 0.35, tree.height * 0.25);
                         tree.body.setOffset(tree.width * 0.325, tree.height * 0.72);
                     }
@@ -692,7 +709,6 @@
 
                 this.setupVirtualJoystick();
 
-                // 초 단위 타이머 루프
                 this.gameTimerEvent = this.time.addEvent({
                     delay: 1000,
                     callback: this.updateGameLogic,
@@ -762,7 +778,6 @@
             setupUI() {
                 createMuteButton(this);
 
-                // 2. 스피커 하단 메인 메뉴 돌아가기 버튼 (Y: 130)
                 let exitBtn = this.add.text(this.scale.width - 45, 130, '🏠', { 
                     fontSize: '28px',
                     padding: { top: 6, bottom: 6, left: 6, right: 6 } 
@@ -830,7 +845,6 @@
                 this.goldText.on('pointerdown', openShop);
             }
 
-            // 2. 인게임 메인 복귀 확인 팝업
             showExitConfirmModal() {
                 if (this.isLevelUpOpen) return;
                 
@@ -876,7 +890,7 @@
                 });
             }
 
-            // 4. 주인공 궁극기: 보스 등장 시 보스 향해 난사 (70% 데미지 보정 적용)
+            // 3. 주인공 스킬 SFX 연동 완전 보장 (hero_skill1~3 시차 재생)
             useHeroActiveSkill() {
                 if (this.heroSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
@@ -892,6 +906,7 @@
                     onComplete: () => cutIn.destroy()
                 });
 
+                // 3. 사운드 정상 연동
                 for(let s=0; s<6; s++) {
                     this.time.delayedCall(s * 50, () => {
                         let sfxNum = (s % 3) + 1;
@@ -908,11 +923,9 @@
                         for (let i = 0; i < 40; i++) {
                             let angle;
                             if (isBossTarget) {
-                                // 보스가 등장했으면 보스를 향한 부채꼴/집중 난사
                                 let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, this.boss.x, this.boss.y);
                                 angle = baseAngle + Phaser.Math.FloatBetween(-0.5, 0.5);
                             } else {
-                                // 일반 상황: 360도 전방향 난사
                                 angle = (Math.PI * 2 / 40) * i + (wave * 0.08);
                             }
 
@@ -920,7 +933,7 @@
                             suri.rotation = angle + Math.PI / 2;
                             
                             let baseDmg = (this.playerStats.damage * 1.5) * (1 + (this.playerStats.posionLv * 0.10));
-                            suri.damage = isBossTarget ? baseDmg * 0.70 : baseDmg; // 4. 보스 대상 70% 데미지 보정
+                            suri.damage = isBossTarget ? baseDmg * 0.70 : baseDmg;
                             suri.isHeroUltimate = true;
                             suri.pierce = 2;
                             suri.isBomb = false;
@@ -938,6 +951,7 @@
                 this.bossSkillOverlay.setVisible(true);
                 this.bossSkillText.setText('60');
 
+                // 오리너구리 컷신 이미지 연동
                 let cutIn = this.add.image(120, this.scale.height - 120, 'duck_skill').setDisplaySize(180, 180).setScrollFactor(0).setDepth(20000);
                 this.time.delayedCall(1200, () => cutIn.destroy());
 
@@ -1000,7 +1014,6 @@
                 });
             }
 
-            // 5. 보스몬스터 넉백 감쇄율 추가 적용 (기존 60% 감쇄 + 추가 15% 감쇄 = 총 75% 감쇄, 일반의 25%만 적용)
             applyKnockback(enemy, angle, force) {
                 if (!enemy || !enemy.active) return;
 
@@ -1009,7 +1022,7 @@
                 enemy.knockbackTimer = this.time.now + 250;
                 
                 let factor = 1.0;
-                if (enemy.isBoss) factor = 0.25; // 5. 추가 15% 감쇄 적용
+                if (enemy.isBoss) factor = 0.25; 
                 else if (enemy.isNamed) factor = 0.70; 
 
                 let finalForce = force * factor * 7;
@@ -1120,6 +1133,7 @@
                 return closest;
             }
 
+            // 3. 기본 수리검 SFX 연동 점검
             fireBasicSuri() {
                 let target = this.getClosestEnemy();
                 if (!target) return;
@@ -1153,6 +1167,7 @@
                 return baseDmg * finalMult;
             }
 
+            // 3. 인술 스킬별 SFX 연동 완료
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
                 let pierceLv = this.playerStats.pierce;
@@ -1160,7 +1175,7 @@
                 let fireWindPierceBonus = pierceLv > 0 ? (0.20 + (pierceLv - 1) * 0.05) : 0.0;
                 let waterBombPierceBonus = pierceLv > 0 ? (0.50 + (pierceLv - 1) * 0.05) : 0.0;
 
-                // 화둔
+                // 화둔 (SFX: skill_fire)
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 1750) {
                     playRandomSFX(this, 'skill_fire', 0.6);
                     let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
@@ -1202,7 +1217,7 @@
                     this.lastSkillTimes.fire = time;
                 }
 
-                // 수둔
+                // 수둔 (SFX: skill_water)
                 if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + (1600 - (this.playerStats.water * 100)) && target) {
                     playRandomSFX(this, 'skill_water', 0.6);
                     let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -1225,7 +1240,7 @@
                     this.lastSkillTimes.water = time;
                 }
 
-                // 뇌둔
+                // 뇌둔 (SFX: skill_bolt1~3)
                 if (this.playerStats.bolt > 0) {
                     let boltCd = Math.max(2000, 4000 - (this.playerStats.bolt * 400));
                     if (time > this.lastSkillTimes.bolt + boltCd) {
@@ -1254,7 +1269,7 @@
                     }
                 }
 
-                // 풍둔 나선수리검
+                // 풍둔 나선수리검 (SFX: skill_wind)
                 if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
                     playRandomSFX(this, 'skill_wind', 0.6);
                     let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
@@ -1280,7 +1295,7 @@
                     this.lastSkillTimes.wind = time;
                 }
 
-                // 기폭찰
+                // 기폭찰 (SFX: skill_bomb)
                 if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -1306,59 +1321,59 @@
                     this.lastSkillTimes.bomb = time;
                 }
 
-                // 토둔
-                if (this.playerStats.earth > 0 && time > this.lastSkillTimes.earth + (7000 - (this.playerStats.earth * 400))) {
-                    playRandomSFX(this, 'skill_bomb', 0.6);
-                    
-                    let wallKey = this.textures.exists('earth_wall') ? 'earth_wall' : 'suri_vfx';
-                    let wall = this.physics.add.sprite(this.player.x, this.player.y, wallKey).setDisplaySize(280, 160).setDepth(9998);
-                    
-                    if(wall.preFX) wall.preFX.addGlow(0x8B4513, 3, 0, false);
+                // 4. 토둔 메커니즘 전면 개편: 데미지 0 세팅, 레벨업 시 쿨타임 감소 & 지속시간 증가
+                let earthLv = this.playerStats.earth;
+                if (earthLv > 0) {
+                    let earthCooldown = Math.max(4000, 7000 - (earthLv * 600)); // Lv.1: 7초 -> Lv.5: 4.6초
+                    let earthDuration = 1200 + ((earthLv - 1) * 300);          // Lv.1: 1.2초 -> Lv.5: 2.4초
 
-                    let earthLv = this.playerStats.earth;
-                    let baseDmg = 8.0 + (earthLv <= 2 ? earthLv * 4.0 : 8.0 + (earthLv - 2) * 4.6);
-                    wall.damage = this.calcSkillDamage(baseDmg, 0);
-                    wall.hitEnemies = [];
+                    if (time > this.lastSkillTimes.earth + earthCooldown) {
+                        playRandomSFX(this, 'skill_bomb', 0.5); // SFX 연동
+                        
+                        let wallKey = this.textures.exists('earth_wall') ? 'earth_wall' : 'suri_vfx';
+                        let wall = this.physics.add.sprite(this.player.x, this.player.y, wallKey).setDisplaySize(280, 160).setDepth(9998);
+                        
+                        if(wall.preFX) wall.preFX.addGlow(0x8B4513, 3, 0, false);
 
-                    let wallOverlap = this.time.addEvent({
-                        delay: 100,
-                        repeat: 10,
-                        callback: () => {
-                            if (!wall || !wall.active) return;
+                        wall.damage = 0; // 4. 데미지 없음
+                        wall.hitEnemies = [];
 
-                            this.bossProjectiles.getChildren().forEach(fish => {
-                                if (fish.active && Phaser.Math.Distance.Between(wall.x, wall.y, fish.x, fish.y) <= 140) {
-                                    fish.destroy();
-                                }
-                            });
+                        let wallOverlap = this.time.addEvent({
+                            delay: 100,
+                            repeat: Math.floor(earthDuration / 100),
+                            callback: () => {
+                                if (!wall || !wall.active) return;
 
-                            this.enemies.getChildren().forEach(e => {
-                                if (!e.active) return;
-                                let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
-                                if (dist <= 140) {
-                                    let pushAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
-                                    if (!wall.hitEnemies.includes(e.id)) {
-                                        wall.hitEnemies.push(e.id);
-                                        this.damageEnemy(e, wall.damage);
+                                this.bossProjectiles.getChildren().forEach(fish => {
+                                    if (fish.active && Phaser.Math.Distance.Between(wall.x, wall.y, fish.x, fish.y) <= 140) {
+                                        fish.destroy();
                                     }
-                                    this.applyKnockback(e, pushAngle, 42);
-                                }
-                            });
-                        }
-                    });
+                                });
 
-                    this.tweens.add({ 
-                        targets: wall, 
-                        alpha: { from: 1, to: 0 }, 
-                        delay: 900, 
-                        duration: 300, 
-                        onComplete: () => {
-                            if(wallOverlap) wallOverlap.destroy();
-                            wall.destroy(); 
-                        } 
-                    });
+                                this.enemies.getChildren().forEach(e => {
+                                    if (!e.active) return;
+                                    let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
+                                    if (dist <= 140) {
+                                        let pushAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
+                                        this.applyKnockback(e, pushAngle, 42); // 강력한 넉백밀쳐내기 전용
+                                    }
+                                });
+                            }
+                        });
 
-                    this.lastSkillTimes.earth = time;
+                        this.tweens.add({ 
+                            targets: wall, 
+                            alpha: { from: 1, to: 0 }, 
+                            delay: earthDuration - 300, 
+                            duration: 300, 
+                            onComplete: () => {
+                                if(wallOverlap) wallOverlap.destroy();
+                                wall.destroy(); 
+                            } 
+                        });
+
+                        this.lastSkillTimes.earth = time;
+                    }
                 }
             }
 
@@ -1391,13 +1406,12 @@
                 this.triggerBossUltimateSkill(this.time.now);
                 this.lastBossUltimateTime = this.time.now;
                 this.lastBossDashTime = this.time.now;
-                this.lastBossMinionTime = this.time.now; // 3. 소환 패턴 타이머 초기화
+                this.lastBossMinionTime = this.time.now;
             }
 
             updateBossAI(time) {
                 if (!this.boss || !this.boss.active) return;
 
-                // 6. 보스 이동속도 10% 증가 (기본: 66, 돌진: 132)
                 let spd = this.boss.isDashing ? 132 : 66; 
 
                 if (!this.boss.isDashing && this.boss.knockbackTimer && time < this.boss.knockbackTimer) return;
@@ -1418,13 +1432,11 @@
                     this.boss.setFlipX(false);
                 }
 
-                // 30초 쿨타임 필살기 융단폭격
                 if (!this.lastBossUltimateTime || time > this.lastBossUltimateTime + 30000) {
                     this.triggerBossUltimateSkill(time);
                     this.lastBossUltimateTime = time;
                 }
 
-                // 20초 쿨타임 돌진
                 if (!this.lastBossDashTime || time > this.lastBossDashTime + 20000) {
                     this.boss.isDashing = true;
                     let dashGlow = null;
@@ -1439,53 +1451,50 @@
                     this.lastBossDashTime = time;
                 }
 
-                // 3. 12초 쿨타임: 슬라임 30마리 소환 / 트리플 샷 패턴 복원
+                // 2. 12초 쿨타임: 슬라임 60마리 소환 버프
                 if (!this.lastBossMinionTime || time > this.lastBossMinionTime + 12000) {
                     this.spawnBossMinions();
                     this.lastBossMinionTime = time;
                 }
 
-                // 기본 3초마다 붕어빵 투척
                 if (!this.lastBossAtkTime || time > this.lastBossAtkTime + 3000) {
                     this.fireBossGoldenFish(this.player.x, this.player.y, 20, 250, 45, 33);
                     this.lastBossAtkTime = time;
                 }
             }
 
-            // 3. 보스 하수인 슬라임 소환 복원 로직
+            // 2. 소환 수량 60마리(2배), 체력 2배(50), 이동속도 2배(136) 버프 적용
             spawnBossMinions() {
                 if (!this.boss || !this.boss.active) return;
                 
                 playRandomSFX(this, 'boss_warning', 0.6);
-                for (let i = 0; i < 30; i++) {
-                    let angle = (Math.PI * 2 / 30) * i;
-                    let sx = this.boss.x + Math.cos(angle) * 120;
-                    let sy = this.boss.y + Math.sin(angle) * 120;
+                for (let i = 0; i < 60; i++) { // 60마리 (2배)
+                    let angle = (Math.PI * 2 / 60) * i;
+                    let sx = this.boss.x + Math.cos(angle) * 140;
+                    let sy = this.boss.y + Math.sin(angle) * 140;
 
                     let minion = this.enemies.create(sx, sy, 'sli1').setScale(0.26);
                     minion.id = Phaser.Utils.String.UUID();
-                    minion.setTint(0x4488FF); // 블루 슬라임
-                    minion.hp = 25;
-                    minion.maxHp = 25;
+                    minion.setTint(0x4488FF); 
+                    minion.hp = 50; // 체력 2배 (50)
+                    minion.maxHp = 50;
                     minion.hpBar = this.add.graphics().setDepth(100);
 
                     minion.update = () => {
                         if (minion.knockbackTimer && this.time.now < minion.knockbackTimer) return;
-                        this.physics.moveToObject(minion, this.player, 90); // 속도 +30% 적용
+                        this.physics.moveToObject(minion, this.player, 136); // 속도 2배 (136)
                     };
                 }
             }
 
-            // 7. 보스 스킬 컷신 확대 및 화면 흔들림(shake) 연출
             triggerBossUltimateSkill(time) {
                 let bSkillNum = Phaser.Math.Between(1, 2);
                 if(!isMuted && this.cache.audio.exists(`boss_skill_used${bSkillNum}`)) this.sound.play(`boss_skill_used${bSkillNum}`, { volume: 0.8 });
 
-                // 7. 스킬 컷신 크기 380x380 확대
+                // duck_skill.png 사용
                 let skillCutIn = this.add.image(190, this.scale.height - 190, 'duck_skill').setDisplaySize(380, 380).setScrollFactor(0).setDepth(20000);
                 this.time.delayedCall(1500, () => skillCutIn.destroy());
 
-                // 7. 화면 흔들림 효과 연동 (긴장감 부여)
                 this.cameras.main.shake(300, 0.02);
 
                 let px = this.player.x;
@@ -1503,7 +1512,6 @@
                 }
             }
 
-            // 2. 붕어빵 투사체 정방향/반전 보정 (오른쪽 이동 시 배가 뒤집히지 않고 FlipX/FlipY 정상 정렬)
             fireBossGoldenFish(tx, ty, dmg, spd, w = 45, h = 33) {
                 if(!this.boss || !this.boss.active) return;
                 let fish = this.bossProjectiles.create(this.boss.x, this.boss.y, 'golden_fish').setDisplaySize(w, h).setDepth(9999);
@@ -1511,7 +1519,6 @@
                 let dx = tx - this.boss.x;
                 let angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, tx, ty);
                 
-                // 2. 반전 및 회전각 정밀 보정
                 if (dx >= 0) {
                     fish.setFlipY(true);
                     fish.rotation = angle + Math.PI;
@@ -1581,10 +1588,9 @@
 
                 let realDmg = projectile.damage;
                 
-                // 보스 피격 데미지 연산 및 피해량 기록
                 if (enemy.isBoss) {
                     if (projectile.texture.key !== 'suri' && !projectile.isHeroUltimate) {
-                        realDmg *= 0.80; // 기본 일반 스킬 20% 감쇄
+                        realDmg *= 0.80;
                     }
                     this.bossDamageDealt += realDmg;
                 }
@@ -1744,12 +1750,10 @@
                 }
             }
 
-            // 8 & 8-1. 사망 모션 및 hero_dead.png 활용 게임오버 결과 리포트 팝업
             triggerPlayerDeath() {
                 this.physics.pause();
                 playRandomSFX(this, 'game_over');
 
-                // 8. 사망 모션: 기존 플레이어 검은색 변경 후 hero_dead 이미지 전환 연출
                 this.player.setTint(0x222222);
 
                 this.time.delayedCall(400, () => {
@@ -1757,7 +1761,6 @@
                     let py = this.player.y;
                     this.player.setVisible(false);
 
-                    // 8. 原 500x500 이미지를 주인공 스케일 132x141 에 맞춰 세팅
                     let deadSprite = this.add.image(px, py, 'hero_dead').setDisplaySize(132, 141).setDepth(this.player.depth);
                     
                     this.tweens.add({
@@ -1773,14 +1776,12 @@
                 });
             }
 
-            // 8-1. 게임오버 상세 결과 리포트
             showGameOverReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
 
                 this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.88).setScrollFactor(0).setDepth(20000);
 
-                // hero_dead.png 리포트 아이콘 연출
                 let deadIcon = this.add.image(cx, cy - 140, 'hero_dead').setDisplaySize(110, 118).setScrollFactor(0).setDepth(20001);
                 
                 this.add.text(cx, cy - 65, '💀 GAME OVER 💀', { 
@@ -1792,7 +1793,6 @@
                 
                 let reportStr = `처치한 적: ${this.killedEnemiesCount}마리\n생존 시간: ${mins}분 ${secs}초\n획득한 골드: ${this.playerStats.gold} G`;
                 
-                // 8-1. 보스 등장 시 입힌 피해량 & 남은 체력 표기
                 if (this.isBossSpawned) {
                     reportStr += `\n\n[⚔️ 보스 전투 기록]\n입힌 피해량: ${Math.floor(this.bossDamageDealt)}\n보스 남은 HP: ${Math.floor(this.bossRemainingHp)} / 15000`;
                 }
@@ -1961,12 +1961,14 @@
                 let fLv = this.playerStats.fire || 0;
                 let wLv = this.playerStats.water || 0;
                 let pLv = this.playerStats.pierce || 0;
+                let eLv = this.playerStats.earth || 0;
 
+                // 4. 토둔 카드 설명 변경 (데미지 문구 제거 -> 지속시간/쿨타임 명시)
                 const rewardPool = [
                     { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: `전방에 화염 분사 (다음 레벨: 데미지 +${fLv >= 2 ? '3.45' : '3.0'} 상승)`, statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
                     { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: `적을 향해 수룡탄 발사 (다음 레벨: 데미지 +${wLv >= 2 ? '2.87' : '2.5'} 상승 & 투사체 +1)`, statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
                     { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 위치 범위 폭발 (다음 레벨: 데미지 +2.3 상승)', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
-                    { id: 'earth', type: 'normal', name: '토둔: 토류벽', desc: '토류벽을 생성하여 적을 밀쳐내고 투사체 차단 (다음 레벨: 데미지 +4.6 상승)', statKey: 'earth', icon: 'scroll_earth_wall', maxLv: 5 },
+                    { id: 'earth', type: 'normal', name: '토둔: 토류벽', desc: `토류벽을 생성하여 적을 밀쳐내고 투사체 차단 (다음 레벨: 지속시간 +0.3초 / 쿨타임 -0.6초)`, statKey: 'earth', icon: 'scroll_earth_wall', maxLv: 5 },
                     { id: 'bolt', type: 'normal', name: '뇌둔: 번개 소환', desc: '랜덤 위치 번개 폭격 (다음 레벨: 번개 +3개 & 데미지 +6 상승)', statKey: 'bolt', icon: 'scroll_bolt', maxLv: 5 },
                     { id: 'posion', type: 'normal', name: '닌자 비전: 병량환', desc: '공격속도 상승 및 모든 스킬 데미지 +10% 대폭 증가', statKey: 'posionLv', icon: 'ninja_posion', maxLv: 3 },
                     { id: 'hp', type: 'normal', name: '체력 한계 돌파', desc: '최대 체력을 +20 늘리고 체력을 회복합니다.', statKey: 'maxHpLv', icon: 'ninja_hp_posion', maxLv: 10 },
