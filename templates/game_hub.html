@@ -30,13 +30,68 @@
         color: #94a3b8;
     }
 
-    /* 게임 카드 그리드 레이아웃 */
+    /* 슬라이더 컨테이너 (모바일 네비게이션 버튼 포함용) */
+    .slider-container {
+        position: relative;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    /* 게임 카드 그리드 레이아웃 (PC 기본) */
     .game-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 30px;
-        max-width: 1100px;
-        margin: 0 auto;
+    }
+
+    /* 모바일 네비게이션 버튼 (PC에서는 숨김) */
+    .nav-btn {
+        display: none;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10;
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.2rem;
+        cursor: pointer;
+        backdrop-filter: blur(4px);
+    }
+    .nav-btn.prev { left: -10px; }
+    .nav-btn.next { right: -10px; }
+
+    /* 모바일 환경 대응 (768px 이하) */
+    @media (max-width: 768px) {
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-grid {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            gap: 16px;
+            padding: 10px 5px;
+            /* 스크롤바 숨기기 */
+            scrollbar-width: none; /* Firefox */
+        }
+        
+        .game-grid::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        .game-card {
+            flex: 0 0 88%; /* 모바일에서 한 카드가 화면 대부분을 차지 */
+            scroll-snap-align: center; /* 스와이프 시 카드가 중앙에 딱 걸리도록 지정 */
+        }
     }
 
     /* 모던 다크 카드 디자인 */
@@ -78,13 +133,12 @@
         overflow: hidden;
     }
 
-    /* 엑스박스(깨진 이미지)가 너무 크지 않게 처리 */
     .card-img-box img {
         width: 100px;
         height: 100px;
         image-rendering: pixelated;
         transition: transform 0.3s ease;
-        color: transparent; /* 엑스박스 텍스트 숨김 용도 */
+        color: transparent;
     }
 
     .game-card:hover .card-img-box img {
@@ -185,63 +239,87 @@
         <p class="hub-subtitle">{{ username }}님, 플레이할 미니게임을 선택해 주세요!</p>
     </div>
 
-    <div class="game-grid">
-        <!-- 1. 타워 디펜스 게임 (활성화 - 노란색 테마) -->
-        <div class="game-card accent" onclick="location.href='/game/tower'">
-            <div class="card-img-box">
-                <img src="/static/img/tower/krx.png" alt="KRX Defense">
-            </div>
-            <div class="card-content">
-                <div class="card-title">🛡️ NCS Stock Defense</div>
-                <div class="card-tags">
-                    <span class="tag accent-tag">전략 디펜스</span>
-                    <span class="tag">난이도: 어려움</span>
-                </div>
-                <div class="card-desc">
-                    몰려오는 개미투자자를 막아내고 한국거래소를 사수하라!<br>
-                    우량주 합병과 무기 강화를 통한 극한의 생존 게임.
-                </div>
-                <button class="play-btn btn-active">게임 시작하기</button>
-            </div>
-        </div>
+    <div class="slider-container">
+        <!-- 모바일 이동 버튼 -->
+        <button class="nav-btn prev" onclick="scrollSlider(-1)">&#10094;</button>
+        <button class="nav-btn next" onclick="scrollSlider(1)">&#10095;</button>
 
-        <!-- 2. NCS SURVIVE (서바이벌 게임) -->
-        <div class="game-card" onclick="location.href='/game/survive'">    
-            <div class="card-img-box">
-                <!-- 메인 이미지를 썸네일로 활용 (비율에 맞게 꽉 채움) -->
-                <img src="/static/img/survive/main_mini.png" alt="NCS SURVIVE" style="width: 100%; height: 100%; object-fit: cover;">
-            </div>
-            <div class="card-content">
-                <div class="card-title">🗡️ NCS SURVIVE</div>
-                <div class="card-tags">
-                    <span class="tag accent-tag">로그라이크</span>
-                    <span class="tag">서바이벌</span>
+        <div class="game-grid" id="gameGrid">
+            <!-- 1. 타워 디펜스 게임 -->
+            <div class="game-card accent" onclick="location.href='/game/tower'">
+                <div class="card-img-box">
+                    <img src="/static/img/tower/krx.png" alt="KRX Defense">
                 </div>
-                <div class="card-desc">
-                    몰려오는 몬스터들을 물리치고 한계까지 살아남아라!<br>
-                    무기를 진화시키고 강력한 보스를 처치해 스킬을 빼앗으세요.
+                <div class="card-content">
+                    <div class="card-title">🛡️ NCS Stock Defense</div>
+                    <div class="card-tags">
+                        <span class="tag accent-tag">전략 디펜스</span>
+                        <span class="tag">난이도: 어려움</span>
+                    </div>
+                    <div class="card-desc">
+                        몰려오는 개미투자자를 막아내고 한국거래소를 사수하라!<br>
+                        우량주 합병과 무기 강화를 통한 극한의 생존 게임.
+                    </div>
+                    <button class="play-btn btn-active">게임 시작하기</button>
                 </div>
-                <button class="play-btn btn-active">게임 시작하기</button>
             </div>
-        </div>
 
-        <!-- 3. 가치투자 시뮬레이터 (잠금 상태) -->
-        <div class="game-card locked">
-            <div class="card-img-box">
-                <div style="font-size: 3rem; opacity: 0.5;"> ^^ </div>
+            <!-- 2. NCS SURVIVE (기본 포커스 target) -->
+            <div class="game-card" id="surviveCard" onclick="location.href='/game/survive'">    
+                <div class="card-img-box">
+                    <img src="/static/img/survive/main_mini.png" alt="NCS SURVIVE" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div class="card-content">
+                    <div class="card-title">🗡️ NCS SURVIVE</div>
+                    <div class="card-tags">
+                        <span class="tag accent-tag">로그라이크</span>
+                        <span class="tag">서바이벌</span>
+                    </div>
+                    <div class="card-desc">
+                        몰려오는 몬스터들을 물리치고 한계까지 살아남아라!<br>
+                        무기를 진화시키고 강력한 보스를 처치해 스킬을 빼앗으세요.
+                    </div>
+                    <button class="play-btn btn-active">게임 시작하기</button>
+                </div>
             </div>
-            <div class="card-content">
-                <div class="card-title">(Coming Soon)</div>
-                <div class="card-tags">
-                    <span class="tag">방치형</span>
-                    <span class="tag">시뮬레이션</span>
+
+            <!-- 3. 가치투자 시뮬레이터 -->
+            <div class="game-card locked">
+                <div class="card-img-box">
+                    <div style="font-size: 3rem; opacity: 0.5;"> ^^ </div>
                 </div>
-                <div class="card-desc">
-                    10년 전으로 돌아간다면 당신은 부자가 될 수 있을까? 실제 과거 데이터를 바탕으로 가치투자를 테스트해 보세요.
+                <div class="card-content">
+                    <div class="card-title">(Coming Soon)</div>
+                    <div class="card-tags">
+                        <span class="tag">방치형</span>
+                        <span class="tag">시뮬레이션</span>
+                    </div>
+                    <div class="card-desc">
+                        10년 전으로 돌아간다면 당신은 부자가 될 수 있을까? 실제 과거 데이터를 바탕으로 가치투자를 테스트해 보세요.
+                    </div>
+                    <button class="play-btn btn-locked">업데이트 예정</button>
                 </div>
-                <button class="play-btn btn-locked">업데이트 예정</button>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    // 페이지 로드 시 모바일 화면이면 2번째 카드(NCS SURVIVE)로 자동 이동
+    window.addEventListener('DOMContentLoaded', () => {
+        if (window.innerWidth <= 768) {
+            const surviveCard = document.getElementById('surviveCard');
+            if (surviveCard) {
+                surviveCard.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'center' });
+            }
+        }
+    });
+
+    // 화살표 버튼 클릭 시 슬라이드 이동 함수
+    function scrollSlider(direction) {
+        const grid = document.getElementById('gameGrid');
+        const cardWidth = grid.querySelector('.game-card').offsetWidth + 16; // 카드 폭 + gap
+        grid.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+    }
+</script>
 {% endblock %}
