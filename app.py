@@ -53,7 +53,7 @@ def get_single_stock_price(code):
     try:
         import yfinance as yf
         yf_code = f"{code}.KS" if not str(code).startswith('0') else f"{code}.KQ"
-        df = yf.download(yf_code, start=start_date, end=end_date, progress=False)
+        df = yf.download(yf_code, start_date=start_date, end_date=end_date, progress=False)
         if not df.empty: return int(df.iloc[-1]['Close'])
     except: pass
     return None
@@ -122,7 +122,6 @@ def close_connection(exception):
         except: pass
 
 def init_db():
-    # Turso DB 연동 환경이므로 서버 구동 시의 테이블 CREATE 및 ALTER 로직을 모두 제거합니다.
     pass
 
 with app.app_context(): init_db()
@@ -255,7 +254,6 @@ def index():
     main_text_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 2').fetchone()
     bg_mode_row = db.execute('SELECT MESSAGE FROM ANNOUNCEMENT WHERE ID = 5').fetchone()
     
-    # CSS 요소를 배제하고 순수 텍스트 기본값으로 변경
     main_text = main_text_row['MESSAGE'] if main_text_row and main_text_row['MESSAGE'] else '세계적인 암전문 기관의 새로운 도전!\nNCC STOCK'
     bg_mode = bg_mode_row['MESSAGE'] if bg_mode_row else 'random'
     
@@ -408,11 +406,9 @@ def admin():
 
 @app.route('/game')
 def game():
-    # 로그인이 되어있지 않으면 메인 화면으로 돌려보냅니다.
     if 'user_id' not in session: 
         return redirect(url_for('index'))
     
-    # 세션에서 사용자 이름을 가져와 허브 화면으로 전달합니다.
     username = session.get('name', '투자자')
     return render_template('game_hub.html', username=username)
 
@@ -620,7 +616,7 @@ def api_simulation_run():
 
 
 # ==========================================
-# AI 연동 API (Gemini 2.5 Flash & NVIDIA 듀얼)
+# AI 연동 API
 # ==========================================
 
 @app.route('/api/ai/chat', methods=['POST'])
@@ -631,7 +627,7 @@ def api_ai_chat():
     
     data = request.json
     messages = data.get('messages', [])
-    vendor = data.get('vendor', 'gemini') # 'gemini' or 'text'
+    vendor = data.get('vendor', 'gemini')
     if not messages: return {"error": "메시지가 제공되지 않았습니다."}, 400
     
     last_user_msg = ""
@@ -647,7 +643,6 @@ def api_ai_chat():
         db.commit()
     
     if vendor == 'gemini':
-        # Gemini 2.5 Flash 호출
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
         contents = []
         for m in messages:
@@ -662,7 +657,6 @@ def api_ai_chat():
         except Exception as e: return {"error": f"Gemini API 오류: {str(e)}"}, 500
         
     else:
-        # NVIDIA Llama 모델 호출
         headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
         payload = {"model": "meta/llama-3.3-70b-instruct", "messages": messages, "temperature": 0.5, "max_tokens": 1024}
         try:
@@ -728,6 +722,7 @@ def api_admin_ai_logs(code):
         "logs": [{"prompt": l['PROMPT'], "time": l['CREATED_AT']} for l in logs]
     }
 
+
 # ==========================================
 # NCS SURVIVE 전용 API (유저 스탯, 영구 강화, 보스 스킬, 기록 저장)
 # ==========================================
@@ -744,12 +739,12 @@ def api_survive_user_data():
     user = db.execute('SELECT ID, NAME, SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
     survive_gold = user['SURVIVE_GOLD'] if user and user['SURVIVE_GOLD'] is not None else 0
     
-    # 2. 영구 강화 데이터 조회 (없으면 기본값 0으로 초기 생성)
+    # 2. 영구 강화 데이터 조회 (없으면 기본값 0으로 초기 생성 - CLONE_LV 포함)
     upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
     if not upgrades:
         db.execute('''
-            INSERT INTO GAME_UPGRADES (USER_ID, ATTACK_SPEED_LV, MOVE_SPEED_LV, ATTACK_POWER_LV, MAX_HP_LV, MAGNET_RANGE_LV, DEFENSE_LV, EXP_BONUS_LV)
-            VALUES (?, 0, 0, 0, 0, 0, 0, 0)
+            INSERT INTO GAME_UPGRADES (USER_ID, ATTACK_SPEED_LV, MOVE_SPEED_LV, ATTACK_POWER_LV, MAX_HP_LV, MAGNET_RANGE_LV, DEFENSE_LV, EXP_BONUS_LV, CLONE_LV)
+            VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0)
         ''', (user_id,))
         db.commit()
         upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
@@ -758,6 +753,8 @@ def api_survive_user_data():
     unlocked_skills = db.execute('SELECT SKILL_KEY, STAGE_ID FROM UNLOCKED_BOSS_SKILLS WHERE USER_ID = ? AND IS_UNLOCKED = 1', (user_id,)).fetchall()
     unlocked_list = [{"skill_key": s['SKILL_KEY'], "stage_id": s['STAGE_ID']} for s in unlocked_skills]
     
+    clone_lv = upgrades['CLONE_LV'] if upgrades and 'CLONE_LV' in upgrades.keys() and upgrades['CLONE_LV'] is not None else 0
+
     return {
         "success": True,
         "survive_gold": survive_gold,
@@ -768,7 +765,8 @@ def api_survive_user_data():
             "max_hp_lv": upgrades['MAX_HP_LV'],
             "magnet_range_lv": upgrades['MAGNET_RANGE_LV'],
             "defense_lv": upgrades['DEFENSE_LV'],
-            "exp_bonus_lv": upgrades['EXP_BONUS_LV']
+            "exp_bonus_lv": upgrades['EXP_BONUS_LV'],
+            "clone_lv": clone_lv
         },
         "unlocked_boss_skills": unlocked_list
     }
@@ -781,11 +779,11 @@ def api_survive_upgrade():
     
     user_id = session['user_id']
     data = request.json or {}
-    stat_type = data.get('stat_type') # e.g. 'ATTACK_POWER_LV', 'MAX_HP_LV'
+    stat_type = data.get('stat_type') # e.g. 'ATTACK_POWER_LV', 'MAX_HP_LV', 'CLONE_LV'
     
     allowed_stats = [
         'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 
-        'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV'
+        'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV'
     ]
     if stat_type not in allowed_stats:
         return {"error": "올바르지 않은 강화 항목입니다."}, 400
@@ -795,10 +793,18 @@ def api_survive_upgrade():
     current_gold = user['SURVIVE_GOLD'] if user and user['SURVIVE_GOLD'] is not None else 0
     
     upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
-    current_lv = upgrades[stat_type] if upgrades else 0
     
-    # 레벨당 필요 골드 계산 공식 (예: 기본 100골드 + (현재레벨 * 150))
-    cost = 100 + (current_lv * 150)
+    current_lv = 0
+    if upgrades and stat_type in upgrades.keys():
+        current_lv = upgrades[stat_type] if upgrades[stat_type] is not None else 0
+
+    # 레벨당 필요 골드 및 제약 처리
+    if stat_type == 'CLONE_LV':
+        if current_lv >= 1:
+            return {"error": "이미 최대 레벨(Max Lv.1)에 도달했습니다."}, 400
+        cost = 3500 # 분신술 고정 3,500 G
+    else:
+        cost = 100 + (current_lv * 150)
     
     if current_gold < cost:
         return {"error": "골드가 부족합니다."}, 400
@@ -811,10 +817,12 @@ def api_survive_upgrade():
     updated_user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
     updated_upgrades = db.execute('SELECT * FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
     
+    new_level = updated_upgrades[stat_type] if updated_upgrades and stat_type in updated_upgrades.keys() else 1
+
     return {
         "success": True,
         "new_gold": updated_user['SURVIVE_GOLD'],
-        "new_level": updated_upgrades[stat_type]
+        "new_level": new_level
     }
 
 
@@ -832,22 +840,22 @@ def api_survive_save_result():
     player_level = int(data.get('player_level', 1))
     is_clear = 1 if data.get('is_clear') else 0
     
-    # 각 스테이지별 해금할 보스 스킬 매핑
+    # Stage 1: 오리너구리 보스 스킬 키 (boss_duck)
     STAGE_BOSS_SKILLS = {
-        1: 'boss_sli_wave',          # 스테이지 1 보스 스킬
-        2: 'boss_skeleton_strike',   # 스테이지 2 보스 스킬
-        3: 'boss_volcano_meteor',    # 스테이지 3 보스 스킬
-        4: 'boss_abyss_laser',       # 스테이지 4 보스 스킬
-        5: 'boss_temple_shockwave',  # 스테이지 5 보스 스킬
-        6: 'boss_apocalypse_storm'   # 스테이지 6 보스 스킬
+        1: 'boss_duck',              
+        2: 'boss_skeleton_strike',   
+        3: 'boss_volcano_meteor',    
+        4: 'boss_abyss_laser',       
+        5: 'boss_temple_shockwave',  
+        6: 'boss_apocalypse_storm'   
     }
     
     db = get_db()
     
-    # 1. 획득한 골드 유저 누적 골드에 합산
+    # 1. 획득한 골드 누적 합산
     db.execute('UPDATE USERS SET SURVIVE_GOLD = COALESCE(SURVIVE_GOLD, 0) + ? WHERE ID = ?', (earned_gold, user_id))
     
-    # 2. 게임 클리어 기록 작성
+    # 2. 플레이 기록 작성
     db.execute('''
         INSERT INTO GAME_RECORDS (USER_ID, STAGE_ID, CLEAR_TIME, EARNED_GOLD, PLAYER_LEVEL, IS_CLEAR)
         VALUES (?, ?, ?, ?, ?, ?)
