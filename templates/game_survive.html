@@ -107,12 +107,16 @@
             }
         }
 
+        // 스피커 버튼 패딩 및 Y축 위치 보정 (잘림 완전 방지)
         function createMuteButton(scene) {
-            let muteBtn = scene.add.text(scene.scale.width - 40, 68, isMuted ? '🔇' : '🔊', { fontSize: '32px' })
-                .setOrigin(0.5)
-                .setScrollFactor(0)
-                .setDepth(10000)
-                .setInteractive();
+            let muteBtn = scene.add.text(scene.scale.width - 45, 80, isMuted ? '🔇' : '🔊', { 
+                fontSize: '32px',
+                padding: { top: 8, bottom: 8, left: 6, right: 6 } 
+            })
+            .setOrigin(0.5)
+            .setScrollFactor(0)
+            .setDepth(10000)
+            .setInteractive();
 
             muteBtn.on('pointerdown', () => {
                 playRandomSFX(scene, 'button');
@@ -130,13 +134,14 @@
             constructor() { super({ key: 'PreloadScene' }); }
 
             preload() {
-                this.add.text(this.scale.width / 2, this.scale.height / 2, '데이터 불러오는 중...', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, this.scale.height / 2, '데이터 불러오는 중...', { 
+                    fontSize: '32px', fill: '#fff', padding: { top: 10, bottom: 10 } 
+                }).setOrigin(0.5);
 
                 this.load.image('main_bg', '/static/img/survive/main.png');
                 this.load.image('game_start', '/static/img/survive/game_start.png');
                 this.load.image('game_upgrade', '/static/img/survive/game_upgrade.png');
                 
-                // 보스 및 신규 몬스터 이미지
                 this.load.image('boss_duck', '/static/img/survive/monster/duck/boss_duck.png');
                 this.load.image('duck1', '/static/img/survive/monster/duck/duck1.png');
                 this.load.image('duck2', '/static/img/survive/monster/duck/duck2.png');
@@ -161,7 +166,6 @@
                     this.load.audio(`${key}2`, `/static/sfx/survive/${key}2.mp3`);
                 });
 
-                // 신규 스킬/보스 SFX 로드
                 for(let i=1; i<=3; i++) this.load.audio(`skill_bolt${i}`, `/static/sfx/survive/skill_bolt${i}.mp3`);
                 for(let i=1; i<=2; i++) this.load.audio(`boss_skill_used${i}`, `/static/sfx/survive/boss_skill_used${i}.mp3`);
                 for(let i=1; i<=4; i++) this.load.audio(`stage1_skill${i}`, `/static/sfx/survive/stage1_skill${i}.mp3`);
@@ -270,9 +274,14 @@
                 createMuteButton(this);
 
                 this.add.image(40, 40, 'goldpocket').setDisplaySize(32, 32).setScrollFactor(0);
-                this.goldTxt = this.add.text(65, 40, `${USER_GLOBAL_DATA.survive_gold}`, { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0);
+                this.goldTxt = this.add.text(65, 40, `${USER_GLOBAL_DATA.survive_gold}`, { 
+                    fontSize: '22px', fill: '#ffd700', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
+                }).setOrigin(0, 0.5).setScrollFactor(0);
 
-                let gearBtn = this.add.text(this.scale.width - 90, 68, '⚙️', { fontSize: '30px' }).setOrigin(0.5).setInteractive();
+                let gearBtn = this.add.text(this.scale.width - 95, 80, '⚙️', { 
+                    fontSize: '30px', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5).setInteractive();
+                
                 gearBtn.on('pointerdown', () => {
                     playRandomSFX(this, 'button');
                     let pw = prompt("관리자 비밀번호를 입력하세요:");
@@ -335,7 +344,7 @@
                     fontSize: isMobile ? '20px' : '16px', 
                     fill: '#aaa', 
                     backgroundColor: '#222', 
-                    padding: { x: 12, y: 6 }, 
+                    padding: { x: 12, y: 8 }, 
                     borderRadius: 6
                 }).setOrigin(exitOrigin, 0.5).setInteractive();
                 
@@ -356,9 +365,13 @@
                 createMuteButton(this);
 
                 let cx = this.scale.width / 2;
-                this.add.text(cx, isMobile ? 50 : 60, '영구 능력 강화 상점', { fontSize: isMobile ? '32px' : '38px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5);
+                this.add.text(cx, isMobile ? 50 : 60, '영구 능력 강화 상점', { 
+                    fontSize: isMobile ? '32px' : '38px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                }).setOrigin(0.5);
 
-                this.goldTxt = this.add.text(cx, isMobile ? 95 : 110, `보유 골드: ${USER_GLOBAL_DATA.survive_gold} G`, { fontSize: isMobile ? '20px' : '24px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0.5);
+                this.goldTxt = this.add.text(cx, isMobile ? 95 : 110, `보유 골드: ${USER_GLOBAL_DATA.survive_gold} G`, { 
+                    fontSize: isMobile ? '20px' : '24px', fill: '#ffd700', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5);
 
                 const upgradeList = [
                     { key: 'ATTACK_POWER_LV', name: '공격력 강화', desc: '기본 공격력 +1 증가', currentLv: USER_GLOBAL_DATA.upgrades.attack_power_lv },
@@ -379,8 +392,8 @@
 
                     if (isMobile) {
                         this.add.rectangle(cx, posY, 660, 105, 0x222233, 0.9).setStrokeStyle(2, 0x4466aa);
-                        this.add.text(cx - 310, posY - 32, `${item.name} (Lv.${item.currentLv})`, { fontSize: '20px', fill: '#ffffff', fontStyle: 'bold' });
-                        this.add.text(cx - 310, posY - 2, item.desc, { fontSize: '15px', fill: '#aaaaaa' });
+                        this.add.text(cx - 310, posY - 32, `${item.name} (Lv.${item.currentLv})`, { fontSize: '20px', fill: '#ffffff', fontStyle: 'bold', padding: { top: 4, bottom: 4 } });
+                        this.add.text(cx - 310, posY - 2, item.desc, { fontSize: '15px', fill: '#aaaaaa', padding: { top: 4, bottom: 4 } });
 
                         let buyBtn = this.add.text(cx + 190, posY + 10, `강화 (${cost} G)`, {
                             fontSize: '18px', fill: '#fff', backgroundColor: '#aa6600', padding: { x: 16, y: 8 }
@@ -406,8 +419,8 @@
                         });
                     } else {
                         this.add.rectangle(cx, posY, 750, 55, 0x222233, 0.9).setStrokeStyle(2, 0x4466aa);
-                        this.add.text(cx - 340, posY - 12, `${item.name} (Lv.${item.currentLv})`, { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' });
-                        this.add.text(cx - 340, posY + 8, item.desc, { fontSize: '13px', fill: '#aaaaaa' });
+                        this.add.text(cx - 340, posY - 12, `${item.name} (Lv.${item.currentLv})`, { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', padding: { top: 4, bottom: 4 } });
+                        this.add.text(cx - 340, posY + 8, item.desc, { fontSize: '13px', fill: '#aaaaaa', padding: { top: 4, bottom: 4 } });
 
                         let buyBtn = this.add.text(cx + 260, posY, `강화 (${cost} G)`, {
                             fontSize: '16px', fill: '#fff', backgroundColor: '#aa6600', padding: { x: 12, y: 6 }
@@ -457,7 +470,7 @@
                 createMuteButton(this);
 
                 let topBackBtn = this.add.text(40, 40, '◀ 뒤로', {
-                    fontSize: '20px', fill: '#fff', backgroundColor: '#333', padding: { x: 12, y: 6 }, borderRadius: 6
+                    fontSize: '20px', fill: '#fff', backgroundColor: '#333', padding: { x: 12, y: 8 }, borderRadius: 6
                 }).setOrigin(0, 0.5).setInteractive();
 
                 topBackBtn.on('pointerover', () => topBackBtn.setBackgroundColor('#aa7722'));
@@ -467,7 +480,9 @@
                     this.scene.start('TitleScene');
                 });
 
-                this.add.text(this.scale.width / 2, 80, '스테이지 선택' + (isTestMode ? " [테스트 모드]" : ""), { fontSize: '40px', fill: isTestMode ? '#ff0055' : '#fff' }).setOrigin(0.5);
+                this.add.text(this.scale.width / 2, 80, '스테이지 선택' + (isTestMode ? " [테스트 모드]" : ""), { 
+                    fontSize: '40px', fill: isTestMode ? '#ff0055' : '#fff', padding: { top: 8, bottom: 8 } 
+                }).setOrigin(0.5);
 
                 const stages = [
                     { id: 1, name: 'Stage 1: 오리너구리의 늪', time: 600, bossKey: 'boss_duck' },
@@ -491,11 +506,11 @@
                         this.add.image(cardX, cardY - 30, stage.bossKey).setDisplaySize(80, 80);
                     } else {
                         this.add.rectangle(cardX, cardY - 30, 80, 80, 0x444444);
-                        this.add.text(cardX, cardY - 30, 'LOCKED', { fontSize: '16px', fill: '#888' }).setOrigin(0.5);
+                        this.add.text(cardX, cardY - 30, 'LOCKED', { fontSize: '16px', fill: '#888', padding: { top: 4, bottom: 4 } }).setOrigin(0.5);
                     }
 
                     this.add.text(cardX, cardY + 45, `${stage.name}\n(보스: ${stage.time / 60}분)`, {
-                        fontSize: '18px', fill: '#ddaa55', align: 'center', fontStyle: 'bold'
+                        fontSize: '18px', fill: '#ddaa55', align: 'center', fontStyle: 'bold', padding: { top: 4, bottom: 4 }
                     }).setOrigin(0.5);
 
                     hitBox.setInteractive();
@@ -545,8 +560,8 @@
                     defense: up.defense_lv * 1, expBonus: 1 + (up.exp_bonus_lv * 0.1),
                     level: 1, exp: 0, maxExp: 8, gold: 0, magnetRange: baseMagnet,
                     fire: 0, water: 0, wind: 0, bomb: 0, earth: 0, bolt: 0, posionLv: 0,
-                    damageMultiplier: 1.0, 
-                    pierce: 0, clone: 0, magnet: 0, maxHpLv: 0, speedLv: 0, healLv: 0
+                    pierce: 0, clone: 0, magnet: 0, maxHpLv: 0, speedLv: 0, healLv: 0,
+                    hasEquippedBossSkill: false
                 };
 
                 this.lastAttackTime = 0;
@@ -555,26 +570,26 @@
                 this.isInvincible = false;
                 this.joystickVector = { x: 0, y: 0 };
                 this.isLevelUpOpen = false;
-                this.lastNamedSpawnTime = 0;
 
                 this.boss = null;
                 this.bossProjectiles = this.physics.add.group();
                 this.isBossSpawned = false;
                 this.stopNormalSpawns = false;
                 this.killedEnemiesCount = 0;
-                this.bossSkillTimer = 0;
 
                 this.heroSkillCooldown = 0;
+                this.bossEquippedSkillCooldown = 0;
 
-                // 1. 테스트 모드 15개 보상 순차 대기 큐
                 this.pendingLevelUps = isTestMode ? 15 : 0;
+                this.isGameLoaded = false; // 스테이지 100% 로딩 완료 제어 플래그
             }
 
             create() {
-                playBGM(this, `stage${this.stageData.id}`);
+                // 기존 BGM 즉시 중단
+                if (globalBGM) { globalBGM.stop(); globalBGM.destroy(); globalBGM = null; }
 
                 this.physics.world.setBounds(0, 0, 16000, 16000);
-                createMuteButton(this);
+                this.physics.pause(); // 로딩 전 물리 멈춤
 
                 this.bgTile = this.add.tileSprite(8000, 8000, 16000, 16000, 'grass1').setDepth(-10);
                 this.bgTile.setTileScale(0.25, 0.25);
@@ -627,61 +642,134 @@
                 });
 
                 this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-                // 3. PC 키보드 '1' 키 스킬 매핑
                 this.numOneKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
                 this.numpadOneKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_ONE);
+                
+                // 단축키 2번 매핑 (장착된 보스 스킬 전용)
+                this.numTwoKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+                this.numpadTwoKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.NUMPAD_TWO);
 
                 this.setupVirtualJoystick();
 
-                this.time.addEvent({ delay: 1000, callback: this.updateGameLogic, callbackScope: this, loop: true });
-                this.time.addEvent({ delay: 1000, callback: this.spawnEnemies, callbackScope: this, loop: true });
+                // 스테이지 100% 진입 연출용 로딩 팝업
+                this.showStageLoadingOverlay();
+            }
 
-                // 1. 테스트 모드 첫 번째 레벨업 보상 창 즉시 1개 오픈
-                if (this.pendingLevelUps > 0) {
-                    this.showLevelUpUI(false);
-                }
+            // 스테이지 진입 시 100% 로딩 스크린 연출
+            showStageLoadingOverlay() {
+                let cx = this.scale.width / 2;
+                let cy = this.scale.height / 2;
+
+                let loadOverlay = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.95).setScrollFactor(0).setDepth(30000);
+                let loadTitle = this.add.text(cx, cy - 50, `STAGE ${this.stageData.id} 로딩 중...`, { 
+                    fontSize: '32px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 10, bottom: 10 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(30001);
+
+                let progressBg = this.add.rectangle(cx, cy + 20, 300, 24, 0x222222).setScrollFactor(0).setDepth(30001);
+                let progressBar = this.add.rectangle(cx - 150, cy + 20, 0, 24, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(30002);
+                let percentTxt = this.add.text(cx, cy + 60, '0%', { 
+                    fontSize: '20px', fill: '#ffffff', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(30001);
+
+                let progress = 0;
+                let timer = this.time.addEvent({
+                    delay: 25,
+                    repeat: 50,
+                    callback: () => {
+                        progress += 2;
+                        progressBar.setSize(300 * (progress / 100), 24);
+                        percentTxt.setText(`${progress}%`);
+
+                        if (progress >= 100) {
+                            timer.destroy();
+                            this.tweens.add({
+                                targets: [loadOverlay, loadTitle, progressBg, progressBar, percentTxt],
+                                alpha: 0,
+                                duration: 300,
+                                onComplete: () => {
+                                    loadOverlay.destroy(); loadTitle.destroy();
+                                    progressBg.destroy(); progressBar.destroy(); percentTxt.destroy();
+                                    
+                                    this.isGameLoaded = true;
+                                    this.physics.resume(); // 로딩 100% 완료 후 물리 resumption
+
+                                    // 로딩완료 시점에 스테이지 BGM 최초 재생!
+                                    playBGM(this, `stage${this.stageData.id}`);
+
+                                    if (this.pendingLevelUps > 0) {
+                                        this.showLevelUpUI(false);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
             }
 
             setupUI() {
+                createMuteButton(this);
+
                 let initialRemain = Math.max(0, this.stageData.time - this.elapsedTime);
                 let mins = Math.floor(initialRemain / 60);
                 let secs = initialRemain % 60;
                 let timeStr = `⏳ 보스까지 ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-                this.timerText = this.add.text(this.scale.width / 2, 68, timeStr, { fontSize: '28px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
-                this.levelText = this.add.text(30, 48, 'LV.1', { fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
+                this.timerText = this.add.text(this.scale.width / 2, 80, timeStr, { 
+                    fontSize: '28px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(1000);
+
+                this.levelText = this.add.text(30, 48, 'LV.1', { 
+                    fontSize: '24px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                }).setScrollFactor(0).setDepth(1000);
 
                 this.expBarBg = this.add.rectangle(130, 88, 200, 16, 0x333333).setScrollFactor(0).setDepth(1000);
                 this.expBar = this.add.rectangle(30, 88, 0, 16, 0x00ffcc).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
 
-                this.hpText = this.add.text(30, 113, `HP: ${this.playerStats.hp} / ${this.playerStats.maxHp}`, { fontSize: '18px', fill: '#ffffff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(1000);
-                this.playerHpBg = this.add.rectangle(130, 148, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
-                this.playerHpBar = this.add.rectangle(30, 148, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+                this.hpText = this.add.text(30, 115, `HP: ${this.playerStats.hp} / ${this.playerStats.maxHp}`, { 
+                    fontSize: '18px', fill: '#ffffff', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                }).setScrollFactor(0).setDepth(1000);
 
-                // 2. 주인공 스킬 UI: HP 바 아래 (X: 55, Y: 195) 명확한 황금 테두리 박스 배치
+                this.playerHpBg = this.add.rectangle(130, 150, 200, 20, 0x330000).setScrollFactor(0).setDepth(1000);
+                this.playerHpBar = this.add.rectangle(30, 150, 200, 20, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1001);
+
+                // 주인공 스킬 UI 슬롯 1번 (X: 55, Y: 195)
                 this.add.rectangle(55, 195, 56, 56, 0x111122, 0.9).setStrokeStyle(3, 0xffcc00).setScrollFactor(0).setDepth(1000);
                 this.heroSkillBtn = this.add.image(55, 195, 'hero_main').setDisplaySize(48, 48).setScrollFactor(0).setDepth(1001).setInteractive();
                 this.heroSkillOverlay = this.add.rectangle(55, 195, 50, 50, 0x000000, 0.65).setScrollFactor(0).setDepth(1002).setVisible(false);
-                this.heroSkillText = this.add.text(55, 195, '', { fontSize: '20px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(1003);
+                this.heroSkillText = this.add.text(55, 195, '', { 
+                    fontSize: '20px', fill: '#ffffff', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(1003);
 
                 this.heroSkillBtn.on('pointerdown', () => this.useHeroActiveSkill());
 
+                // 보스 스킬 장착 UI 슬롯 2번 (X: 120, Y: 195)
+                this.bossSkillBox = this.add.rectangle(120, 195, 56, 56, 0x111122, 0.9).setStrokeStyle(3, 0x00ffcc).setScrollFactor(0).setDepth(1000).setVisible(false);
+                this.bossSkillBtn = this.add.image(120, 195, 'boss_duck').setDisplaySize(48, 48).setScrollFactor(0).setDepth(1001).setInteractive().setVisible(false);
+                this.bossSkillOverlay = this.add.rectangle(120, 195, 50, 50, 0x000000, 0.65).setScrollFactor(0).setDepth(1002).setVisible(false);
+                this.bossSkillText = this.add.text(120, 195, '', { 
+                    fontSize: '20px', fill: '#ffffff', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(1003);
+
+                this.bossSkillBtn.on('pointerdown', () => this.useBossEquippedSkill());
+
                 if (this.textures.exists('goldpocket')) {
-                    this.goldIcon = this.add.image(this.scale.width - 160, 68, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(1000).setInteractive();
+                    this.goldIcon = this.add.image(this.scale.width - 160, 80, 'goldpocket').setDisplaySize(36, 36).setScrollFactor(0).setDepth(1000).setInteractive();
                 } else {
-                    this.goldIcon = this.add.text(this.scale.width - 160, 68, '💰', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000).setInteractive();
+                    this.goldIcon = this.add.text(this.scale.width - 160, 80, '💰', { fontSize: '24px' }).setOrigin(0.5).setScrollFactor(0).setDepth(1000).setInteractive();
                 }
 
-                this.goldText = this.add.text(this.scale.width - 120, 68, '0', { fontSize: '22px', fill: '#ffd700', fontStyle: 'bold' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1000).setInteractive();
+                this.goldText = this.add.text(this.scale.width - 120, 80, '0', { 
+                    fontSize: '22px', fill: '#ffd700', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(1000).setInteractive();
 
-                const openShop = () => { if(!this.isLevelUpOpen) this.showShopUI(); };
+                const openShop = () => { if(!this.isLevelUpOpen && this.isGameLoaded) this.showShopUI(); };
                 this.goldIcon.on('pointerdown', openShop);
                 this.goldText.on('pointerdown', openShop);
             }
 
-            // 4. 수리검 80발 연사 (360도 40발씩 2회 연속, 100ms 시차)
+            // 주인공 궁극기 스킬 (기본공격 반영 360도 수리검 80발)
             useHeroActiveSkill() {
-                if (this.heroSkillCooldown > 0 || this.isLevelUpOpen) return;
+                if (this.heroSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
                 this.heroSkillCooldown = 50; 
                 this.heroSkillOverlay.setVisible(true);
@@ -704,19 +792,54 @@
                     });
                 }
 
-                // 4. 총 80발 (40발 x 2웨이브)
+                // 80발 폭사
                 for (let wave = 0; wave < 2; wave++) {
                     this.time.delayedCall(wave * 100, () => {
                         for (let i = 0; i < 40; i++) {
                             let angle = (Math.PI * 2 / 40) * i + (wave * 0.08);
                             let suri = this.projectiles.create(this.player.x, this.player.y, 'suri').setScale(0.2).setDepth(9999);
                             suri.rotation = angle + Math.PI / 2;
-                            suri.damage = (this.playerStats.damage * 1.5) * this.playerStats.damageMultiplier;
+                            // 주인공 기본공격력 반영 연동
+                            suri.damage = (this.playerStats.damage * 1.5) * (1 + (this.playerStats.posionLv * 0.10));
                             suri.pierce = 2;
                             suri.isBomb = false;
                             suri.knockback = 18;
                             this.physics.velocityFromRotation(angle, 600, suri.body.velocity);
                         }
+                    });
+                }
+            }
+
+            // 장착한 보스 스킬 발동 (기본공격 반영 붕어빵 융단폭격 40발, 단축키 2번)
+            useBossEquippedSkill() {
+                if (!this.playerStats.hasEquippedBossSkill || this.bossEquippedSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
+
+                this.bossEquippedSkillCooldown = 60; // 1분 쿨타임
+                this.bossSkillOverlay.setVisible(true);
+                this.bossSkillText.setText('60');
+
+                let cutIn = this.add.image(120, this.scale.height - 120, 'duck_skill').setDisplaySize(180, 180).setScrollFactor(0).setDepth(20000);
+                this.time.delayedCall(1200, () => cutIn.destroy());
+
+                let px = this.player.x;
+                let py = this.player.y;
+
+                for(let f=0; f<40; f++) {
+                    this.time.delayedCall(f * 50, () => {
+                        let gunNum = Phaser.Math.Between(1, 4);
+                        if(!isMuted && this.cache.audio.exists(`stage1_skill${gunNum}`)) this.sound.play(`stage1_skill${gunNum}`, { volume: 0.4 });
+
+                        let fx = px + Phaser.Math.Between(-300, 300);
+                        let fy = py + Phaser.Math.Between(-300, 300);
+
+                        let fish = this.projectiles.create(this.player.x, this.player.y, 'golden_fish').setDisplaySize(31, 23).setDepth(9999);
+                        let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, fx, fy);
+                        fish.rotation = angle + Math.PI; // 머리가 타겟을 향함
+                        // 주인공 기본 공격력 반영 연동
+                        fish.damage = (this.playerStats.damage * 2.0) * (1 + (this.playerStats.posionLv * 0.10));
+                        fish.pierce = 1;
+                        fish.knockback = 12;
+                        this.physics.velocityFromRotation(angle, 450, fish.body.velocity);
                     });
                 }
             }
@@ -732,14 +855,14 @@
                 this.joyThumb = this.add.circle(0, 0, 30, 0xffffff, 0.5).setScrollFactor(0).setDepth(10000).setVisible(false);
 
                 this.input.on('pointerdown', (pointer) => {
-                    if (this.isLevelUpOpen) return;
+                    if (this.isLevelUpOpen || !this.isGameLoaded) return;
                     if (pointer.x > this.scale.width - 80 && pointer.y < 80) return;
                     this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
                     this.joyThumb.setPosition(pointer.x, pointer.y).setVisible(true);
                 });
 
                 this.input.on('pointermove', (pointer) => {
-                    if (!this.joyBase.visible || this.isLevelUpOpen) return;
+                    if (!this.joyBase.visible || this.isLevelUpOpen || !this.isGameLoaded) return;
                     let dist = Phaser.Math.Distance.Between(this.joyBase.x, this.joyBase.y, pointer.x, pointer.y);
                     let angle = Phaser.Math.Angle.Between(this.joyBase.x, this.joyBase.y, pointer.x, pointer.y);
 
@@ -760,6 +883,10 @@
 
             applyKnockback(enemy, angle, force) {
                 if (!enemy || !enemy.active) return;
+
+                // 보스 무적 돌진 상태 중 넉백 무효화
+                if (enemy.isBoss && enemy.isDashing) return;
+
                 enemy.knockbackTimer = this.time.now + 250;
                 
                 let factor = 1.0;
@@ -773,16 +900,20 @@
             }
 
             update(time) {
-                if (this.isLevelUpOpen) {
+                if (this.isLevelUpOpen || !this.isGameLoaded) {
                     this.player.body.setVelocity(0, 0);
                     return;
                 }
 
-                // 3. Space 키 및 숫자 1키 스킬 입력 연동
                 if (Phaser.Input.Keyboard.JustDown(this.spaceKey) || 
                     Phaser.Input.Keyboard.JustDown(this.numOneKey) || 
                     Phaser.Input.Keyboard.JustDown(this.numpadOneKey)) {
                     this.useHeroActiveSkill();
+                }
+
+                if (Phaser.Input.Keyboard.JustDown(this.numTwoKey) || 
+                    Phaser.Input.Keyboard.JustDown(this.numpadTwoKey)) {
+                    this.useBossEquippedSkill();
                 }
 
                 let vx = 0, vy = 0;
@@ -888,7 +1019,7 @@
                     let angle = angleBase + ((i - (count - 1) / 2) * 0.2);
 
                     suri.rotation = angle + Math.PI / 2;
-                    suri.damage = this.playerStats.damage * this.playerStats.damageMultiplier;
+                    suri.damage = this.playerStats.damage * (1 + (this.playerStats.posionLv * 0.10));
                     suri.pierce = this.playerStats.pierce;
                     suri.isBomb = false;
                     suri.knockback = 15;
@@ -897,12 +1028,19 @@
                 }
             }
 
+            // 스킬 데미지 단리 가산 계산 함수 (파워클리프 방지)
+            calcSkillDamage(baseDmg, pierceBonus) {
+                let posionBonus = this.playerStats.posionLv * 0.10;
+                let finalMult = 1.0 + pierceBonus + posionBonus; // 단리 합산
+                return baseDmg * finalMult;
+            }
+
             updateActiveSkills(time) {
                 let target = this.getClosestEnemy();
                 let pierceLv = this.playerStats.pierce;
 
-                let fireWindPierceBonus = pierceLv > 0 ? (1.20 + (pierceLv - 1) * 0.05) : 1.0;
-                let waterBombPierceBonus = pierceLv > 0 ? (1.50 + (pierceLv - 1) * 0.05) : 1.0;
+                let fireWindPierceBonus = pierceLv > 0 ? (0.20 + (pierceLv - 1) * 0.05) : 0.0;
+                let waterBombPierceBonus = pierceLv > 0 ? (0.50 + (pierceLv - 1) * 0.05) : 0.0;
 
                 // 화둔
                 if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 1750) {
@@ -925,7 +1063,7 @@
 
                         let fireLv = this.playerStats.fire;
                         let baseDmg = 4.0 + (fireLv <= 2 ? fireLv * 3.0 : 6.0 + (fireLv - 2) * 3.45);
-                        fire.damage = baseDmg * this.playerStats.damageMultiplier * fireWindPierceBonus;
+                        fire.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
                         fire.hitEnemies = [];
 
                         this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
@@ -960,7 +1098,7 @@
                         let angle = baseAngle + ((i - (count - 1) / 2) * 0.25);
                         let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
                         water.rotation = angle + Math.PI / 2;
-                        water.damage = baseDmg * this.playerStats.damageMultiplier * waterBombPierceBonus;
+                        water.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
                         water.pierce = 0;
                         water.isBomb = false;
                         water.knockback = 10;
@@ -984,7 +1122,7 @@
                             let ry = this.player.y + Phaser.Math.Between(-400, 400);
 
                             let boltSprite = this.physics.add.sprite(rx, ry, 'bolt').setDisplaySize(117, 103).setDepth(9999);
-                            boltSprite.damage = boltDmg * this.playerStats.damageMultiplier;
+                            boltSprite.damage = this.calcSkillDamage(boltDmg, 0);
                             
                             this.enemies.getChildren().forEach(e => {
                                 if(e.active && Phaser.Math.Distance.Between(rx, ry, e.x, e.y) <= 60) {
@@ -1011,7 +1149,7 @@
                     for (let i = 0; i < count; i++) {
                         let angle = baseAngle + ((i - (count - 1) / 2) * 0.3);
                         let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
-                        wind.damage = baseDmg * this.playerStats.damageMultiplier * fireWindPierceBonus;
+                        wind.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
                         wind.pierce = 999;
                         wind.isBomb = false;
                         wind.knockback = 17;
@@ -1040,7 +1178,7 @@
                         
                         this.tweens.add({ targets: bombSuri, rotation: '+=12.56', duration: 1000, repeat: -1 });
 
-                        bombSuri.damage = baseDmg * this.playerStats.damageMultiplier * waterBombPierceBonus;
+                        bombSuri.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
                         bombSuri.pierce = 0;
                         bombSuri.isBomb = true;
                         bombSuri.knockback = 10;
@@ -1050,7 +1188,7 @@
                     this.lastSkillTimes.bomb = time;
                 }
 
-                // 토둔
+                // 토둔 (토류벽 & 적 투사체 방어 연동)
                 if (this.playerStats.earth > 0 && time > this.lastSkillTimes.earth + (7000 - (this.playerStats.earth * 400))) {
                     playRandomSFX(this, 'skill_bomb', 0.6);
                     
@@ -1061,7 +1199,7 @@
 
                     let earthLv = this.playerStats.earth;
                     let baseDmg = 8.0 + (earthLv <= 2 ? earthLv * 4.0 : 8.0 + (earthLv - 2) * 4.6);
-                    wall.damage = baseDmg * this.playerStats.damageMultiplier;
+                    wall.damage = this.calcSkillDamage(baseDmg, 0);
                     wall.hitEnemies = [];
 
                     let wallOverlap = this.time.addEvent({
@@ -1069,6 +1207,14 @@
                         repeat: 10,
                         callback: () => {
                             if (!wall || !wall.active) return;
+
+                            // 5. 토둔이 존재하는 동안 범위 내 적 투사체(붕어빵 등) 파괴
+                            this.bossProjectiles.getChildren().forEach(fish => {
+                                if (fish.active && Phaser.Math.Distance.Between(wall.x, wall.y, fish.x, fish.y) <= 140) {
+                                    fish.destroy();
+                                }
+                            });
+
                             this.enemies.getChildren().forEach(e => {
                                 if (!e.active) return;
                                 let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
@@ -1112,23 +1258,32 @@
                 this.boss.id = 'STAGE_BOSS';
                 this.boss.isBoss = true;
                 this.boss.isNamed = true;
+                this.boss.isDashing = false;
 
-                this.boss.hp = 1500;
-                this.boss.maxHp = 1500;
+                // 3. 체력 10배 상향 = 15,000
+                this.boss.hp = 15000;
+                this.boss.maxHp = 15000;
                 this.boss.hpBar = this.add.graphics().setDepth(100);
 
                 let warn = this.add.text(this.scale.width / 2, 160, '⚠ STAGE BOSS 등장! ⚠\n오리너구리 레오파드', {
-                    fontSize: '36px', fill: '#ff0055', fontStyle: 'bold', align: 'center'
+                    fontSize: '36px', fill: '#ff0055', fontStyle: 'bold', align: 'center', padding: { top: 8, bottom: 8 }
                 }).setOrigin(0.5).setScrollFactor(0);
                 this.time.delayedCall(3000, () => warn.destroy());
+
+                // 3-2. 첫 등장 시 필살기(붕어빵 융단폭격 70발) 즉시 사용
+                this.triggerBossUltimateSkill(this.time.now);
+                this.lastBossUltimateTime = this.time.now;
+                this.lastBossDashTime = this.time.now;
             }
 
             updateBossAI(time) {
                 if (!this.boss || !this.boss.active) return;
 
-                if (this.boss.knockbackTimer && time < this.boss.knockbackTimer) return;
+                let spd = this.boss.isDashing ? 120 : 60; // 3-5. 돌진 시 속도 2배 (120)
 
-                this.physics.moveToObject(this.boss, this.player, 60);
+                if (!this.boss.isDashing && this.boss.knockbackTimer && time < this.boss.knockbackTimer) return;
+
+                this.physics.moveToObject(this.boss, this.player, spd);
 
                 let vx = this.boss.body.velocity.x;
                 let vy = this.boss.body.velocity.y;
@@ -1144,59 +1299,64 @@
                     this.boss.setFlipX(false);
                 }
 
-                if (!this.lastBossAtkTime || time > this.lastBossAtkTime + 3000) {
-                    this.fireBossGoldenFish(this.player.x, this.player.y, 20, 250);
-                    this.lastBossAtkTime = time;
+                // 3-2. 30초 쿨타임 필살기 융단폭격
+                if (!this.lastBossUltimateTime || time > this.lastBossUltimateTime + 30000) {
+                    this.triggerBossUltimateSkill(time);
+                    this.lastBossUltimateTime = time;
                 }
 
-                if (!this.lastBossSkillTime || time > this.lastBossSkillTime + 12000) {
-                    let randSkill = Phaser.Math.Between(1, 3);
-                    if (randSkill === 1) {
-                        for(let t=0; t<3; t++) {
-                            this.time.delayedCall(t * 200, () => {
-                                if(this.boss && this.boss.active) this.fireBossGoldenFish(this.player.x, this.player.y, 15, 380);
-                            });
+                // 3-5. 20초 쿨타임 "돌진" 스킬 (2초간 빨간 테두리 + 속도 2배)
+                if (!this.lastBossDashTime || time > this.lastBossDashTime + 20000) {
+                    this.boss.isDashing = true;
+                    let dashGlow = null;
+                    if(this.boss.preFX) dashGlow = this.boss.preFX.addGlow(0xff0000, 6, 0, false);
+
+                    this.time.delayedCall(2000, () => {
+                        if(this.boss && this.boss.active) {
+                            this.boss.isDashing = false;
+                            if(dashGlow) dashGlow.destroy();
                         }
-                    } else if (randSkill === 2) {
-                        for(let s=0; s<30; s++) {
-                            let sa = Math.random() * Math.PI * 2;
-                            let sx = this.boss.x + Math.cos(sa) * 120;
-                            let sy = this.boss.y + Math.sin(sa) * 120;
-                            let minion = this.enemies.create(sx, sy, 'sli1').setScale(0.26);
-                            minion.hp = 25; minion.maxHp = 25;
-                            minion.setTint(0x4488FF);
-                            minion.update = () => { this.physics.moveToObject(minion, this.player, 88); };
-                        }
-                    } else if (randSkill === 3) {
-                        let bSkillNum = Phaser.Math.Between(1, 2);
-                        if(!isMuted && this.cache.audio.exists(`boss_skill_used${bSkillNum}`)) this.sound.play(`boss_skill_used${bSkillNum}`, { volume: 0.8 });
+                    });
+                    this.lastBossDashTime = time;
+                }
 
-                        let skillCutIn = this.add.image(120, this.scale.height - 120, 'duck_skill').setDisplaySize(200, 200).setScrollFactor(0).setDepth(20000);
-                        this.time.delayedCall(1500, () => skillCutIn.destroy());
-
-                        let px = this.player.x;
-                        let py = this.player.y;
-
-                        for(let f=0; f<50; f++) {
-                            this.time.delayedCall(f * 60, () => {
-                                let gunNum = Phaser.Math.Between(1, 4);
-                                if(!isMuted && this.cache.audio.exists(`stage1_skill${gunNum}`)) this.sound.play(`stage1_skill${gunNum}`, { volume: 0.4 });
-
-                                let fx = px + Phaser.Math.Between(-250, 250);
-                                let fy = py + Phaser.Math.Between(-250, 250);
-                                this.fireBossGoldenFish(fx, fy, 10, 450);
-                            });
-                        }
-                    }
-                    this.lastBossSkillTime = time;
+                // 기본 3초마다 붕어빵 투척
+                if (!this.lastBossAtkTime || time > this.lastBossAtkTime + 3000) {
+                    this.fireBossGoldenFish(this.player.x, this.player.y, 20, 250, 45, 33);
+                    this.lastBossAtkTime = time;
                 }
             }
 
-            fireBossGoldenFish(tx, ty, dmg, spd) {
+            // 3-2, 3-4. 융단폭격 70발 발사 연출
+            triggerBossUltimateSkill(time) {
+                let bSkillNum = Phaser.Math.Between(1, 2);
+                if(!isMuted && this.cache.audio.exists(`boss_skill_used${bSkillNum}`)) this.sound.play(`boss_skill_used${bSkillNum}`, { volume: 0.8 });
+
+                let skillCutIn = this.add.image(120, this.scale.height - 120, 'duck_skill').setDisplaySize(200, 200).setScrollFactor(0).setDepth(20000);
+                this.time.delayedCall(1500, () => skillCutIn.destroy());
+
+                let px = this.player.x;
+                let py = this.player.y;
+
+                // 3-4. 70발 광범위 기관총 포격 연출 (크기 31x23)
+                for(let f=0; f<70; f++) {
+                    this.time.delayedCall(f * 45, () => {
+                        let gunNum = Phaser.Math.Between(1, 4);
+                        if(!isMuted && this.cache.audio.exists(`stage1_skill${gunNum}`)) this.sound.play(`stage1_skill${gunNum}`, { volume: 0.35 });
+
+                        let fx = px + Phaser.Math.Between(-350, 350);
+                        let fy = py + Phaser.Math.Between(-350, 350);
+                        this.fireBossGoldenFish(fx, fy, 10, 420, 31, 23);
+                    });
+                }
+            }
+
+            // 3-3. 붕어빵 투척 (크기 40% 축소 45x33, 머리가 타겟을 향하도록 180도 각도 보정)
+            fireBossGoldenFish(tx, ty, dmg, spd, w = 45, h = 33) {
                 if(!this.boss || !this.boss.active) return;
-                let fish = this.bossProjectiles.create(this.boss.x, this.boss.y, 'golden_fish').setDisplaySize(114, 84).setDepth(9999);
+                let fish = this.bossProjectiles.create(this.boss.x, this.boss.y, 'golden_fish').setDisplaySize(w, h).setDepth(9999);
                 let angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, tx, ty);
-                fish.rotation = angle;
+                fish.rotation = angle + Math.PI; // 머리가 오른쪽/타겟 방향을 향하도록 보정
                 fish.damage = dmg;
                 this.physics.velocityFromRotation(angle, spd, fish.body.velocity);
             }
@@ -1210,13 +1370,15 @@
                 if (this.playerStats.hp <= 0) {
                     this.physics.pause();
                     playRandomSFX(this, 'game_over');
-                    this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', { fontSize: '64px', fill: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
+                    this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', { 
+                        fontSize: '64px', fill: '#ff0000', fontStyle: 'bold', padding: { top: 10, bottom: 10 } 
+                    }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
                     this.time.delayedCall(2500, () => this.scene.start('StageSelectScene'));
                 }
             }
 
             spawnEnemies() {
-                if (this.isLevelUpOpen || this.stopNormalSpawns) return;
+                if (this.isLevelUpOpen || this.stopNormalSpawns || !this.isGameLoaded) return;
                 let count = 2 + Math.floor(this.elapsedTime / 45);
 
                 for (let i = 0; i < count; i++) {
@@ -1258,7 +1420,13 @@
                     projectile.hitEnemies.push(enemy.id);
                 }
 
-                this.damageEnemy(enemy, projectile.damage);
+                // 3-1. 보스는 주인공의 인술/스킬 데미지를 20% 감쇄하여 받음
+                let realDmg = projectile.damage;
+                if (enemy.isBoss && projectile.texture.key !== 'suri') {
+                    realDmg *= 0.80; // 20% 감쇄
+                }
+
+                this.damageEnemy(enemy, realDmg);
 
                 let hitAngle = Phaser.Math.Angle.Between(projectile.x, projectile.y, enemy.x, enemy.y);
                 this.applyKnockback(enemy, hitAngle, projectile.knockback || 15);
@@ -1276,7 +1444,9 @@
                         if (e.active && e !== enemy) {
                             let dist = Phaser.Math.Distance.Between(explosionX, explosionY, e.x, e.y);
                             if (dist <= areaRadius) {
-                                this.damageEnemy(e, projectile.damage * 0.8);
+                                let expDmg = projectile.damage * 0.8;
+                                if(e.isBoss) expDmg *= 0.80;
+                                this.damageEnemy(e, expDmg);
                                 this.applyKnockback(e, Phaser.Math.Angle.Between(explosionX, explosionY, e.x, e.y), 10);
                             }
                         }
@@ -1349,20 +1519,26 @@
 
                 let boxImg = this.add.image(cx, cy - 140, 'clear_box').setDisplaySize(100, 100).setScrollFactor(0).setDepth(20001);
                 
-                this.add.text(cx, cy - 60, '🎉 STAGE CLEAR! 🎉', { fontSize: '38px', fill: '#00ffcc', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
-                this.add.text(cx, cy - 10, '🎁 보스 스킬 획득!: [붕어빵 융단폭격]', { fontSize: '22px', fill: '#ffdd00', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
+                this.add.text(cx, cy - 60, '🎉 STAGE CLEAR! 🎉', { 
+                    fontSize: '38px', fill: '#00ffcc', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
+
+                this.add.text(cx, cy - 10, '🎁 보스 스킬 해금!: [붕어빵 융단폭격]', { 
+                    fontSize: '22px', fill: '#ffdd00', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
                 let mins = Math.floor(this.elapsedTime / 60);
                 let secs = this.elapsedTime % 60;
                 let reportStr = `처치한 적: ${this.killedEnemiesCount}마리\n클리어 시간: ${mins}분 ${secs}초\n획득한 골드: ${this.playerStats.gold} G`;
 
-                this.add.text(cx, cy + 70, reportStr, { fontSize: '20px', fill: '#ffffff', align: 'center', lineSpacing: 10 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
+                this.add.text(cx, cy + 70, reportStr, { 
+                    fontSize: '20px', fill: '#ffffff', align: 'center', lineSpacing: 10, padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
                 let okBtn = this.add.text(cx, cy + 160, '확인 (메인으로)', {
                     fontSize: '24px', fill: '#fff', backgroundColor: '#00aa66', padding: { x: 30, y: 12 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001).setInteractive();
 
-                // 5. 버튼 마우스 호버 효과 원복
                 okBtn.on('pointerover', () => okBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 okBtn.on('pointerout', () => okBtn.setBackgroundColor('#00aa66').setFill('#fff'));
 
@@ -1374,7 +1550,7 @@
             }
 
             handlePlayerHit(player, enemy) {
-                if (this.isInvincible || this.isLevelUpOpen) return;
+                if (this.isInvincible || this.isLevelUpOpen || !this.isGameLoaded) return;
 
                 let rawDmg = enemy.isBoss ? 30 : (enemy.isNamed ? 20 : 10);
                 let realDmg = Math.max(1, rawDmg - this.playerStats.defense);
@@ -1393,7 +1569,9 @@
                 if (this.playerStats.hp <= 0) {
                     this.physics.pause();
                     playRandomSFX(this, 'game_over');
-                    this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', { fontSize: '64px', fill: '#ff0000', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
+                    this.add.text(this.scale.width / 2, this.scale.height / 2, 'GAME OVER', { 
+                        fontSize: '64px', fill: '#ff0000', fontStyle: 'bold', padding: { top: 10, bottom: 10 } 
+                    }).setOrigin(0.5).setScrollFactor(0).setDepth(10001);
                     
                     if (!isTestMode) this.saveGameResult(false);
                     isTestMode = false; 
@@ -1402,7 +1580,7 @@
             }
 
             collectExp(player, exp) {
-                if (this.isLevelUpOpen) return;
+                if (this.isLevelUpOpen || !this.isGameLoaded) return;
                 let amount = (exp.expAmount || 1) * this.playerStats.expBonus;
                 exp.destroy();
                 playRandomSFX(this, 'pickup', 0.4);
@@ -1424,7 +1602,7 @@
             }
 
             collectGold(player, gold) {
-                if (this.isLevelUpOpen) return;
+                if (this.isLevelUpOpen || !this.isGameLoaded) return;
                 gold.destroy();
                 playRandomSFX(this, 'pickup', 0.5);
                 this.playerStats.gold += 10;
@@ -1432,7 +1610,7 @@
             }
 
             collectMeat(player, meat) {
-                if (this.isLevelUpOpen) return;
+                if (this.isLevelUpOpen || !this.isGameLoaded) return;
                 meat.destroy();
                 playRandomSFX(this, 'pickup', 0.6);
                 this.playerStats.hp = Math.min(this.playerStats.hp + 30, this.playerStats.maxHp);
@@ -1440,14 +1618,14 @@
             }
 
             collectRareBox(player, rBox) {
-                if (this.isLevelUpOpen) return;
+                if (this.isLevelUpOpen || !this.isGameLoaded) return;
                 rBox.destroy();
                 playRandomSFX(this, 'level_up', 0.7);
                 this.showLevelUpUI(true);
             }
 
             collectFieldMagnet(player, mag) {
-                if (this.isLevelUpOpen) return;
+                if (this.isLevelUpOpen || !this.isGameLoaded) return;
                 mag.destroy();
                 playRandomSFX(this, 'pickup', 0.8);
 
@@ -1463,7 +1641,7 @@
             }
 
             updateGameLogic() {
-                if (this.isLevelUpOpen) return;
+                if (this.isLevelUpOpen || !this.isGameLoaded) return;
                 this.elapsedTime++;
 
                 if (this.heroSkillCooldown > 0) {
@@ -1473,6 +1651,16 @@
                         this.heroSkillText.setText('');
                     } else {
                         this.heroSkillText.setText(`${this.heroSkillCooldown}`);
+                    }
+                }
+
+                if (this.bossEquippedSkillCooldown > 0) {
+                    this.bossEquippedSkillCooldown--;
+                    if (this.bossEquippedSkillCooldown <= 0) {
+                        this.bossSkillOverlay.setVisible(false);
+                        this.bossSkillText.setText('');
+                    } else {
+                        this.bossSkillText.setText(`${this.bossEquippedSkillCooldown}`);
                     }
                 }
 
@@ -1513,6 +1701,7 @@
                 .catch(err => console.error("결과 저장 중 오류:", err));
             }
 
+            // 4. 수치 가산 폭 구체적 카드 명시
             showLevelUpUI(isRareOnly = false) {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
@@ -1528,26 +1717,29 @@
                 let titleTxt = isRareOnly ? '★ 레어 보상 획득! ★' : (this.pendingLevelUps > 0 ? `LEVEL UP! (남은 보상: ${this.pendingLevelUps}개)` : 'LEVEL UP!');
                 let titleColor = isRareOnly ? '#ffdd00' : '#ffcc00';
 
-                let title = this.add.text(this.scale.width / 2, isMobile ? 120 : 100, titleTxt, { fontSize: '42px', fill: titleColor, fontStyle: 'bold' })
-                    .setOrigin(0.5)
-                    .setScrollFactor(0)
-                    .setDepth(20002);
+                let title = this.add.text(this.scale.width / 2, isMobile ? 120 : 100, titleTxt, { 
+                    fontSize: '42px', fill: titleColor, fontStyle: 'bold', padding: { top: 10, bottom: 10 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
                 this.levelUpElements.push(overlay, title);
 
+                let fLv = this.playerStats.fire || 0;
+                let wLv = this.playerStats.water || 0;
+                let pLv = this.playerStats.pierce || 0;
+
                 const rewardPool = [
-                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: '전방에 화염을 뿜습니다. (Lv.3이상 전/후방 분사)', statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
-                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: '적을 향해 강력한 수룡탄을 발사합니다.', statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
-                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 위치에서 즉시 범위 폭발을 일으킵니다.', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
-                    { id: 'earth', type: 'normal', name: '토둔: 토류벽', desc: '주변에 토류벽을 생성하여 적을 크게 밀쳐냅니다.', statKey: 'earth', icon: 'scroll_earth_wall', maxLv: 5 },
-                    { id: 'bolt', type: 'normal', name: '뇌둔: 번개 소환', desc: '랜덤 지역에 번개를 떨어뜨려 광역 피해를 줍니다.', statKey: 'bolt', icon: 'scroll_bolt', maxLv: 5 },
-                    { id: 'posion', type: 'normal', name: '닌자 비전: 병량환', desc: '공격속도가 대폭 상승하고 모든 스킬 데미지가 +10% 증가합니다.', statKey: 'posionLv', icon: 'ninja_posion', maxLv: 3 },
+                    { id: 'fire', type: 'normal', name: '화둔: 호화구의 술', desc: `전방에 화염 분사 (다음 레벨: 데미지 +${fLv >= 2 ? '3.45' : '3.0'} 상승)`, statKey: 'fire', icon: 'scroll_fire_stream', maxLv: 5 },
+                    { id: 'water', type: 'normal', name: '수둔: 수룡탄의 술', desc: `적을 향해 수룡탄 발사 (다음 레벨: 데미지 +${wLv >= 2 ? '2.87' : '2.5'} 상승 & 투사체 +1)`, statKey: 'water', icon: 'scroll_water_dragon', maxLv: 5 },
+                    { id: 'bomb', type: 'normal', name: '기폭찰 수리검', desc: '명중 위치 범위 폭발 (다음 레벨: 데미지 +2.3 상승)', statKey: 'bomb', icon: 'scroll_explosive_shuriken', maxLv: 5 },
+                    { id: 'earth', type: 'normal', name: '토둔: 토류벽', desc: '토류벽을 생성하여 적을 밀쳐내고 투사체 차단 (다음 레벨: 데미지 +4.6 상승)', statKey: 'earth', icon: 'scroll_earth_wall', maxLv: 5 },
+                    { id: 'bolt', type: 'normal', name: '뇌둔: 번개 소환', desc: '랜덤 위치 번개 폭격 (다음 레벨: 번개 +3개 & 데미지 +6 상승)', statKey: 'bolt', icon: 'scroll_bolt', maxLv: 5 },
+                    { id: 'posion', type: 'normal', name: '닌자 비전: 병량환', desc: '공격속도 상승 및 모든 스킬 데미지 +10% 대폭 증가', statKey: 'posionLv', icon: 'ninja_posion', maxLv: 3 },
                     { id: 'hp', type: 'normal', name: '체력 한계 돌파', desc: '최대 체력을 +20 늘리고 체력을 회복합니다.', statKey: 'maxHpLv', icon: 'ninja_hp_posion', maxLv: 10 },
-                    { id: 'speed', type: 'normal', name: '족경술: 이속 증가', desc: '플레이어의 이동속도를 증가시킵니다.', statKey: 'speedLv', icon: 'ninja_speed', maxLv: 5 },
-                    { id: 'wind', type: 'rare', name: '[레어] 풍둔: 나선 수리검', desc: '적을 관통하며 상대를 갈아버리는 나선수리검을 던집니다.', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
-                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: '기본 수리검 관통+1 (수둔/기폭찰 데미지 +50%, 화둔/나선 데미지 +20% 증가)', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
+                    { id: 'speed', type: 'normal', name: '족경술: 이속 증가', desc: '플레이어의 이동속도를 +12 증가시킵니다.', statKey: 'speedLv', icon: 'ninja_speed', maxLv: 5 },
+                    { id: 'wind', type: 'rare', name: '[레어] 풍둔: 나선 수리검', desc: '상대를 갈아버리는 나선수리검 (다음 레벨: 데미지 +2.875 상승)', statKey: 'wind', icon: 'scroll_rasenshuriken', maxLv: 5 },
+                    { id: 'pierce', type: 'rare', name: '[레어] 관통의 인', desc: pLv === 0 ? '수둔/기폭찰 데미지 +50%, 화둔/나선 데미지 +20% 상승 (기본 수리검 관통+1)' : '모든 스킬 데미지 추가 +5% 상승', statKey: 'pierce', icon: 'scroll_pierce', maxLv: 3 },
                     { id: 'clone', type: 'rare', name: '[레어] 분신술', desc: '기본공격, 기폭찰, 나선수리검 발사 수 +1', statKey: 'clone', icon: 'scroll_clone', maxLv: 3 },
-                    { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '경험치 보석 및 골드 획득 범위를 넓힙니다.', statKey: 'magnet', icon: 'scroll_magnet', maxLv: 5 }
+                    { id: 'magnet', type: 'rare', name: '[레어] 노획 (자력)', desc: '경험치 및 골드 획득 범위 +40 넓힙니다.', statKey: 'magnet', icon: 'scroll_magnet', maxLv: 5 }
                 ];
 
                 let available = rewardPool.filter(r => {
@@ -1601,18 +1793,24 @@
                     let curLv = this.playerStats[reward.statKey] || 0;
                     let textStartX = cardX - (cardWidth / 2) + 110;
 
-                    let nameTxt = this.add.text(textStartX, posY - 28, reward.name, { fontSize: '20px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(20002);
-                    let descTxt = this.add.text(textStartX, posY - 2, reward.desc, { fontSize: '13px', fill: '#cccccc' }).setScrollFactor(0).setDepth(20002);
+                    let nameTxt = this.add.text(textStartX, posY - 28, reward.name, { 
+                        fontSize: '20px', fill: isRare ? '#ffdd00' : '#ffffff', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
+                    }).setScrollFactor(0).setDepth(20002);
+
+                    let descTxt = this.add.text(textStartX, posY - 2, reward.desc, { 
+                        fontSize: '13px', fill: '#cccccc', padding: { top: 4, bottom: 4 } 
+                    }).setScrollFactor(0).setDepth(20002);
                     
                     let lvTxt = null;
                     if(reward.id !== 'heal') {
-                        lvTxt = this.add.text(textStartX, posY + 22, `Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { fontSize: '13px', fill: '#00ffcc' }).setScrollFactor(0).setDepth(20002);
+                        lvTxt = this.add.text(textStartX, posY + 22, `Lv.${curLv} ➔ Lv.${curLv + 1} (Max: Lv.${reward.maxLv})`, { 
+                            fontSize: '13px', fill: '#00ffcc', padding: { top: 2, bottom: 2 } 
+                        }).setScrollFactor(0).setDepth(20002);
                     }
 
                     this.levelUpElements.push(cardBg, icon, nameTxt, descTxt);
                     if(lvTxt) this.levelUpElements.push(lvTxt);
 
-                    // 5-1. 레벨업 보상 카드 glowTween 호버 바운스 애니메이션 100% 완전 원복
                     let glowTween = null;
 
                     cardBg.on('pointerover', (pointer, localX, localY, event) => {
@@ -1647,7 +1845,6 @@
                 });
             }
 
-            // 1. 테스트 모드 15개 보상 큐 연쇄 팝업 처리
             closeLevelUpUI() {
                 if (this.levelUpElements) {
                     this.levelUpElements.forEach(el => el.destroy());
@@ -1666,6 +1863,7 @@
                 this.physics.resume();
             }
 
+            // 2. 골드 상점 구현 (해금 여부 및 장착 슬롯 연동)
             showShopUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
@@ -1677,53 +1875,69 @@
                     .setDepth(20000)
                     .setInteractive();
 
-                let title = this.add.text(this.scale.width / 2, 90, '인게임 골드 상점', { fontSize: isMobile ? '34px' : '42px', fill: '#ffcc00', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
-                let goldInfo = this.add.text(this.scale.width / 2, 135, `획득한 골드: ${this.playerStats.gold} G`, { fontSize: isMobile ? '18px' : '22px', fill: '#ffd700' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
+                let title = this.add.text(this.scale.width / 2, 90, '인게임 골드 상점', { 
+                    fontSize: isMobile ? '34px' : '42px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
+
+                let goldInfo = this.add.text(this.scale.width / 2, 135, `획득한 골드: ${this.playerStats.gold} G`, { 
+                    fontSize: isMobile ? '18px' : '22px', fill: '#ffd700', padding: { top: 6, bottom: 6 } 
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
                 this.shopElements.push(overlay, title, goldInfo);
 
                 let unlockedSkills = USER_GLOBAL_DATA.unlocked_boss_skills || [];
                 let cx = this.scale.width / 2;
 
-                if (unlockedSkills.length === 0) {
-                    let noSkillTxt = this.add.text(cx, 260, '해금된 보스 스킬이 없습니다.\n스테이지를 클리어하면 보스 스킬이 해금됩니다!', { fontSize: isMobile ? '18px' : '20px', fill: '#aaa', align: 'center' }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
-                    this.shopElements.push(noSkillTxt);
-                } else {
-                    unlockedSkills.forEach((sk, idx) => {
-                        let posY = 200 + (idx * 75);
-                        let cost = 50;
+                // Stage 1 오리너구리 보스 스킬 해금 여부 체크
+                let isDuckSkillUnlocked = unlockedSkills.some(s => s.skill_key === 'boss_sli_wave' || s.skill_key === 'boss_duck');
 
-                        let card = this.add.rectangle(cx, posY, isMobile ? 620 : 550, 60, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20001);
-                        let skTxt = this.add.text(cx - (isMobile ? 270 : 240), posY - 10, `[보스 스킬] ${sk.skill_key}`, { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }).setScrollFactor(0).setDepth(20002);
+                let posY = 220;
+                let cost = 500;
+
+                let card = this.add.rectangle(cx, posY, isMobile ? 620 : 550, 70, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20001);
+                
+                let skTxtStr = isDuckSkillUnlocked ? "[보스 스킬] 붕어빵 융단폭격" : "🔒 [미획득] Stage 1 클리어 필요";
+                let skTxt = this.add.text(cx - (isMobile ? 270 : 240), posY - 10, skTxtStr, { 
+                    fontSize: '18px', fill: isDuckSkillUnlocked ? '#fff' : '#888', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
+                }).setScrollFactor(0).setDepth(20002);
+
+                let buyBtn = this.add.text(cx + (isMobile ? 200 : 170), posY, isDuckSkillUnlocked ? `장착 (${cost}G)` : '구매 불가', {
+                    fontSize: '16px', fill: '#fff', backgroundColor: isDuckSkillUnlocked ? '#00aa66' : '#444444', padding: { x: 12, y: 6 }
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
+
+                buyBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if(event) event.stopPropagation();
+                    if (!isDuckSkillUnlocked) {
+                        playRandomSFX(this, 'button');
+                        alert("🔒 Stage 1을 클리어하여 스킬을 해금해야 이용할 수 있습니다!");
+                        return;
+                    }
+
+                    if (this.playerStats.gold >= cost) {
+                        this.playerStats.gold -= cost;
+                        this.goldText.setText(`${this.playerStats.gold}`);
+                        goldInfo.setText(`획득한 골드: ${this.playerStats.gold} G`);
                         
-                        let buyBtn = this.add.text(cx + (isMobile ? 200 : 170), posY, `구매 (${cost}G)`, {
-                            fontSize: '16px', fill: '#fff', backgroundColor: '#00aa66', padding: { x: 12, y: 6 }
-                        }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
+                        // 2번 슬롯에 보스 스킬 장착
+                        this.playerStats.hasEquippedBossSkill = true;
+                        this.bossSkillBox.setVisible(true);
+                        this.bossSkillBtn.setVisible(true);
 
-                        buyBtn.on('pointerdown', (pointer, localX, localY, event) => {
-                            if(event) event.stopPropagation();
-                            if (this.playerStats.gold >= cost) {
-                                this.playerStats.gold -= cost;
-                                this.goldText.setText(`${this.playerStats.gold}`);
-                                goldInfo.setText(`획득한 골드: ${this.playerStats.gold} G`);
-                                playRandomSFX(this, 'skill_fire');
-                                alert(`보스 스킬 [${sk.skill_key}] 발동!`);
-                            } else {
-                                playRandomSFX(this, 'button');
-                                alert("골드가 부족합니다.");
-                            }
-                        });
+                        playRandomSFX(this, 'skill_fire');
+                        alert("✅ [붕어빵 융단폭격] 보스 스킬이 2번 슬롯에 장착되었습니다!\n(단축키: 키보드 2번 / 쿨타임 60초)");
+                    } else {
+                        playRandomSFX(this, 'button');
+                        alert("❌ 골드가 부족합니다. (필요 골드: 500 G)");
+                    }
+                });
 
-                        this.shopElements.push(card, skTxt, buyBtn);
-                    });
-                }
+                this.shopElements.push(card, skTxt, buyBtn);
 
                 let closeBtnY = isMobile ? this.scale.height - 100 : this.scale.height - 80;
                 let closeBtn = this.add.text(cx, closeBtnY, '닫기', {
                     fontSize: isMobile ? '24px' : '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 10 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
 
-                // 5. 지워졌던 닫기 버튼 마우스 호버 이펙트 100% 원복
                 closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#aa7722').setFill('#fff'));
                 closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#555').setFill('#fff'));
 
@@ -1747,7 +1961,6 @@
 
                 if (reward.id === 'posion') {
                     this.playerStats.attackDelay = Math.max(400, 1100 - (this.playerStats.posionLv * 233));
-                    this.playerStats.damageMultiplier += 0.10;
                 }
                 else if (reward.id === 'hp') { this.playerStats.maxHp += 20; this.playerStats.hp += 20; }
                 else if (reward.id === 'speed') { this.playerStats.speed += 12; }
