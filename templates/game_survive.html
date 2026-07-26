@@ -114,7 +114,7 @@
             }
         }
 
-        // [사운드 버튼 겹침 해결] 상단 구석(Y: 55px)으로 분리 배치하여 카드 및 제목과 충돌 차단
+        // [사운드 버튼 겹침 해결] 상단 구석(Y: 55px)으로 분리 배치
         function createMuteButton(scene) {
             let bgmX = scene.scale.width - (isMobile ? 70 : 90);
             let sfxX = scene.scale.width - (isMobile ? 30 : 40);
@@ -260,7 +260,7 @@
                 this.load.image('tree2', '/static/img/survive/tile/tree2.png');
             }
 
-            // 대소문자 키 동기화 보정
+            // 대소문자 키 완전 이중 동기화 파싱
             create() {
                 fetch('/api/survive/user_data')
                     .then(res => res.json())
@@ -385,7 +385,7 @@
             }
         }
 
-        // [수정사항 4] 업그레이드 상점 현재 레벨 반영 및 대소문자 키 동기화 보정
+        // [수정사항 3] 업그레이드 상점 현재 레벨 반영 및 대소문자 키 동기화 보정
         class UpgradeScene extends Phaser.Scene {
             constructor() { super({ key: 'UpgradeScene' }); }
 
@@ -416,15 +416,19 @@
 
                 let up = USER_GLOBAL_DATA.upgrades;
 
+                function getLv(k) {
+                    return up[k.toLowerCase()] || up[k.toUpperCase()] || 0;
+                }
+
                 const upgradeList = [
-                    { key: 'ATTACK_POWER_LV', icon: 'suri', name: '공격력 강화', desc: '기본 공격력 +1', currentLv: up.attack_power_lv || up.ATTACK_POWER_LV || 0, maxLv: 99, effText: `[현재: +${up.attack_power_lv || up.ATTACK_POWER_LV || 0}]` },
-                    { key: 'ATTACK_SPEED_LV', icon: 'ninja_posion', name: '공격속도 강화', desc: '공격 대기시간 -5%', currentLv: up.attack_speed_lv || up.ATTACK_SPEED_LV || 0, maxLv: 99, effText: `[현재: -${(up.attack_speed_lv || up.ATTACK_SPEED_LV || 0) * 5}%]` },
-                    { key: 'MOVE_SPEED_LV', icon: 'ninja_speed', name: '이동속도 강화', desc: '이동속도 +10', currentLv: up.move_speed_lv || up.MOVE_SPEED_LV || 0, maxLv: 99, effText: `[현재: +${(up.move_speed_lv || up.MOVE_SPEED_LV || 0) * 10}]` },
-                    { key: 'MAX_HP_LV', icon: 'ninja_hp_posion', name: '최대체력 강화', desc: '최대 체력 +15', currentLv: up.max_hp_lv || up.MAX_HP_LV || 0, maxLv: 99, effText: `[현재: +${(up.max_hp_lv || up.MAX_HP_LV || 0) * 15}]` },
-                    { key: 'MAGNET_RANGE_LV', icon: 'field_magnet', name: '자력 범위 강화', desc: '습득 범위 +30', currentLv: up.magnet_range_lv || up.MAGNET_RANGE_LV || 0, maxLv: 99, effText: `[현재: +${(up.magnet_range_lv || up.MAGNET_RANGE_LV || 0) * 30}]` },
-                    { key: 'DEFENSE_LV', icon: 'earth_wall', name: '방어력 강화', desc: '피격 데미지 -1', currentLv: up.defense_lv || up.DEFENSE_LV || 0, maxLv: 99, effText: `[현재: -${up.defense_lv || up.DEFENSE_LV || 0}]` },
-                    { key: 'EXP_BONUS_LV', icon: 'sli_drop1', name: '경험치 강화', desc: '경험치 +10%', currentLv: up.exp_bonus_lv || up.EXP_BONUS_LV || 0, maxLv: 99, effText: `[현재: +${(up.exp_bonus_lv || up.EXP_BONUS_LV || 0) * 10}%]` },
-                    { key: 'CLONE_LV', icon: 'scroll_clone', name: '분신술 (영구)', desc: '기본 투사체 +1', currentLv: up.clone_lv || up.CLONE_LV || 0, maxLv: 1, fixedCost: 3500, effText: ((up.clone_lv || up.CLONE_LV) ? '[적용됨]' : '[미적용]') }
+                    { key: 'ATTACK_POWER_LV', icon: 'suri', name: '공격력 강화', desc: '기본 공격력 +1', currentLv: getLv('ATTACK_POWER_LV'), maxLv: 99, effText: `[현재: +${getLv('ATTACK_POWER_LV')}]` },
+                    { key: 'ATTACK_SPEED_LV', icon: 'ninja_posion', name: '공격속도 강화', desc: '공격 대기시간 -5%', currentLv: getLv('ATTACK_SPEED_LV'), maxLv: 99, effText: `[현재: -${getLv('ATTACK_SPEED_LV') * 5}%]` },
+                    { key: 'MOVE_SPEED_LV', icon: 'ninja_speed', name: '이동속도 강화', desc: '이동속도 +10', currentLv: getLv('MOVE_SPEED_LV'), maxLv: 99, effText: `[현재: +${getLv('MOVE_SPEED_LV') * 10}]` },
+                    { key: 'MAX_HP_LV', icon: 'ninja_hp_posion', name: '최대체력 강화', desc: '최대 체력 +15', currentLv: getLv('MAX_HP_LV'), maxLv: 99, effText: `[현재: +${getLv('MAX_HP_LV') * 15}]` },
+                    { key: 'MAGNET_RANGE_LV', icon: 'field_magnet', name: '자력 범위 강화', desc: '습득 범위 +30', currentLv: getLv('MAGNET_RANGE_LV'), maxLv: 99, effText: `[현재: +${getLv('MAGNET_RANGE_LV') * 30}]` },
+                    { key: 'DEFENSE_LV', icon: 'earth_wall', name: '방어력 강화', desc: '피격 데미지 -1', currentLv: getLv('DEFENSE_LV'), maxLv: 99, effText: `[현재: -${getLv('DEFENSE_LV')}]` },
+                    { key: 'EXP_BONUS_LV', icon: 'sli_drop1', name: '경험치 강화', desc: '경험치 +10%', currentLv: getLv('EXP_BONUS_LV'), maxLv: 99, effText: `[현재: +${getLv('EXP_BONUS_LV') * 10}%]` },
+                    { key: 'CLONE_LV', icon: 'scroll_clone', name: '분신술 (영구)', desc: '기본 투사체 +1', currentLv: getLv('CLONE_LV'), maxLv: 1, fixedCost: 3500, effText: (getLv('CLONE_LV') ? '[적용됨]' : '[미적용]') }
                 ];
 
                 let startY = isMobile ? 150 : 140;
@@ -589,7 +593,6 @@
                     hasEquippedBossSkill: false
                 };
 
-                // [수정사항 3] 스킬별 누적 데미지 정리 통계 객체
                 this.skillDmgStats = {
                     '기본 수리검': 0,
                     '화둔': 0,
@@ -807,7 +810,7 @@
                 });
             }
 
-            // [수정사항 2] 모바일 줌인(1.35x) 환경에서도 100% 보이도록 안전 구역(Y: 220 ~ 290px)으로 완전 하향 재배치
+            // [수정사항 2] 모바일 HUD 줌인 뷰포트 완전 안쪽 안전 배치 (Y: 220 ~ 300px)
             setupUI() {
                 createMuteButton(this);
 
@@ -1483,6 +1486,7 @@
                 }
             }
 
+            // [수정사항 4] 보스 HP 20,000 상향
             spawnBoss() {
                 this.isBossSpawned = true;
                 this.stopNormalSpawns = true;
@@ -1500,9 +1504,9 @@
                 this.boss.isRaging = false;
                 this.boss.hasBeenHit = false;
 
-                this.boss.hp = 15000;
-                this.boss.maxHp = 15000;
-                this.bossRemainingHp = 15000;
+                this.boss.hp = 20000;
+                this.boss.maxHp = 20000;
+                this.bossRemainingHp = 20000;
                 this.bossDamageDealt = 0;
                 this.boss.hpBar = this.add.graphics().setDepth(100);
 
@@ -1515,10 +1519,11 @@
                 this.lastBossMinionTime = this.time.now;
             }
 
+            // [수정사항 4] 돌진 이동속도 +50% (198), 돌진 쿨타임 -30% (14초) 적용
             updateBossAI(time) {
                 if (!this.boss || !this.boss.active) return;
 
-                let spd = this.boss.isRaging ? 165 : (this.boss.isDashing ? 132 : 66); 
+                let spd = this.boss.isRaging ? 220 : (this.boss.isDashing ? 198 : 66); 
 
                 if (!this.boss.isDashing && !this.boss.isRaging && this.boss.knockbackTimer && time < this.boss.knockbackTimer) return;
 
@@ -1543,7 +1548,8 @@
                     this.lastBossUltimateTime = time;
                 }
 
-                if (!this.boss.isRaging && (!this.lastBossDashTime || time > this.lastBossDashTime + 20000)) {
+                // 14초 주기 돌진 (-30% 감소)
+                if (!this.boss.isRaging && (!this.lastBossDashTime || time > this.lastBossDashTime + 14000)) {
                     this.boss.isDashing = true;
                     let dashGlow = null;
                     if(this.boss.preFX) dashGlow = this.boss.preFX.addGlow(0xff0000, 6, 0, false);
@@ -1568,6 +1574,7 @@
                 }
             }
 
+            // [수정사항 4] 광폭화 "바둥거리기" 발동 조건 완화 (3초 내 15% [3,000 damage] 이상의 폭딜 피격 시)
             triggerBossRagePattern() {
                 if (!this.boss || !this.boss.active || this.boss.isRaging) return;
 
@@ -1802,12 +1809,13 @@
                     }
                     this.bossDamageDealt += realDmg;
 
+                    // 3초 내 15% (3,000 dmg) 폭딜 검사
                     let now = this.time.now;
                     this.bossDamageWindow.push({ time: now, dmg: realDmg });
                     this.bossDamageWindow = this.bossDamageWindow.filter(d => now - d.time <= 3000);
                     let sumDmg = this.bossDamageWindow.reduce((acc, cur) => acc + cur.dmg, 0);
 
-                    if (sumDmg >= 4500 && !enemy.isRaging) {
+                    if (sumDmg >= 3000 && !enemy.isRaging) {
                         this.triggerBossRagePattern();
                     }
                 }
@@ -1876,7 +1884,7 @@
                     this.killedEnemiesCount++;
 
                     if (enemy.isBoss) {
-                        // [수정사항 1] 보스 처치 보상 300G로 변경
+                        // [수정사항 1] 보스 처치 보상 300G 지급
                         this.playerStats.gold += 300;
 
                         enemy.destroy();
@@ -1911,39 +1919,38 @@
                 }
             }
 
-            // [수정사항 3] 클리어 결과창에 스킬별 가한 데미지 요약 추가
+            // [수정사항 1] 결과창 Y축 간격 완벽 분리하여 글자 겹침 현상 완전 해결
             showClearReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
 
-                this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.85).setScrollFactor(0).setDepth(20000);
+                this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.88).setScrollFactor(0).setDepth(20000);
 
-                this.add.image(cx, cy - 170, 'clear_box').setDisplaySize(90, 90).setScrollFactor(0).setDepth(20001);
+                this.add.image(cx, cy - 240, 'clear_box').setDisplaySize(90, 90).setScrollFactor(0).setDepth(20001);
                 
-                this.add.text(cx, cy - 100, '🎉 STAGE CLEAR! 🎉', { 
-                    fontSize: '34px', fill: '#00ffcc', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                this.add.text(cx, cy - 170, '🎉 STAGE CLEAR! 🎉', { 
+                    fontSize: '34px', fill: '#00ffcc', fontStyle: 'bold' 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
-                this.add.text(cx, cy - 50, '🎁 보스 스킬 해금!: [붕어빵 융단폭격] (+300G 보상)', { 
-                    fontSize: '18px', fill: '#ffdd00', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
+                this.add.text(cx, cy - 110, '🎁 보스 스킬 해금!: [붕어빵 융단폭격] (+300G 보상)', { 
+                    fontSize: '18px', fill: '#ffdd00', fontStyle: 'bold' 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
                 let mins = Math.floor(this.elapsedTime / 60);
                 let secs = this.elapsedTime % 60;
-                let reportStr = `처치한 적: ${this.killedEnemiesCount}마리 | 생존 시간: ${mins}분 ${secs}초\n획득한 총 골드: ${this.playerStats.gold} G`;
+                let reportStr = `처치한 적: ${this.killedEnemiesCount}마리 | 생존 시간: ${mins}분 ${secs}초\n획득한 총 골드: ${this.playerStats.gold} G\n\n[스킬별 가한 데미지]`;
 
-                let skillSummary = "\n[스킬별 가한 데미지]";
                 Object.keys(this.skillDmgStats).forEach(sk => {
                     if (this.skillDmgStats[sk] > 0) {
-                        skillSummary += `\n- ${sk}: ${Math.floor(this.skillDmgStats[sk]).toLocaleString()} dmg`;
+                        reportStr += `\n- ${sk}: ${Math.floor(this.skillDmgStats[sk]).toLocaleString()} dmg`;
                     }
                 });
 
-                this.add.text(cx, cy + 20, reportStr + skillSummary, { 
-                    fontSize: '15px', fill: '#ffffff', align: 'center', lineSpacing: 4, padding: { top: 4, bottom: 4 } 
+                this.add.text(cx, cy + 20, reportStr, { 
+                    fontSize: '15px', fill: '#ffffff', align: 'center', lineSpacing: 6 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
-                let okBtn = this.add.text(cx, cy + 175, '확인 (메인으로)', {
+                let okBtn = this.add.text(cx, cy + 220, '확인 (메인으로)', {
                     fontSize: '22px', fill: '#fff', backgroundColor: '#00aa66', padding: { x: 25, y: 10 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001).setInteractive();
 
@@ -2010,17 +2017,17 @@
                 });
             }
 
-            // [수정사항 3] 게임오버 결과창에 스킬별 가한 데미지 요약 추가
+            // [수정사항 1] 게임오버 결과창 Y축 간격 완벽 분리하여 글자 겹침 완전 해결
             showGameOverReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
 
                 this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.88).setScrollFactor(0).setDepth(20000);
 
-                this.add.image(cx, cy - 170, 'hero_dead').setDisplaySize(90, 96).setScrollFactor(0).setDepth(20001);
+                this.add.image(cx, cy - 240, 'hero_dead').setDisplaySize(90, 96).setScrollFactor(0).setDepth(20001);
                 
-                this.add.text(cx, cy - 100, '💀 GAME OVER 💀', { 
-                    fontSize: '34px', fill: '#ff3333', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                this.add.text(cx, cy - 170, '💀 GAME OVER 💀', { 
+                    fontSize: '34px', fill: '#ff3333', fontStyle: 'bold' 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
                 let mins = Math.floor(this.elapsedTime / 60);
@@ -2029,21 +2036,21 @@
                 let reportStr = `처치한 적: ${this.killedEnemiesCount}마리 | 생존 시간: ${mins}분 ${secs}초\n획득한 골드: ${this.playerStats.gold} G`;
                 
                 if (this.isBossSpawned) {
-                    reportStr += `\n[⚔️ 보스 전투] 피해량: ${Math.floor(this.bossDamageDealt)} (남은 HP: ${Math.floor(this.bossRemainingHp)} / 15000)`;
+                    reportStr += `\n[⚔️ 보스 전투] 피해량: ${Math.floor(this.bossDamageDealt)} (남은 HP: ${Math.floor(this.bossRemainingHp)} / 20000)`;
                 }
 
-                let skillSummary = "\n[스킬별 가한 데미지]";
+                reportStr += "\n\n[스킬별 가한 데미지]";
                 Object.keys(this.skillDmgStats).forEach(sk => {
                     if (this.skillDmgStats[sk] > 0) {
-                        skillSummary += `\n- ${sk}: ${Math.floor(this.skillDmgStats[sk]).toLocaleString()} dmg`;
+                        reportStr += `\n- ${sk}: ${Math.floor(this.skillDmgStats[sk]).toLocaleString()} dmg`;
                     }
                 });
 
-                this.add.text(cx, cy + 15, reportStr + skillSummary, { 
-                    fontSize: '15px', fill: '#ffffff', align: 'center', lineSpacing: 4, padding: { top: 4, bottom: 4 } 
+                this.add.text(cx, cy + 15, reportStr, { 
+                    fontSize: '15px', fill: '#ffffff', align: 'center', lineSpacing: 6 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
-                let okBtn = this.add.text(cx, cy + 175, '확인 (스테이지 선택)', {
+                let okBtn = this.add.text(cx, cy + 220, '확인 (스테이지 선택)', {
                     fontSize: '20px', fill: '#fff', backgroundColor: '#aa2222', padding: { x: 20, y: 8 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001).setInteractive();
 
@@ -2365,6 +2372,7 @@
                 this.physics.resume();
             }
 
+            // [수정사항 2] 닫기 버튼 상단 우측(X: scale.width - 100, Y: 110) 안착 및 스킬 카드 하향(Y: 260px)
             showShopUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
@@ -2376,22 +2384,41 @@
                     .setDepth(20000)
                     .setInteractive();
 
-                let title = this.add.text(this.scale.width / 2, 90, '인게임 골드 상점', { 
-                    fontSize: isMobile ? '34px' : '42px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                let title = this.add.text(this.scale.width / 2, 110, '인게임 골드 상점', { 
+                    fontSize: isMobile ? '32px' : '42px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
-                let goldInfo = this.add.text(this.scale.width / 2, 135, `획득한 골드: ${this.playerStats.gold} G`, { 
+                let goldInfo = this.add.text(this.scale.width / 2, 160, `획득한 골드: ${this.playerStats.gold} G`, { 
                     fontSize: isMobile ? '18px' : '22px', fill: '#ffd700', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
-                this.shopElements.push(overlay, title, goldInfo);
+                // [수정사항 2] 상점 닫기 버튼 상단 우측 고정
+                let closeBtn = this.add.text(this.scale.width - (isMobile ? 100 : 120), 110, '✖ 닫기', {
+                    fontSize: isMobile ? '18px' : '22px', fill: '#fff', backgroundColor: '#aa2222', padding: { x: 12, y: 6 }
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
+
+                closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#ff4444').setFill('#fff'));
+                closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#aa2222').setFill('#fff'));
+
+                closeBtn.on('pointerdown', (pointer, localX, localY, event) => {
+                    if(event) event.stopPropagation();
+                    playRandomSFX(this, 'button');
+                    if (this.shopElements) {
+                        this.shopElements.forEach(el => el.destroy());
+                        this.shopElements = [];
+                    }
+                    this.isLevelUpOpen = false;
+                    this.physics.resume();
+                });
+
+                this.shopElements.push(overlay, title, goldInfo, closeBtn);
 
                 let unlockedSkills = USER_GLOBAL_DATA.unlocked_boss_skills || [];
                 let cx = this.scale.width / 2;
 
                 let isDuckSkillUnlocked = unlockedSkills.some(s => s.skill_key === 'boss_sli_wave' || s.skill_key === 'boss_duck');
 
-                let posY = 220;
+                let posY = 260; // 스킬 카드 하향 배치
                 let cost = 500;
 
                 let card = this.add.rectangle(cx, posY, isMobile ? 560 : 550, 80, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20001);
@@ -2433,27 +2460,6 @@
                 });
 
                 this.shopElements.push(card, bossIcon, skTxt, buyBtn);
-
-                let closeBtnY = isMobile ? this.scale.height - 120 : this.scale.height - 80;
-                let closeBtn = this.add.text(cx, closeBtnY, '닫기', {
-                    fontSize: isMobile ? '24px' : '28px', fill: '#fff', backgroundColor: '#555', padding: { x: 30, y: 10 }
-                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
-
-                closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#aa7722').setFill('#fff'));
-                closeBtn.on('pointerout', () => closeBtn.setBackgroundColor('#555').setFill('#fff'));
-
-                this.shopElements.push(closeBtn);
-
-                closeBtn.on('pointerdown', (pointer, localX, localY, event) => {
-                    if(event) event.stopPropagation();
-                    playRandomSFX(this, 'button');
-                    if (this.shopElements) {
-                        this.shopElements.forEach(el => el.destroy());
-                        this.shopElements = [];
-                    }
-                    this.isLevelUpOpen = false;
-                    this.physics.resume();
-                });
             }
 
             applyReward(reward) {
