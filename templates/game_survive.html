@@ -114,10 +114,26 @@
             }
         }
 
+        function showToast(scene, msg, duration = 2000, color = '#ffcc00') {
+            let cx = scene.scale.width / 2;
+            let cy = isMobile ? scene.scale.height / 2 + 100 : scene.scale.height / 2;
+
+            let bg = scene.add.rectangle(cx, cy, 450, 50, 0x000000, 0.85).setScrollFactor(0).setDepth(25000);
+            let txt = scene.add.text(cx, cy, msg, { fontSize: '18px', fill: color, fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(25001);
+
+            scene.tweens.add({
+                targets: [bg, txt],
+                alpha: { from: 1, to: 0 },
+                delay: duration,
+                duration: 400,
+                onComplete: () => { bg.destroy(); txt.destroy(); }
+            });
+        }
+
         function createMuteButton(scene) {
-            let bgmX = scene.scale.width - (isMobile ? 70 : 90);
-            let sfxX = scene.scale.width - (isMobile ? 30 : 40);
-            let topY = isMobile ? 55 : 80;
+            let bgmX = scene.scale.width - (isMobile ? 120 : 90);
+            let sfxX = scene.scale.width - (isMobile ? 60 : 40);
+            let topY = isMobile ? 210 : 80;
 
             let bgmBtn = scene.add.text(bgmX, topY, isBgmMuted ? '🔇' : '🎵', { 
                 fontSize: isMobile ? '22px' : '28px',
@@ -259,7 +275,6 @@
                 this.load.image('tree2', '/static/img/survive/tile/tree2.png');
             }
 
-            // [핵심 방어 로직] 대소문자 키 및 8개 필수 강합 항목을 명시적으로 매핑 및 이중 보장
             create() {
                 fetch('/api/survive/user_data')
                     .then(res => res.json())
@@ -339,19 +354,14 @@
                     window.location.href = '/game';
                 });
 
-                let gearBtn = this.add.text(this.scale.width - 130, isMobile ? 55 : 80, '⚙️', { 
+                let gearBtn = this.add.text(this.scale.width - 180, isMobile ? 55 : 80, '⚙️', { 
                     fontSize: '28px', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(10000).setInteractive();
                 
                 gearBtn.on('pointerdown', () => {
                     playRandomSFX(this, 'button');
-                    let pw = prompt("관리자 비밀번호를 입력하세요:");
-                    if (pw === "6974") {
-                        isTestMode = true;
-                        alert("✅ [관리자 모드] 바로 보스 만나기 모드가 활성화되었습니다.\n(1분 뒤 보스 출현 / 시작 시 15개 보상 큐 지급 / DB 기록 없음)");
-                    } else if (pw !== null) {
-                        alert("❌ 비밀번호가 올바르지 않습니다.");
-                    }
+                    isTestMode = !isTestMode;
+                    showToast(this, isTestMode ? "✅ 테스트 모드 활성화 (보스 1분출현 / 시작시 15개 상자)" : "❌ 테스트 모드 비활성화");
                 });
 
                 let baseSize = isMobile ? 240 : 275; 
@@ -495,7 +505,6 @@
                                 if (resData && resData.success) {
                                     USER_GLOBAL_DATA.survive_gold = resData.new_gold;
                                     
-                                    // [핵심 방어 동기화] 대소문자 양쪽 키에 즉시 저장하여 레벨 초기화 차단
                                     let uKey = item.key.toUpperCase();
                                     let lKey = item.key.toLowerCase();
                                     USER_GLOBAL_DATA.upgrades[lKey] = resData.new_level;
@@ -503,7 +512,7 @@
                                     
                                     this.scene.restart();
                                 } else {
-                                    alert((resData && resData.error) || "강화 실패");
+                                    showToast(this, (resData && resData.error) || "강화 실패", 2000, '#ff3333');
                                     this.scene.restart();
                                 }
                             })
@@ -834,12 +843,11 @@
                 });
             }
 
-            // 모바일 줌인 뷰포트 완전 안쪽 안전 배치 (Y: 220 ~ 300px)
             setupUI() {
                 createMuteButton(this);
 
-                let exitX = this.scale.width - (isMobile ? 120 : 40);
-                let exitY = isMobile ? 220 : 130;
+                let exitX = isMobile ? 80 : 40;
+                let exitY = isMobile ? 210 : 130;
 
                 let exitBtn = this.add.text(exitX, exitY, '🏠', { 
                     fontSize: '28px',
@@ -857,16 +865,16 @@
                 let secs = initialRemain % 60;
                 let timeStr = `⏳ 보스까지 ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-                let timerY = isMobile ? 220 : 80;
+                let timerY = isMobile ? 210 : 80;
                 this.timerText = this.add.text(this.scale.width / 2, timerY, timeStr, { 
                     fontSize: isMobile ? '22px' : '28px', fill: isTestMode ? '#ff0055' : '#ffcc00', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(10000);
 
                 let hudX = isMobile ? 120 : 30;
-                let lvlY = isMobile ? 220 : 48;
-                let expY = isMobile ? 250 : 88;
-                let hpTxtY = isMobile ? 275 : 115;
-                let hpBarY = isMobile ? 300 : 150;
+                let lvlY = isMobile ? 250 : 48;
+                let expY = isMobile ? 280 : 88;
+                let hpTxtY = isMobile ? 305 : 115;
+                let hpBarY = isMobile ? 330 : 150;
 
                 this.levelText = this.add.text(hudX, lvlY, 'LV.1', { 
                     fontSize: isMobile ? '18px' : '24px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
@@ -882,10 +890,13 @@
                 this.playerHpBg = this.add.rectangle(hudX + (isMobile ? 60 : 100), hpBarY, isMobile ? 120 : 200, 16, 0x330000).setScrollFactor(0).setDepth(10000);
                 this.playerHpBar = this.add.rectangle(hudX, hpBarY, isMobile ? 120 : 200, 16, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
-                let skill1X = isMobile ? this.scale.width - 120 : 55;
+                // 스킬 버튼 줌인 뷰포트 내부 안착 (X: scale.width - 160)
+                let skill1X = isMobile ? this.scale.width - 160 : 55;
                 let skill1Y = isMobile ? 310 : 195;
-                let skill2X = isMobile ? this.scale.width - 120 : 120;
-                let skill2Y = isMobile ? 380 : 195;
+                
+                // 보스 스킬은 수리검 난무 바로 하단에 배치
+                let skill2X = isMobile ? this.scale.width - 160 : 55;
+                let skill2Y = isMobile ? 380 : 265;
                 let boxSize = 56;
                 let imgSize = 48;
 
@@ -907,9 +918,9 @@
 
                 this.bossSkillBtn.on('pointerdown', () => this.useBossEquippedSkill());
 
-                let goldIconX = isMobile ? this.scale.width - 230 : this.scale.width - 210;
-                let goldTxtX = isMobile ? this.scale.width - 205 : this.scale.width - 170;
-                let goldY = isMobile ? 220 : 80;
+                let goldIconX = isMobile ? this.scale.width - 240 : this.scale.width - 210;
+                let goldTxtX = isMobile ? this.scale.width - 215 : this.scale.width - 170;
+                let goldY = isMobile ? 210 : 80;
 
                 if (this.textures.exists('goldpocket')) {
                     this.goldIcon = this.add.image(goldIconX, goldY, 'goldpocket').setDisplaySize(28, 28).setScrollFactor(0).setDepth(10000).setInteractive();
@@ -1510,7 +1521,6 @@
                 }
             }
 
-            // 보스 HP 20,000 상향
             spawnBoss() {
                 this.isBossSpawned = true;
                 this.stopNormalSpawns = true;
@@ -1543,7 +1553,6 @@
                 this.lastBossMinionTime = this.time.now;
             }
 
-            // 돌진 이동속도 +50% (198), 돌진 쿨타임 -30% (14초) 적용
             updateBossAI(time) {
                 if (!this.boss || !this.boss.active) return;
 
@@ -1572,7 +1581,6 @@
                     this.lastBossUltimateTime = time;
                 }
 
-                // 14초 주기 돌진 (-30% 감소)
                 if (!this.boss.isRaging && (!this.lastBossDashTime || time > this.lastBossDashTime + 14000)) {
                     this.boss.isDashing = true;
                     let dashGlow = null;
@@ -1598,7 +1606,6 @@
                 }
             }
 
-            // 광폭화 "바둥거리기" 발동 조건 완화 (3초 내 15% [3,000 damage] 이상의 폭딜 피격 시)
             triggerBossRagePattern() {
                 if (!this.boss || !this.boss.active || this.boss.isRaging) return;
 
@@ -1833,7 +1840,6 @@
                     }
                     this.bossDamageDealt += realDmg;
 
-                    // 3초 내 15% (3,000 dmg) 폭딜 검사
                     let now = this.time.now;
                     this.bossDamageWindow.push({ time: now, dmg: realDmg });
                     this.bossDamageWindow = this.bossDamageWindow.filter(d => now - d.time <= 3000);
@@ -1908,7 +1914,6 @@
                     this.killedEnemiesCount++;
 
                     if (enemy.isBoss) {
-                        // 보스 처치 보상 300G
                         this.playerStats.gold += 300;
 
                         enemy.destroy();
@@ -1943,7 +1948,6 @@
                 }
             }
 
-            // [수정사항 1] 결과창 Y축 간격 완벽 분리하여 글자 겹침 완전 해결
             showClearReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
@@ -2041,7 +2045,6 @@
                 });
             }
 
-            // 게임오버 결과창 Y축 간격 완벽 분리
             showGameOverReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
@@ -2396,28 +2399,40 @@
                 this.physics.resume();
             }
 
-            // [수정사항 2] 닫기 버튼 상단 우측(X: scale.width - 100, Y: 110) 안착 및 스킬 카드 하향(Y: 260px)
             showShopUI() {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
                 
                 this.shopElements = [];
 
-                let overlay = this.add.rectangle(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, 0x000000, 0.85)
+                let cx = this.scale.width / 2;
+                let cy = this.scale.height / 2;
+
+                let overlay = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.85)
                     .setScrollFactor(0)
                     .setDepth(20000)
                     .setInteractive();
 
-                let title = this.add.text(this.scale.width / 2, 110, '인게임 골드 상점', { 
-                    fontSize: isMobile ? '32px' : '42px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                let modalBg = this.add.rectangle(cx, cy, isMobile ? 620 : 600, isMobile ? 420 : 360, 0x111122, 0.95)
+                    .setStrokeStyle(3, 0x00ffcc)
+                    .setScrollFactor(0)
+                    .setDepth(20001);
+
+                let titleY = cy - (isMobile ? 160 : 130);
+                let goldY = cy - (isMobile ? 110 : 85);
+                let cardY = cy + (isMobile ? 10 : 10);
+
+                let title = this.add.text(cx, titleY, '인게임 골드 상점', { 
+                    fontSize: isMobile ? '30px' : '38px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
-                let goldInfo = this.add.text(this.scale.width / 2, 160, `획득한 골드: ${this.playerStats.gold} G`, { 
+                let goldInfo = this.add.text(cx, goldY, `획득한 골드: ${this.playerStats.gold} G`, { 
                     fontSize: isMobile ? '18px' : '22px', fill: '#ffd700', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
-                let closeBtn = this.add.text(this.scale.width - (isMobile ? 100 : 120), 110, '✖ 닫기', {
-                    fontSize: isMobile ? '18px' : '22px', fill: '#fff', backgroundColor: '#aa2222', padding: { x: 12, y: 6 }
+                // 닫기 버튼을 화면 중앙 기준으로 상대 배치하여 줌인 시에도 100% 안전하게 노출
+                let closeBtn = this.add.text(cx + (isMobile ? 220 : 230), titleY, '✖ 닫기', {
+                    fontSize: isMobile ? '16px' : '20px', fill: '#fff', backgroundColor: '#aa2222', padding: { x: 10, y: 5 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
 
                 closeBtn.on('pointerover', () => closeBtn.setBackgroundColor('#ff4444').setFill('#fff'));
@@ -2434,34 +2449,30 @@
                     this.physics.resume();
                 });
 
-                this.shopElements.push(overlay, title, goldInfo, closeBtn);
+                this.shopElements.push(overlay, modalBg, title, goldInfo, closeBtn);
 
                 let unlockedSkills = USER_GLOBAL_DATA.unlocked_boss_skills || [];
-                let cx = this.scale.width / 2;
-
                 let isDuckSkillUnlocked = unlockedSkills.some(s => s.skill_key === 'boss_sli_wave' || s.skill_key === 'boss_duck');
 
-                let posY = 260;
                 let cost = 500;
 
-                let card = this.add.rectangle(cx, posY, isMobile ? 560 : 550, 80, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20001);
-                
-                let bossIcon = this.add.image(cx - (isMobile ? 230 : 230), posY, 'boss_duck').setDisplaySize(50, 50).setScrollFactor(0).setDepth(20002);
+                let card = this.add.rectangle(cx, cardY, isMobile ? 540 : 520, 110, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20002);
+                let bossIcon = this.add.image(cx - (isMobile ? 210 : 200), cardY, 'boss_duck').setDisplaySize(60, 60).setScrollFactor(0).setDepth(20003);
 
                 let skTxtStr = isDuckSkillUnlocked ? "[보스 스킬] 붕어빵 융단폭격" : "🔒 [미획득] Stage 1 클리어 필요";
-                let skTxt = this.add.text(cx - (isMobile ? 180 : 180), posY - 10, skTxtStr, { 
-                    fontSize: '18px', fill: isDuckSkillUnlocked ? '#fff' : '#888', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
-                }).setScrollFactor(0).setDepth(20002);
+                let skTxt = this.add.text(cx - (isMobile ? 160 : 150), cardY - 18, skTxtStr, { 
+                    fontSize: isMobile ? '16px' : '18px', fill: isDuckSkillUnlocked ? '#fff' : '#888', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
+                }).setScrollFactor(0).setDepth(20003);
 
-                let buyBtn = this.add.text(cx + (isMobile ? 170 : 170), posY, isDuckSkillUnlocked ? `장착 (${cost}G)` : '구매 불가', {
+                let buyBtn = this.add.text(cx + (isMobile ? 150 : 150), cardY, isDuckSkillUnlocked ? `장착 (${cost}G)` : '구매 불가', {
                     fontSize: '16px', fill: '#fff', backgroundColor: isDuckSkillUnlocked ? '#00aa66' : '#444444', padding: { x: 12, y: 6 }
-                }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
+                }).setOrigin(0.5).setScrollFactor(0).setDepth(20003).setInteractive({ useHandCursor: true });
 
                 buyBtn.on('pointerdown', (pointer, localX, localY, event) => {
                     if(event) event.stopPropagation();
                     if (!isDuckSkillUnlocked) {
                         playRandomSFX(this, 'button');
-                        alert("🔒 Stage 1을 클리어하여 스킬을 해금해야 이용할 수 있습니다!");
+                        showToast(this, "🔒 Stage 1을 클리어하여 스킬을 해금해야 이용할 수 있습니다!", 2500, '#ff3333');
                         return;
                     }
 
@@ -2475,10 +2486,10 @@
                         this.bossSkillBtn.setVisible(true);
 
                         playRandomSFX(this, 'skill_fire');
-                        alert("✅ [붕어빵 융단폭격] 보스 스킬이 2번 슬롯에 장착되었습니다!\n(단축키: 키보드 2번 / 쿨타임 60초)");
+                        showToast(this, "✅ [붕어빵 융단폭격] 보스 스킬 장착 완료! (단축키 2번 / 쿨타임 60초)", 3000, '#00ffcc');
                     } else {
                         playRandomSFX(this, 'button');
-                        alert("❌ 골드가 부족합니다. (필요 골드: 500 G)");
+                        showToast(this, "❌ 골드가 부족합니다. (필요: 500 G)", 2000, '#ff3333');
                     }
                 });
 
