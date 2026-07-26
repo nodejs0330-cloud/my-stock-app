@@ -114,14 +114,14 @@
             }
         }
 
-        // [모바일 대응] 음소거 버튼 안전 위치 적용 (Zoom 1.35x 기준 Y: 160px)
+        // [사운드 버튼 겹침 해결] 상단 구석(Y: 55px)으로 분리 배치하여 카드 및 제목과 충돌 차단
         function createMuteButton(scene) {
-            let bgmX = scene.scale.width - (isMobile ? 120 : 90);
-            let sfxX = scene.scale.width - (isMobile ? 70 : 40);
-            let topY = isMobile ? 160 : 80;
+            let bgmX = scene.scale.width - (isMobile ? 70 : 90);
+            let sfxX = scene.scale.width - (isMobile ? 30 : 40);
+            let topY = isMobile ? 55 : 80;
 
             let bgmBtn = scene.add.text(bgmX, topY, isBgmMuted ? '🔇' : '🎵', { 
-                fontSize: isMobile ? '24px' : '28px',
+                fontSize: isMobile ? '22px' : '28px',
                 padding: { top: 4, bottom: 4, left: 4, right: 4 } 
             })
             .setOrigin(0.5)
@@ -139,7 +139,7 @@
             });
 
             let sfxBtn = scene.add.text(sfxX, topY, isSfxMuted ? '🔇' : '🔊', { 
-                fontSize: isMobile ? '24px' : '28px',
+                fontSize: isMobile ? '22px' : '28px',
                 padding: { top: 4, bottom: 4, left: 4, right: 4 } 
             })
             .setOrigin(0.5)
@@ -260,7 +260,7 @@
                 this.load.image('tree2', '/static/img/survive/tile/tree2.png');
             }
 
-            // DB 파싱 시 소문자/대문자 불일치 예외 완전 통합
+            // 대소문자 키 동기화 보정
             create() {
                 fetch('/api/survive/user_data')
                     .then(res => res.json())
@@ -270,6 +270,7 @@
                             if (data.upgrades) {
                                 Object.keys(data.upgrades).forEach(k => {
                                     USER_GLOBAL_DATA.upgrades[k.toLowerCase()] = data.upgrades[k];
+                                    USER_GLOBAL_DATA.upgrades[k.toUpperCase()] = data.upgrades[k];
                                 });
                             }
                             USER_GLOBAL_DATA.unlocked_boss_skills = data.unlocked_boss_skills || [];
@@ -305,13 +306,13 @@
 
                 createMuteButton(this);
 
-                this.add.image(40, 40, 'goldpocket').setDisplaySize(32, 32).setScrollFactor(0).setDepth(10000);
-                this.goldTxt = this.add.text(65, 40, `${USER_GLOBAL_DATA.survive_gold} G`, { 
+                this.add.image(40, 55, 'goldpocket').setDisplaySize(32, 32).setScrollFactor(0).setDepth(10000);
+                this.goldTxt = this.add.text(65, 55, `${USER_GLOBAL_DATA.survive_gold} G`, { 
                     fontSize: '22px', fill: '#ffd700', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
                 }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10000);
 
                 let exitX = 40;
-                let exitY = isMobile ? 80 : 85;
+                let exitY = isMobile ? 95 : 85;
 
                 let exitBtn = this.add.text(exitX, exitY, '◀ 메인 허브로', {
                     fontSize: '16px', fill: '#aaa', backgroundColor: '#222', padding: { x: 10, y: 6 }
@@ -324,7 +325,7 @@
                     window.location.href = '/game';
                 });
 
-                let gearBtn = this.add.text(this.scale.width - 185, isMobile ? 35 : 80, '⚙️', { 
+                let gearBtn = this.add.text(this.scale.width - 130, isMobile ? 55 : 80, '⚙️', { 
                     fontSize: '28px', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(10000).setInteractive();
                 
@@ -384,7 +385,7 @@
             }
         }
 
-        // [수정사항 1] 현재 강화 레벨 반영 + 레벨별 비용 가산 + 합산 수치 표기 완전 반영
+        // [수정사항 4] 업그레이드 상점 현재 레벨 반영 및 대소문자 키 동기화 보정
         class UpgradeScene extends Phaser.Scene {
             constructor() { super({ key: 'UpgradeScene' }); }
 
@@ -394,7 +395,7 @@
 
                 let cx = this.scale.width / 2;
 
-                let topBackBtn = this.add.text(20, isMobile ? 35 : 40, '◀ 뒤로', {
+                let topBackBtn = this.add.text(20, isMobile ? 55 : 40, '◀ 뒤로', {
                     fontSize: isMobile ? '16px' : '20px', fill: '#fff', backgroundColor: '#333', padding: { x: 10, y: 6 }
                 }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10000).setInteractive();
 
@@ -405,28 +406,28 @@
                     this.scene.start('TitleScene');
                 });
 
-                this.add.text(cx, isMobile ? 35 : 45, '영구 능력 강화 상점', { 
+                this.add.text(cx, isMobile ? 55 : 45, '영구 능력 강화 상점', { 
                     fontSize: isMobile ? '26px' : '36px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 2, bottom: 2 } 
                 }).setOrigin(0.5).setDepth(10000);
 
-                this.goldTxt = this.add.text(cx, isMobile ? 75 : 85, `보유 골드: ${USER_GLOBAL_DATA.survive_gold} G`, { 
+                this.goldTxt = this.add.text(cx, isMobile ? 95 : 85, `보유 골드: ${USER_GLOBAL_DATA.survive_gold} G`, { 
                     fontSize: isMobile ? '18px' : '22px', fill: '#ffd700', fontStyle: 'bold', padding: { top: 2, bottom: 2 } 
                 }).setOrigin(0.5).setDepth(10000);
 
                 let up = USER_GLOBAL_DATA.upgrades;
 
                 const upgradeList = [
-                    { key: 'ATTACK_POWER_LV', icon: 'suri', name: '공격력 강화', desc: '기본 공격력 +1', currentLv: up.attack_power_lv || 0, maxLv: 99, effText: `[현재: +${up.attack_power_lv || 0}]` },
-                    { key: 'ATTACK_SPEED_LV', icon: 'ninja_posion', name: '공격속도 강화', desc: '공격 대기시간 -5%', currentLv: up.attack_speed_lv || 0, maxLv: 99, effText: `[현재: -${(up.attack_speed_lv || 0) * 5}%]` },
-                    { key: 'MOVE_SPEED_LV', icon: 'ninja_speed', name: '이동속도 강화', desc: '이동속도 +10', currentLv: up.move_speed_lv || 0, maxLv: 99, effText: `[현재: +${(up.move_speed_lv || 0) * 10}]` },
-                    { key: 'MAX_HP_LV', icon: 'ninja_hp_posion', name: '최대체력 강화', desc: '최대 체력 +15', currentLv: up.max_hp_lv || 0, maxLv: 99, effText: `[현재: +${(up.max_hp_lv || 0) * 15}]` },
-                    { key: 'MAGNET_RANGE_LV', icon: 'field_magnet', name: '자력 범위 강화', desc: '습득 범위 +30', currentLv: up.magnet_range_lv || 0, maxLv: 99, effText: `[현재: +${(up.magnet_range_lv || 0) * 30}]` },
-                    { key: 'DEFENSE_LV', icon: 'earth_wall', name: '방어력 강화', desc: '피격 데미지 -1', currentLv: up.defense_lv || 0, maxLv: 99, effText: `[현재: -${up.defense_lv || 0}]` },
-                    { key: 'EXP_BONUS_LV', icon: 'sli_drop1', name: '경험치 강화', desc: '경험치 +10%', currentLv: up.exp_bonus_lv || 0, maxLv: 99, effText: `[현재: +${(up.exp_bonus_lv || 0) * 10}%]` },
-                    { key: 'CLONE_LV', icon: 'scroll_clone', name: '분신술 (영구)', desc: '기본 투사체 +1', currentLv: up.clone_lv || 0, maxLv: 1, fixedCost: 3500, effText: (up.clone_lv ? '[적용됨]' : '[미적용]') }
+                    { key: 'ATTACK_POWER_LV', icon: 'suri', name: '공격력 강화', desc: '기본 공격력 +1', currentLv: up.attack_power_lv || up.ATTACK_POWER_LV || 0, maxLv: 99, effText: `[현재: +${up.attack_power_lv || up.ATTACK_POWER_LV || 0}]` },
+                    { key: 'ATTACK_SPEED_LV', icon: 'ninja_posion', name: '공격속도 강화', desc: '공격 대기시간 -5%', currentLv: up.attack_speed_lv || up.ATTACK_SPEED_LV || 0, maxLv: 99, effText: `[현재: -${(up.attack_speed_lv || up.ATTACK_SPEED_LV || 0) * 5}%]` },
+                    { key: 'MOVE_SPEED_LV', icon: 'ninja_speed', name: '이동속도 강화', desc: '이동속도 +10', currentLv: up.move_speed_lv || up.MOVE_SPEED_LV || 0, maxLv: 99, effText: `[현재: +${(up.move_speed_lv || up.MOVE_SPEED_LV || 0) * 10}]` },
+                    { key: 'MAX_HP_LV', icon: 'ninja_hp_posion', name: '최대체력 강화', desc: '최대 체력 +15', currentLv: up.max_hp_lv || up.MAX_HP_LV || 0, maxLv: 99, effText: `[현재: +${(up.max_hp_lv || up.MAX_HP_LV || 0) * 15}]` },
+                    { key: 'MAGNET_RANGE_LV', icon: 'field_magnet', name: '자력 범위 강화', desc: '습득 범위 +30', currentLv: up.magnet_range_lv || up.MAGNET_RANGE_LV || 0, maxLv: 99, effText: `[현재: +${(up.magnet_range_lv || up.MAGNET_RANGE_LV || 0) * 30}]` },
+                    { key: 'DEFENSE_LV', icon: 'earth_wall', name: '방어력 강화', desc: '피격 데미지 -1', currentLv: up.defense_lv || up.DEFENSE_LV || 0, maxLv: 99, effText: `[현재: -${up.defense_lv || up.DEFENSE_LV || 0}]` },
+                    { key: 'EXP_BONUS_LV', icon: 'sli_drop1', name: '경험치 강화', desc: '경험치 +10%', currentLv: up.exp_bonus_lv || up.EXP_BONUS_LV || 0, maxLv: 99, effText: `[현재: +${(up.exp_bonus_lv || up.EXP_BONUS_LV || 0) * 10}%]` },
+                    { key: 'CLONE_LV', icon: 'scroll_clone', name: '분신술 (영구)', desc: '기본 투사체 +1', currentLv: up.clone_lv || up.CLONE_LV || 0, maxLv: 1, fixedCost: 3500, effText: ((up.clone_lv || up.CLONE_LV) ? '[적용됨]' : '[미적용]') }
                 ];
 
-                let startY = isMobile ? 130 : 140;
+                let startY = isMobile ? 150 : 140;
                 let colWidth = isMobile ? 320 : 360;
                 let rowHeight = isMobile ? 85 : 95;
 
@@ -437,7 +438,6 @@
                     let posX = (cx - (colWidth / 2)) + (col * colWidth);
                     let posY = startY + (row * rowHeight);
 
-                    // 레벨별 인상 비용 (100G + Lv * 150G)
                     let cost = item.fixedCost ? item.fixedCost : (100 + (item.currentLv * 150));
                     let isMax = item.currentLv >= item.maxLv;
 
@@ -452,7 +452,6 @@
                         fontSize: isMobile ? '11px' : '12px', fill: '#aaaaaa' 
                     });
 
-                    // 현재 적용 효과 텍스트 노출
                     this.add.text(posX - (colWidth/2) + 54, posY + 8, item.effText, { 
                         fontSize: isMobile ? '10px' : '11px', fill: '#00ffcc' 
                     });
@@ -477,6 +476,7 @@
                                 if (resData && resData.success) {
                                     USER_GLOBAL_DATA.survive_gold = resData.new_gold;
                                     USER_GLOBAL_DATA.upgrades[item.key.toLowerCase()] = resData.new_level;
+                                    USER_GLOBAL_DATA.upgrades[item.key.toUpperCase()] = resData.new_level;
                                     this.scene.restart();
                                 } else {
                                     alert((resData && resData.error) || "강화 실패");
@@ -503,7 +503,7 @@
 
                 createMuteButton(this);
 
-                let topBackBtn = this.add.text(20, isMobile ? 35 : 40, '◀ 뒤로', {
+                let topBackBtn = this.add.text(20, isMobile ? 55 : 40, '◀ 뒤로', {
                     fontSize: isMobile ? '16px' : '20px', fill: '#fff', backgroundColor: '#333', padding: { x: 10, y: 6 }
                 }).setOrigin(0, 0.5).setDepth(10000).setInteractive();
 
@@ -514,7 +514,7 @@
                     this.scene.start('TitleScene');
                 });
 
-                this.add.text(this.scale.width / 2, isMobile ? 35 : 80, '스테이지 선택' + (isTestMode ? " [테스트 모드]" : ""), { 
+                this.add.text(this.scale.width / 2, isMobile ? 55 : 80, '스테이지 선택' + (isTestMode ? " [테스트 모드]" : ""), { 
                     fontSize: isMobile ? '28px' : '40px', fill: isTestMode ? '#ff0055' : '#fff', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setDepth(10000);
 
@@ -573,20 +573,31 @@
                 this.isDead = false;
 
                 let up = USER_GLOBAL_DATA.upgrades;
-                let baseHp = 100 + ((up.max_hp_lv || 0) * 15);
-                let baseAtk = 5 + ((up.attack_power_lv || 0) * 1);
-                let baseSpd = 160 + ((up.move_speed_lv || 0) * 10);
-                let baseMagnet = 150 + ((up.magnet_range_lv || 0) * 30);
-                let baseDelay = Math.max(400, 1100 * (1 - ((up.attack_speed_lv || 0) * 0.05)));
+                let baseHp = 100 + ((up.max_hp_lv || up.MAX_HP_LV || 0) * 15);
+                let baseAtk = 5 + ((up.attack_power_lv || up.ATTACK_POWER_LV || 0) * 1);
+                let baseSpd = 160 + ((up.move_speed_lv || up.MOVE_SPEED_LV || 0) * 10);
+                let baseMagnet = 150 + ((up.magnet_range_lv || up.MAGNET_RANGE_LV || 0) * 30);
+                let baseDelay = Math.max(400, 1100 * (1 - ((up.attack_speed_lv || up.ATTACK_SPEED_LV || 0) * 0.05)));
 
                 this.playerStats = {
                     hp: baseHp, maxHp: baseHp, speed: baseSpd, damage: baseAtk, attackDelay: baseDelay,
-                    defense: (up.defense_lv || 0) * 1, expBonus: 1 + ((up.exp_bonus_lv || 0) * 0.1),
+                    defense: (up.defense_lv || up.DEFENSE_LV || 0) * 1, expBonus: 1 + ((up.exp_bonus_lv || up.EXP_BONUS_LV || 0) * 0.1),
                     level: 1, exp: 0, maxExp: 6, gold: 0, magnetRange: baseMagnet,
                     fire: 0, water: 0, wind: 0, bomb: 0, earth: 0, bolt: 0, posionLv: 0,
-                    pierce: 0, clone: up.clone_lv || 0, magnet: 0, maxHpLv: 0, speedLv: 0, healLv: 0,
+                    pierce: 0, clone: up.clone_lv || up.CLONE_LV || 0, magnet: 0, maxHpLv: 0, speedLv: 0, healLv: 0,
                     heroSkillLv: 0,
                     hasEquippedBossSkill: false
+                };
+
+                // [수정사항 3] 스킬별 누적 데미지 정리 통계 객체
+                this.skillDmgStats = {
+                    '기본 수리검': 0,
+                    '화둔': 0,
+                    '수둔': 0,
+                    '뇌둔': 0,
+                    '풍둔': 0,
+                    '기폭찰': 0,
+                    '수리검 난무': 0
                 };
 
                 this.lastAttackTime = 0;
@@ -605,8 +616,7 @@
                 this.bossDamageDealt = 0;
                 this.bossRemainingHp = 0;
 
-                // [3-1 밸런싱] 보스 폭딜 감지 및 바둥거리기(광폭화) 변수
-                this.bossDamageWindow = []; // { time, dmg }
+                this.bossDamageWindow = [];
                 this.isBossRaging = false;
 
                 this.heroSkillCooldown = 0;
@@ -797,12 +807,12 @@
                 });
             }
 
-            // [수정사항 2] 모바일 줌인(1.35배) 상태에서 Y: 160~280px 구역에 안전하게 HUD 배치
+            // [수정사항 2] 모바일 줌인(1.35x) 환경에서도 100% 보이도록 안전 구역(Y: 220 ~ 290px)으로 완전 하향 재배치
             setupUI() {
                 createMuteButton(this);
 
                 let exitX = this.scale.width - (isMobile ? 120 : 40);
-                let exitY = isMobile ? 160 : 130;
+                let exitY = isMobile ? 220 : 130;
 
                 let exitBtn = this.add.text(exitX, exitY, '🏠', { 
                     fontSize: '28px',
@@ -820,16 +830,16 @@
                 let secs = initialRemain % 60;
                 let timeStr = `⏳ 보스까지 ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-                let timerY = isMobile ? 160 : 80;
+                let timerY = isMobile ? 220 : 80;
                 this.timerText = this.add.text(this.scale.width / 2, timerY, timeStr, { 
                     fontSize: isMobile ? '22px' : '28px', fill: isTestMode ? '#ff0055' : '#ffcc00', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(10000);
 
                 let hudX = isMobile ? 120 : 30;
-                let lvlY = isMobile ? 160 : 48;
-                let expY = isMobile ? 190 : 88;
-                let hpTxtY = isMobile ? 215 : 115;
-                let hpBarY = isMobile ? 240 : 150;
+                let lvlY = isMobile ? 220 : 48;
+                let expY = isMobile ? 250 : 88;
+                let hpTxtY = isMobile ? 275 : 115;
+                let hpBarY = isMobile ? 300 : 150;
 
                 this.levelText = this.add.text(hudX, lvlY, 'LV.1', { 
                     fontSize: isMobile ? '18px' : '24px', fill: '#ffcc00', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
@@ -846,9 +856,9 @@
                 this.playerHpBar = this.add.rectangle(hudX, hpBarY, isMobile ? 120 : 200, 16, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
                 let skill1X = isMobile ? this.scale.width - 120 : 55;
-                let skill1Y = isMobile ? 220 : 195;
+                let skill1Y = isMobile ? 310 : 195;
                 let skill2X = isMobile ? this.scale.width - 120 : 120;
-                let skill2Y = isMobile ? 290 : 195;
+                let skill2Y = isMobile ? 380 : 195;
                 let boxSize = 56;
                 let imgSize = 48;
 
@@ -872,7 +882,7 @@
 
                 let goldIconX = isMobile ? this.scale.width - 230 : this.scale.width - 210;
                 let goldTxtX = isMobile ? this.scale.width - 205 : this.scale.width - 170;
-                let goldY = isMobile ? 160 : 80;
+                let goldY = isMobile ? 220 : 80;
 
                 if (this.textures.exists('goldpocket')) {
                     this.goldIcon = this.add.image(goldIconX, goldY, 'goldpocket').setDisplaySize(28, 28).setScrollFactor(0).setDepth(10000).setInteractive();
@@ -934,7 +944,6 @@
                 });
             }
 
-            // [수정사항 3-1] 주인공 수리검 난무 스킬: 보스 대상 딜 80% 반감 (20% 피해) 적용
             useHeroActiveSkill() {
                 if (this.isDead || this.heroSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
@@ -982,7 +991,6 @@
                             suri.rotation = angle + Math.PI / 2;
                             
                             let baseDmg = (this.playerStats.damage * 2 * 1.5) * (1 + (this.playerStats.posionLv * 0.10));
-                            // [수정] 보스 타겟 시 딜 80% 반감 (20% 피해 보정)
                             suri.damage = isBossTarget ? baseDmg * 0.20 : baseDmg;
                             suri.isHeroUltimate = true;
                             suri.pierce = 3 + this.playerStats.pierce;
@@ -994,7 +1002,6 @@
                 }
             }
 
-            // [수정사항 3-2] 주인공 훔친 스킬 (붕어빵 융단폭격): 발사 수 +20발 (총 60발) & 데미지 주인공 기본공격력 반영
             useBossEquippedSkill() {
                 if (this.isDead || !this.playerStats.hasEquippedBossSkill || this.bossEquippedSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
@@ -1008,7 +1015,6 @@
                 let px = this.player.x;
                 let py = this.player.y;
 
-                // 총 60발 난사 (+20발 증량)
                 for(let f=0; f<60; f++) {
                     this.time.delayedCall(f * 40, () => {
                         if (this.isDead) return;
@@ -1021,7 +1027,6 @@
                         let fish = this.projectiles.create(this.player.x, this.player.y, 'golden_fish').setDisplaySize(31, 23).setDepth(9999);
                         let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, fx, fy);
                         fish.rotation = angle + Math.PI;
-                        // 데미지: 주인공 기본 공격력(damage) 100% 반영
                         fish.damage = this.playerStats.damage * (1 + (this.playerStats.posionLv * 0.10));
                         fish.pierce = 1;
                         fish.knockback = 12;
@@ -1215,6 +1220,7 @@
                         suri.pierce = this.playerStats.pierce;
                         suri.isBomb = false;
                         suri.knockback = 15;
+                        suri.skillCategory = '기본 수리검';
 
                         this.physics.velocityFromRotation(angle, 500, suri.body.velocity);
                     });
@@ -1281,6 +1287,7 @@
                         let baseDmg = this.getSkillBaseDamage('fire', fireLv);
                         fire.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
                         fire.isFireSkill = true;
+                        fire.skillCategory = '화둔';
                         fire.hitEnemies = [];
 
                         this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
@@ -1288,6 +1295,7 @@
                                 f.hitEnemies.push(enemy.id);
                                 let finalDmg = f.damage;
                                 if (enemy.isBoss || enemy.isNamed) finalDmg *= 1.30;
+                                this.skillDmgStats['화둔'] += finalDmg;
                                 this.damageEnemy(enemy, finalDmg);
                                 this.applyKnockback(enemy, fireAngle, 12);
                             }
@@ -1327,6 +1335,7 @@
 
                         water.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
                         water.isWaterSkill = true;
+                        water.skillCategory = '수둔';
                         water.pierce = 0;
                         water.isBomb = false;
                         water.knockback = 10;
@@ -1345,12 +1354,15 @@
                         let boltDmg = 27 + (this.playerStats.bolt * 13.5);
                         if (this.playerStats.bolt >= 6) boltDmg += (this.playerStats.bolt - 5) * (13.5 * 3);
 
+                        let calculatedBoltDmg = this.calcSkillDamage(boltDmg, 0);
+                        this.skillDmgStats['뇌둔'] += calculatedBoltDmg * boltCount;
+
                         for(let b=0; b<boltCount; b++) {
                             let rx = this.player.x + Phaser.Math.Between(-400, 400);
                             let ry = this.player.y + Phaser.Math.Between(-400, 400);
 
                             let boltSprite = this.physics.add.sprite(rx, ry, 'bolt').setDisplaySize(117, 103).setDepth(9999);
-                            boltSprite.damage = this.calcSkillDamage(boltDmg, 0);
+                            boltSprite.damage = calculatedBoltDmg;
                             
                             this.enemies.getChildren().forEach(e => {
                                 if(e.active && Phaser.Math.Distance.Between(rx, ry, e.x, e.y) <= 60) {
@@ -1377,6 +1389,7 @@
                         let angle = baseAngle + ((i - (count - 1) / 2) * 0.3);
                         let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
                         wind.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
+                        wind.skillCategory = '풍둔';
                         wind.pierce = 999;
                         wind.isBomb = false;
                         wind.knockback = 17;
@@ -1405,6 +1418,7 @@
                         this.tweens.add({ targets: bombSuri, rotation: '+=12.56', duration: 1000, repeat: -1 });
 
                         bombSuri.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
+                        bombSuri.skillCategory = '기폭찰';
                         bombSuri.pierce = 0;
                         bombSuri.isBomb = true;
                         bombSuri.knockback = 10;
@@ -1483,7 +1497,7 @@
                 this.boss.isBoss = true;
                 this.boss.isNamed = true;
                 this.boss.isDashing = false;
-                this.boss.isRaging = false; // 광폭화(바둥거리기) 상태
+                this.boss.isRaging = false;
                 this.boss.hasBeenHit = false;
 
                 this.boss.hp = 15000;
@@ -1501,7 +1515,6 @@
                 this.lastBossMinionTime = this.time.now;
             }
 
-            // [수정사항 3-1] 보스 AI: 광폭화 '바둥거리기' (10초 무적 돌진 + 끝난 후 연속 2회 붕어빵 폭격)
             updateBossAI(time) {
                 if (!this.boss || !this.boss.active) return;
 
@@ -1555,7 +1568,6 @@
                 }
             }
 
-            // [수정사항 3-1] 광폭화 "바둥거리기" 발동 로직 (3초 내 30% [4,500 damage] 이상의 폭딜 피격 시)
             triggerBossRagePattern() {
                 if (!this.boss || !this.boss.active || this.boss.isRaging) return;
 
@@ -1569,17 +1581,15 @@
                 let rageGlow = null;
                 if (this.boss.preFX) rageGlow = this.boss.preFX.addGlow(0xff3300, 8, 0, false);
 
-                // 10초간 무적 돌진 상태 유지
                 this.time.delayedCall(10000, () => {
                     if (this.boss && this.boss.active) {
                         if (rageGlow) rageGlow.destroy();
                         
-                        // 돌진 종료 후 즉시 붕어빵 난사 2회 연속 시전 (쿨타임 0)
                         this.triggerBossUltimateSkill(this.time.now);
                         this.time.delayedCall(1600, () => {
                             if (this.boss && this.boss.active) {
                                 this.triggerBossUltimateSkill(this.time.now);
-                                this.boss.isRaging = false; // 2회 연사 완료 후 원래 상태 복귀
+                                this.boss.isRaging = false;
                             }
                         });
                     }
@@ -1776,6 +1786,9 @@
                 if ((projectile.isWaterSkill || projectile.isFireSkill) && (enemy.isBoss || enemy.isNamed)) {
                     realDmg *= 1.30;
                 }
+
+                let cat = projectile.skillCategory || (projectile.isHeroUltimate ? '수리검 난무' : '기본 수리검');
+                this.skillDmgStats[cat] = (this.skillDmgStats[cat] || 0) + realDmg;
                 
                 if (enemy.isBoss) {
                     if (!enemy.hasBeenHit) {
@@ -1789,13 +1802,11 @@
                     }
                     this.bossDamageDealt += realDmg;
 
-                    // 3초 내 폭딜 피격 수집 및 광폭화(바둥거리기) 검사
                     let now = this.time.now;
                     this.bossDamageWindow.push({ time: now, dmg: realDmg });
                     this.bossDamageWindow = this.bossDamageWindow.filter(d => now - d.time <= 3000);
                     let sumDmg = this.bossDamageWindow.reduce((acc, cur) => acc + cur.dmg, 0);
 
-                    // 3초간 4,500 damage (30%) 이상 누적 시 광폭화 발동
                     if (sumDmg >= 4500 && !enemy.isRaging) {
                         this.triggerBossRagePattern();
                     }
@@ -1820,6 +1831,7 @@
                             let dist = Phaser.Math.Distance.Between(explosionX, explosionY, e.x, e.y);
                             if (dist <= areaRadius) {
                                 let expDmg = projectile.damage * 0.8;
+                                this.skillDmgStats['기폭찰'] += expDmg;
                                 if(e.isBoss) {
                                     expDmg *= 0.80;
                                     this.bossDamageDealt += expDmg;
@@ -1864,7 +1876,7 @@
                     this.killedEnemiesCount++;
 
                     if (enemy.isBoss) {
-                        // [수정사항 4] 보스 처치 대량 골드 보상 (+1,000 G 추가)
+                        // [수정사항 1] 보스 처치 보상 300G로 변경
                         this.playerStats.gold += 300;
 
                         enemy.destroy();
@@ -1899,33 +1911,40 @@
                 }
             }
 
-            // [수정사항 4] 클리어 결과 창에 보스 처치 대량 보너스 골드(+1,000 G) 포함 상세 표기
+            // [수정사항 3] 클리어 결과창에 스킬별 가한 데미지 요약 추가
             showClearReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
 
                 this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.85).setScrollFactor(0).setDepth(20000);
 
-                this.add.image(cx, cy - 140, 'clear_box').setDisplaySize(100, 100).setScrollFactor(0).setDepth(20001);
+                this.add.image(cx, cy - 170, 'clear_box').setDisplaySize(90, 90).setScrollFactor(0).setDepth(20001);
                 
-                this.add.text(cx, cy - 60, '🎉 STAGE CLEAR! 🎉', { 
-                    fontSize: '38px', fill: '#00ffcc', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                this.add.text(cx, cy - 100, '🎉 STAGE CLEAR! 🎉', { 
+                    fontSize: '34px', fill: '#00ffcc', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
-                this.add.text(cx, cy - 10, '🎁 보스 스킬 해금!: [붕어빵 융단폭격]', { 
-                    fontSize: '22px', fill: '#ffdd00', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
+                this.add.text(cx, cy - 50, '🎁 보스 스킬 해금!: [붕어빵 융단폭격] (+300G 보상)', { 
+                    fontSize: '18px', fill: '#ffdd00', fontStyle: 'bold', padding: { top: 4, bottom: 4 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
                 let mins = Math.floor(this.elapsedTime / 60);
                 let secs = this.elapsedTime % 60;
-                let reportStr = `처치한 적: ${this.killedEnemiesCount}마리\n클리어 시간: ${mins}분 ${secs}초\n획득한 총 골드: ${this.playerStats.gold} G (보스 보너스 +1,000G 포함)`;
+                let reportStr = `처치한 적: ${this.killedEnemiesCount}마리 | 생존 시간: ${mins}분 ${secs}초\n획득한 총 골드: ${this.playerStats.gold} G`;
 
-                this.add.text(cx, cy + 70, reportStr, { 
-                    fontSize: '20px', fill: '#ffffff', align: 'center', lineSpacing: 10, padding: { top: 6, bottom: 6 } 
+                let skillSummary = "\n[스킬별 가한 데미지]";
+                Object.keys(this.skillDmgStats).forEach(sk => {
+                    if (this.skillDmgStats[sk] > 0) {
+                        skillSummary += `\n- ${sk}: ${Math.floor(this.skillDmgStats[sk]).toLocaleString()} dmg`;
+                    }
+                });
+
+                this.add.text(cx, cy + 20, reportStr + skillSummary, { 
+                    fontSize: '15px', fill: '#ffffff', align: 'center', lineSpacing: 4, padding: { top: 4, bottom: 4 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
-                let okBtn = this.add.text(cx, cy + 160, '확인 (메인으로)', {
-                    fontSize: '24px', fill: '#fff', backgroundColor: '#00aa66', padding: { x: 30, y: 12 }
+                let okBtn = this.add.text(cx, cy + 175, '확인 (메인으로)', {
+                    fontSize: '22px', fill: '#fff', backgroundColor: '#00aa66', padding: { x: 25, y: 10 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001).setInteractive();
 
                 okBtn.on('pointerover', () => okBtn.setBackgroundColor('#aa7722').setFill('#fff'));
@@ -1991,33 +2010,41 @@
                 });
             }
 
+            // [수정사항 3] 게임오버 결과창에 스킬별 가한 데미지 요약 추가
             showGameOverReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
 
                 this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000, 0.88).setScrollFactor(0).setDepth(20000);
 
-                this.add.image(cx, cy - 140, 'hero_dead').setDisplaySize(110, 118).setScrollFactor(0).setDepth(20001);
+                this.add.image(cx, cy - 170, 'hero_dead').setDisplaySize(90, 96).setScrollFactor(0).setDepth(20001);
                 
-                this.add.text(cx, cy - 65, '💀 GAME OVER 💀', { 
-                    fontSize: '38px', fill: '#ff3333', fontStyle: 'bold', padding: { top: 8, bottom: 8 } 
+                this.add.text(cx, cy - 100, '💀 GAME OVER 💀', { 
+                    fontSize: '34px', fill: '#ff3333', fontStyle: 'bold', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
                 let mins = Math.floor(this.elapsedTime / 60);
                 let secs = this.elapsedTime % 60;
                 
-                let reportStr = `처치한 적: ${this.killedEnemiesCount}마리\n생존 시간: ${mins}분 ${secs}초\n획득한 골드: ${this.playerStats.gold} G`;
+                let reportStr = `처치한 적: ${this.killedEnemiesCount}마리 | 생존 시간: ${mins}분 ${secs}초\n획득한 골드: ${this.playerStats.gold} G`;
                 
                 if (this.isBossSpawned) {
-                    reportStr += `\n\n[⚔️ 보스 전투 기록]\n입힌 피해량: ${Math.floor(this.bossDamageDealt)}\n보스 남은 HP: ${Math.floor(this.bossRemainingHp)} / 15000`;
+                    reportStr += `\n[⚔️ 보스 전투] 피해량: ${Math.floor(this.bossDamageDealt)} (남은 HP: ${Math.floor(this.bossRemainingHp)} / 15000)`;
                 }
 
-                this.add.text(cx, cy + 50, reportStr, { 
-                    fontSize: '18px', fill: '#ffffff', align: 'center', lineSpacing: 6, padding: { top: 6, bottom: 6 } 
+                let skillSummary = "\n[스킬별 가한 데미지]";
+                Object.keys(this.skillDmgStats).forEach(sk => {
+                    if (this.skillDmgStats[sk] > 0) {
+                        skillSummary += `\n- ${sk}: ${Math.floor(this.skillDmgStats[sk]).toLocaleString()} dmg`;
+                    }
+                });
+
+                this.add.text(cx, cy + 15, reportStr + skillSummary, { 
+                    fontSize: '15px', fill: '#ffffff', align: 'center', lineSpacing: 4, padding: { top: 4, bottom: 4 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001);
 
                 let okBtn = this.add.text(cx, cy + 175, '확인 (스테이지 선택)', {
-                    fontSize: '22px', fill: '#fff', backgroundColor: '#aa2222', padding: { x: 25, y: 10 }
+                    fontSize: '20px', fill: '#fff', backgroundColor: '#aa2222', padding: { x: 20, y: 8 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20001).setInteractive();
 
                 okBtn.on('pointerover', () => okBtn.setBackgroundColor('#ff4444').setFill('#fff'));
@@ -2158,7 +2185,6 @@
                 .catch(err => console.error("결과 저장 중 오류:", err));
             }
 
-            // 모바일 레벨업 UI 보정 (startY: 320px, cardSpacing: 210px 중앙 균형 배치 및 wordWrap 430px 제한)
             showLevelUpUI(isRareOnly = false) {
                 this.isLevelUpOpen = true;
                 this.physics.pause();
