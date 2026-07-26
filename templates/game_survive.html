@@ -114,7 +114,6 @@
             }
         }
 
-        // [사운드 버튼 겹침 해결] 상단 구석(Y: 55px)으로 분리 배치
         function createMuteButton(scene) {
             let bgmX = scene.scale.width - (isMobile ? 70 : 90);
             let sfxX = scene.scale.width - (isMobile ? 30 : 40);
@@ -260,17 +259,32 @@
                 this.load.image('tree2', '/static/img/survive/tile/tree2.png');
             }
 
-            // 대소문자 키 완전 이중 동기화 파싱
+            // [핵심 방어 로직] 대소문자 키 및 8개 필수 강합 항목을 명시적으로 매핑 및 이중 보장
             create() {
                 fetch('/api/survive/user_data')
                     .then(res => res.json())
                     .then(data => {
                         if (data && data.success) {
                             USER_GLOBAL_DATA.survive_gold = data.survive_gold || 0;
+                            
                             if (data.upgrades) {
-                                Object.keys(data.upgrades).forEach(k => {
-                                    USER_GLOBAL_DATA.upgrades[k.toLowerCase()] = data.upgrades[k];
-                                    USER_GLOBAL_DATA.upgrades[k.toUpperCase()] = data.upgrades[k];
+                                const keyMap = [
+                                    'ATTACK_POWER_LV', 'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 
+                                    'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV'
+                                ];
+
+                                keyMap.forEach(upperKey => {
+                                    let lowerKey = upperKey.toLowerCase();
+                                    let val = 0;
+                                    if (data.upgrades[lowerKey] !== undefined) {
+                                        val = data.upgrades[lowerKey];
+                                    } else if (data.upgrades[upperKey] !== undefined) {
+                                        val = data.upgrades[upperKey];
+                                    }
+                                    val = Number(val) || 0;
+
+                                    USER_GLOBAL_DATA.upgrades[lowerKey] = val;
+                                    USER_GLOBAL_DATA.upgrades[upperKey] = val;
                                 });
                             }
                             USER_GLOBAL_DATA.unlocked_boss_skills = data.unlocked_boss_skills || [];
@@ -385,7 +399,6 @@
             }
         }
 
-        // [수정사항 3] 업그레이드 상점 현재 레벨 반영 및 대소문자 키 동기화 보정
         class UpgradeScene extends Phaser.Scene {
             constructor() { super({ key: 'UpgradeScene' }); }
 
@@ -417,7 +430,9 @@
                 let up = USER_GLOBAL_DATA.upgrades;
 
                 function getLv(k) {
-                    return up[k.toLowerCase()] || up[k.toUpperCase()] || 0;
+                    let uKey = k.toUpperCase();
+                    let lKey = k.toLowerCase();
+                    return Number(up[lKey] !== undefined ? up[lKey] : up[uKey]) || 0;
                 }
 
                 const upgradeList = [
@@ -479,8 +494,13 @@
                             .then(resData => {
                                 if (resData && resData.success) {
                                     USER_GLOBAL_DATA.survive_gold = resData.new_gold;
-                                    USER_GLOBAL_DATA.upgrades[item.key.toLowerCase()] = resData.new_level;
-                                    USER_GLOBAL_DATA.upgrades[item.key.toUpperCase()] = resData.new_level;
+                                    
+                                    // [핵심 방어 동기화] 대소문자 양쪽 키에 즉시 저장하여 레벨 초기화 차단
+                                    let uKey = item.key.toUpperCase();
+                                    let lKey = item.key.toLowerCase();
+                                    USER_GLOBAL_DATA.upgrades[lKey] = resData.new_level;
+                                    USER_GLOBAL_DATA.upgrades[uKey] = resData.new_level;
+                                    
                                     this.scene.restart();
                                 } else {
                                     alert((resData && resData.error) || "강화 실패");
@@ -577,18 +597,22 @@
                 this.isDead = false;
 
                 let up = USER_GLOBAL_DATA.upgrades;
-                let baseHp = 100 + ((up.max_hp_lv || up.MAX_HP_LV || 0) * 15);
-                let baseAtk = 5 + ((up.attack_power_lv || up.ATTACK_POWER_LV || 0) * 1);
-                let baseSpd = 160 + ((up.move_speed_lv || up.MOVE_SPEED_LV || 0) * 10);
-                let baseMagnet = 150 + ((up.magnet_range_lv || up.MAGNET_RANGE_LV || 0) * 30);
-                let baseDelay = Math.max(400, 1100 * (1 - ((up.attack_speed_lv || up.ATTACK_SPEED_LV || 0) * 0.05)));
+                function getStatLv(k) {
+                    return Number(up[k.toLowerCase()] !== undefined ? up[k.toLowerCase()] : up[k.toUpperCase()]) || 0;
+                }
+
+                let baseHp = 100 + (getStatLv('MAX_HP_LV') * 15);
+                let baseAtk = 5 + (getStatLv('ATTACK_POWER_LV') * 1);
+                let baseSpd = 160 + (getStatLv('MOVE_SPEED_LV') * 10);
+                let baseMagnet = 150 + (getStatLv('MAGNET_RANGE_LV') * 30);
+                let baseDelay = Math.max(400, 1100 * (1 - (getStatLv('ATTACK_SPEED_LV') * 0.05)));
 
                 this.playerStats = {
                     hp: baseHp, maxHp: baseHp, speed: baseSpd, damage: baseAtk, attackDelay: baseDelay,
-                    defense: (up.defense_lv || up.DEFENSE_LV || 0) * 1, expBonus: 1 + ((up.exp_bonus_lv || up.EXP_BONUS_LV || 0) * 0.1),
+                    defense: getStatLv('DEFENSE_LV') * 1, expBonus: 1 + (getStatLv('EXP_BONUS_LV') * 0.1),
                     level: 1, exp: 0, maxExp: 6, gold: 0, magnetRange: baseMagnet,
                     fire: 0, water: 0, wind: 0, bomb: 0, earth: 0, bolt: 0, posionLv: 0,
-                    pierce: 0, clone: up.clone_lv || up.CLONE_LV || 0, magnet: 0, maxHpLv: 0, speedLv: 0, healLv: 0,
+                    pierce: 0, clone: getStatLv('CLONE_LV'), magnet: 0, maxHpLv: 0, speedLv: 0, healLv: 0,
                     heroSkillLv: 0,
                     hasEquippedBossSkill: false
                 };
@@ -810,7 +834,7 @@
                 });
             }
 
-            // [수정사항 2] 모바일 HUD 줌인 뷰포트 완전 안쪽 안전 배치 (Y: 220 ~ 300px)
+            // 모바일 줌인 뷰포트 완전 안쪽 안전 배치 (Y: 220 ~ 300px)
             setupUI() {
                 createMuteButton(this);
 
@@ -1486,7 +1510,7 @@
                 }
             }
 
-            // [수정사항 4] 보스 HP 20,000 상향
+            // 보스 HP 20,000 상향
             spawnBoss() {
                 this.isBossSpawned = true;
                 this.stopNormalSpawns = true;
@@ -1519,7 +1543,7 @@
                 this.lastBossMinionTime = this.time.now;
             }
 
-            // [수정사항 4] 돌진 이동속도 +50% (198), 돌진 쿨타임 -30% (14초) 적용
+            // 돌진 이동속도 +50% (198), 돌진 쿨타임 -30% (14초) 적용
             updateBossAI(time) {
                 if (!this.boss || !this.boss.active) return;
 
@@ -1574,7 +1598,7 @@
                 }
             }
 
-            // [수정사항 4] 광폭화 "바둥거리기" 발동 조건 완화 (3초 내 15% [3,000 damage] 이상의 폭딜 피격 시)
+            // 광폭화 "바둥거리기" 발동 조건 완화 (3초 내 15% [3,000 damage] 이상의 폭딜 피격 시)
             triggerBossRagePattern() {
                 if (!this.boss || !this.boss.active || this.boss.isRaging) return;
 
@@ -1884,7 +1908,7 @@
                     this.killedEnemiesCount++;
 
                     if (enemy.isBoss) {
-                        // [수정사항 1] 보스 처치 보상 300G 지급
+                        // 보스 처치 보상 300G
                         this.playerStats.gold += 300;
 
                         enemy.destroy();
@@ -1919,7 +1943,7 @@
                 }
             }
 
-            // [수정사항 1] 결과창 Y축 간격 완벽 분리하여 글자 겹침 현상 완전 해결
+            // [수정사항 1] 결과창 Y축 간격 완벽 분리하여 글자 겹침 완전 해결
             showClearReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
@@ -2017,7 +2041,7 @@
                 });
             }
 
-            // [수정사항 1] 게임오버 결과창 Y축 간격 완벽 분리하여 글자 겹침 완전 해결
+            // 게임오버 결과창 Y축 간격 완벽 분리
             showGameOverReportUI() {
                 let cx = this.scale.width / 2;
                 let cy = this.scale.height / 2;
@@ -2392,7 +2416,6 @@
                     fontSize: isMobile ? '18px' : '22px', fill: '#ffd700', padding: { top: 6, bottom: 6 } 
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002);
 
-                // [수정사항 2] 상점 닫기 버튼 상단 우측 고정
                 let closeBtn = this.add.text(this.scale.width - (isMobile ? 100 : 120), 110, '✖ 닫기', {
                     fontSize: isMobile ? '18px' : '22px', fill: '#fff', backgroundColor: '#aa2222', padding: { x: 12, y: 6 }
                 }).setOrigin(0.5).setScrollFactor(0).setDepth(20002).setInteractive({ useHandCursor: true });
@@ -2418,7 +2441,7 @@
 
                 let isDuckSkillUnlocked = unlockedSkills.some(s => s.skill_key === 'boss_sli_wave' || s.skill_key === 'boss_duck');
 
-                let posY = 260; // 스킬 카드 하향 배치
+                let posY = 260;
                 let cost = 500;
 
                 let card = this.add.rectangle(cx, posY, isMobile ? 560 : 550, 80, 0x113322, 0.9).setStrokeStyle(2, 0x00ffcc).setScrollFactor(0).setDepth(20001);
