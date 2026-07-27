@@ -42,20 +42,20 @@ def get_single_stock_price(code):
     try:
         df = stock.get_market_ohlcv(start_date.replace('-', ''), end_date.replace('-', ''), code)
         if not df.empty: return int(df.iloc[-1]['종가'])
-    except: pass
+    except Exception: pass
 
     try:
         import FinanceDataReader as fdr
         df = fdr.DataReader(code, start_date, end_date)
         if not df.empty: return int(df.iloc[-1]['Close'])
-    except: pass
+    except Exception: pass
 
     try:
         import yfinance as yf
         yf_code = f"{code}.KS" if not str(code).startswith('0') else f"{code}.KQ"
         df = yf.download(yf_code, start_date=start_date, end_date=end_date, progress=False)
         if not df.empty: return int(df.iloc[-1]['Close'])
-    except: pass
+    except Exception: pass
     return None
 
 def get_stock_news_scraped(code):
@@ -83,13 +83,6 @@ def get_stock_news_scraped(code):
                 news_list.append({'title': title, 'link': link, 'provider': provider, 'date': date_str})
     except Exception as e: print(f"News Crawling Error: {e}")
     return news_list[:15]
-
-def patch_libsql_result(result):
-    if not hasattr(result, 'fetchone'):
-        result.fetchone = lambda: result.rows[0] if result.rows else None
-    if not hasattr(result, 'fetchall'):
-        result.fetchall = lambda: result.rows
-    return result
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -119,7 +112,7 @@ def close_connection(exception):
     if db is not None and not isinstance(db, type(None)):
         try:
             if isinstance(db, sqlite3.Connection): db.close()
-        except: pass
+        except Exception: pass
 
 def init_db():
     pass
@@ -127,7 +120,6 @@ def init_db():
 with app.app_context(): init_db()
 
 STOCK_CACHE = {'KOSPI': {'time': None, 'data': None, 'date': None, 'source': ''}, 'KOSDAQ': {'time': None, 'data': None, 'date': None, 'source': ''}}
-PRICE_CACHE = {'time': None, 'data': {}}
 RANKING_CACHE = {'time': None, 'data': []}
 TICKER_CACHE = {}
 
@@ -138,7 +130,7 @@ def get_latest_business_day():
         target = (now - timedelta(days=i)).strftime("%Y%m%d")
         try:
             if stock.get_market_ticker_list(target, market="KOSPI"): return target
-        except: continue
+        except Exception: continue
     return datetime.now(KST).strftime("%Y%m%d")
 
 def get_top_stocks(market="KOSPI"):
@@ -160,7 +152,7 @@ def get_top_stocks(market="KOSPI"):
         bottom10_df = df.sort_values(by="등락률", ascending=True).head(10)
         for ticker, row in top10_df.iterrows(): result['gainers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
         for ticker, row in bottom10_df.iterrows(): result['losers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
-    except Exception as e:
+    except Exception:
         data_source = "FinanceDataReader"
         try:
             import FinanceDataReader as fdr
@@ -219,12 +211,12 @@ def init_tickers():
             import FinanceDataReader as fdr
             for _, row in fdr.StockListing('KRX').iterrows(): TICKER_CACHE[str(row['Code'])] = str(row['Name'])
             for _, row in fdr.StockListing('ETF/KR').iterrows(): TICKER_CACHE[str(row.get('Symbol', row.get('Code')))] = str(row['Name'])
-        except: pass
+        except Exception: pass
 
 def check_ai_limit(user_id):
     db = get_db()
     try: user = db.execute('SELECT DAILY_AI_COUNT, LAST_AI_REQUEST, AI_RESET_DATE FROM USERS WHERE ID = ?', (user_id,)).fetchone()
-    except Exception as e: return False, "데이터베이스 오류"
+    except Exception: return False, "데이터베이스 오류"
     if not user: return False, "사용자를 찾을 수 없습니다."
     
     now_ts = time.time()
@@ -242,6 +234,11 @@ def check_ai_limit(user_id):
     db.execute('UPDATE USERS SET LAST_AI_REQUEST = ?, DAILY_AI_COUNT = ?, AI_RESET_DATE = ? WHERE ID = ?', (now_ts, daily_count + 1, reset_date, user_id))
     db.commit()
     return True, ""
+
+
+# ==========================================
+# 라우팅 (Pages)
+# ==========================================
 
 @app.route('/')
 def index():
@@ -403,7 +400,6 @@ def admin():
 def game():
     if 'user_id' not in session: 
         return redirect(url_for('index'))
-    
     username = session.get('name', '투자자')
     return render_template('game_hub.html', username=username)
 
@@ -411,7 +407,6 @@ def game():
 def game_tower():
     if 'user_id' not in session: 
         return redirect(url_for('index'))
-    
     username = session.get('name', '투자자')
     return render_template('game_tower.html', username=username)
 
@@ -419,7 +414,6 @@ def game_tower():
 def game_survive():
     if 'user_id' not in session: 
         return redirect(url_for('index'))
-    
     username = session.get('name', '투자자')
     return render_template('game_survive.html', username=username)
 
@@ -427,6 +421,11 @@ def game_survive():
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+
+# ==========================================
+# API 엔드포인트
+# ==========================================
 
 @app.route('/api/search')
 def api_search():
@@ -448,7 +447,7 @@ def api_stock_info(code):
         if df.empty: raise Exception()
         for index, row in df.iterrows(): chart_data.append({"time": index.strftime("%Y-%m-%d"), "open": int(row['시가']), "high": int(row['고가']), "low": int(row['저가']), "close": int(row['종가'])})
         cp, pp = int(df.iloc[-1]['종가']), int(df.iloc[-2]['종가'] if len(df) > 1 else df.iloc[-1]['종가'])
-    except:
+    except Exception:
         try:
             data_source = "FinanceDataReader"
             import FinanceDataReader as fdr
@@ -539,7 +538,7 @@ def api_comments(code):
     for c in comments:
         holding = db.execute('SELECT AVG_PRICE FROM HOLDINGS WHERE USER_ID = ? AND STOCK_CODE = ?', (c['UID'], code)).fetchone()
         try: ret_rate = c['RETURN_RATE'] if c['RETURN_RATE'] is not None else 0
-        except: ret_rate = 0
+        except Exception: ret_rate = 0
             
         dt_str = str(c['CREATED_AT'])
         time_formatted = dt_str[5:16].replace('-', '.') if len(dt_str) >= 16 else dt_str
@@ -603,6 +602,11 @@ def api_simulation_run():
             ksema_lump_final = amount * (((1 + r3)**months - 1) / r3) * (1 + r3)
         return {"success": True, "invested": total_invested, "stock_name": TICKER_CACHE.get(code, code), "stock_final": int(stock_final), "stock_rate": round(((stock_final - total_invested) / total_invested) * 100, 1), "ksema_final": int(ksema_final), "ksema_lump_final": int(ksema_lump_final)}
     except Exception as e: return {"error": f"시뮬레이션 처리 중 오류: {e}"}, 500
+
+
+# ==========================================
+# AI 연동 API
+# ==========================================
 
 @app.route('/api/ai/chat', methods=['POST'])
 def api_ai_chat():
@@ -707,6 +711,11 @@ def api_admin_ai_logs(code):
         "logs": [{"prompt": l['PROMPT'], "time": l['CREATED_AT']} for l in logs]
     }
 
+
+# ==========================================
+# NCS SURVIVE 전용 API (명시적 컬럼 조회로 DB 파싱 완벽 보장)
+# ==========================================
+
 @app.route('/api/survive/user_data', methods=['GET'])
 def api_survive_user_data():
     if 'user_id' not in session:
@@ -717,23 +726,19 @@ def api_survive_user_data():
     try:
         db = get_db()
         
-        # 1. 유저 보유 골드 조회
+        # 1. 골드 안전 조회
         user_row = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
         survive_gold = 0
         if user_row:
-            if isinstance(user_row, dict):
-                survive_gold = user_row.get('SURVIVE_GOLD') or user_row.get('survive_gold') or 0
+            if hasattr(user_row, 'keys'):
+                survive_gold = user_row['SURVIVE_GOLD'] if 'SURVIVE_GOLD' in user_row.keys() else user_row.get('survive_gold', 0)
             else:
-                try: survive_gold = user_row['SURVIVE_GOLD']
-                except: 
-                    try: survive_gold = user_row[0]
-                    except: survive_gold = 0
+                survive_gold = user_row[0]
         
-        # 2. 영구 강화 데이터 명시적 컬럼 조회 (인덱스 어긋남 방지)
+        # 2. 영구 강화 데이터 명시적 8개 컬럼 순서 지정 SELECT (파싱 불일치 원천 차단)
         cols = ['ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV']
-        col_query = ", ".join(cols)
+        upgrades_row = db.execute(f'SELECT {", ".join(cols)} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
-        upgrades_row = db.execute(f'SELECT {col_query} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         if not upgrades_row:
             try:
                 db.execute('''
@@ -741,24 +746,21 @@ def api_survive_user_data():
                     VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0)
                 ''', (user_id,))
                 db.commit()
-            except Exception:
-                pass
-            upgrades_row = db.execute(f'SELECT {col_query} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+            except Exception: pass
+            upgrades_row = db.execute(f'SELECT {", ".join(cols)} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
         upgrades_dict = {}
         if upgrades_row:
             if hasattr(upgrades_row, 'keys'):
-                for k in upgrades_row.keys():
-                    upgrades_dict[str(k).upper()] = upgrades_row[k]
-                    upgrades_dict[str(k).lower()] = upgrades_row[k]
+                for col in cols:
+                    val = upgrades_row.get(col) if col in upgrades_row.keys() else upgrades_row.get(col.lower(), 0)
+                    upgrades_dict[col] = int(val or 0)
             elif isinstance(upgrades_row, (list, tuple)):
                 for idx, col in enumerate(cols):
                     if idx < len(upgrades_row):
-                        val = upgrades_row[idx]
-                        upgrades_dict[col] = val
-                        upgrades_dict[col.lower()] = val
+                        upgrades_dict[col] = int(upgrades_row[idx] or 0)
 
-        # 3. 해금된 보스 스킬 목록 조회
+        # 3. 해금 스킬 조회
         unlocked_list = []
         try:
             unlocked_skills = db.execute('SELECT SKILL_KEY, STAGE_ID FROM UNLOCKED_BOSS_SKILLS WHERE USER_ID = ? AND IS_UNLOCKED = 1', (user_id,)).fetchall()
@@ -768,14 +770,10 @@ def api_survive_user_data():
                         unlocked_list.append({"skill_key": s['SKILL_KEY'], "stage_id": s['STAGE_ID']})
                     else:
                         unlocked_list.append({"skill_key": s[0], "stage_id": s[1]})
-        except Exception:
-            pass
+        except Exception: pass
 
         def get_lv(key):
-            val = upgrades_dict.get(key.upper())
-            if val is None:
-                val = upgrades_dict.get(key.lower(), 0)
-            return int(val or 0)
+            return int(upgrades_dict.get(key, 0) or 0)
 
         return {
             "success": True,
@@ -804,6 +802,7 @@ def api_survive_user_data():
             "unlocked_boss_skills": []
         }
 
+
 @app.route('/api/survive/upgrade', methods=['POST'])
 def api_survive_upgrade():
     if 'user_id' not in session:
@@ -813,37 +812,25 @@ def api_survive_upgrade():
     data = request.json or {}
     stat_type = str(data.get('stat_type', '')).upper()
     
-    allowed_stats = [
-        'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 
-        'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV'
-    ]
+    allowed_stats = ['ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV']
     if stat_type not in allowed_stats:
         return {"error": "올바르지 않은 강화 항목입니다.", "success": False}, 400
         
     try:
         db = get_db()
         user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
-        current_gold = 0
-        if user:
-            current_gold = user['SURVIVE_GOLD'] if hasattr(user, 'keys') and 'SURVIVE_GOLD' in user.keys() else user[0]
+        current_gold = user['SURVIVE_GOLD'] if hasattr(user, 'keys') and 'SURVIVE_GOLD' in user.keys() else user[0]
         current_gold = int(current_gold or 0)
         
         upgrades = db.execute(f'SELECT {stat_type} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         current_lv = 0
         if upgrades:
-            if hasattr(upgrades, 'keys') and stat_type in upgrades.keys():
-                current_lv = upgrades[stat_type] or 0
-            elif isinstance(upgrades, (list, tuple)):
-                current_lv = upgrades[0] or 0
-
+            current_lv = upgrades[stat_type] if hasattr(upgrades, 'keys') and stat_type in upgrades.keys() else upgrades[0]
         current_lv = int(current_lv or 0)
 
-        if stat_type == 'CLONE_LV':
-            if current_lv >= 1:
-                return {"error": "이미 최대 레벨(Max Lv.1)에 도달했습니다.", "success": False}, 400
-            cost = 3500
-        else:
-            cost = 100 + (current_lv * 150)
+        cost = 3500 if stat_type == 'CLONE_LV' else (100 + (current_lv * 150))
+        if stat_type == 'CLONE_LV' and current_lv >= 1:
+            return {"error": "이미 최대 레벨(Max Lv.1)에 도달했습니다.", "success": False}, 400
         
         if current_gold < cost:
             return {"error": f"골드가 부족합니다. (필요: {cost}G, 보유: {current_gold}G)", "success": False}, 400
@@ -856,18 +843,17 @@ def api_survive_upgrade():
         updated_upgrades = db.execute(f'SELECT {stat_type} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
         new_gold = updated_user['SURVIVE_GOLD'] if hasattr(updated_user, 'keys') else updated_user[0]
-        new_level = current_lv + 1
-        if updated_upgrades:
-            new_level = updated_upgrades[stat_type] if hasattr(updated_upgrades, 'keys') else updated_upgrades[0]
+        new_level = updated_upgrades[stat_type] if hasattr(updated_upgrades, 'keys') else updated_upgrades[0]
 
         return {
             "success": True,
             "new_gold": int(new_gold or 0),
-            "new_level": int(new_level or 1)
+            "new_level": int(new_level or (current_lv + 1))
         }
     except Exception as e:
         print(f"API ERROR (/api/survive/upgrade): {e}")
         return {"error": f"강화 처리 중 오류가 발생했습니다: {e}", "success": False}, 500
+
 
 @app.route('/api/survive/save_result', methods=['POST'])
 def api_survive_save_result():
@@ -883,44 +869,24 @@ def api_survive_save_result():
     player_level = int(data.get('player_level', 1))
     is_clear = 1 if data.get('is_clear') else 0
     
-    STAGE_BOSS_SKILLS = {
-        1: 'boss_duck',              
-        2: 'boss_skeleton_strike',   
-        3: 'boss_volcano_meteor',    
-        4: 'boss_abyss_laser',       
-        5: 'boss_temple_shockwave',  
-        6: 'boss_apocalypse_storm'   
-    }
+    STAGE_BOSS_SKILLS = { 1: 'boss_duck', 2: 'boss_skeleton_strike', 3: 'boss_volcano_meteor', 4: 'boss_abyss_laser', 5: 'boss_temple_shockwave', 6: 'boss_apocalypse_storm' }
     
     try:
         db = get_db()
-        
         db.execute('UPDATE USERS SET SURVIVE_GOLD = COALESCE(SURVIVE_GOLD, 0) + ? WHERE ID = ?', (earned_gold, user_id))
-        
-        db.execute('''
-            INSERT INTO GAME_RECORDS (USER_ID, STAGE_ID, CLEAR_TIME, EARNED_GOLD, PLAYER_LEVEL, IS_CLEAR)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (user_id, stage_id, clear_time, earned_gold, player_level, is_clear))
+        db.execute('INSERT INTO GAME_RECORDS (USER_ID, STAGE_ID, CLEAR_TIME, EARNED_GOLD, PLAYER_LEVEL, IS_CLEAR) VALUES (?, ?, ?, ?, ?, ?)', (user_id, stage_id, clear_time, earned_gold, player_level, is_clear))
         
         unlocked_skill_key = None
         if is_clear == 1 and stage_id in STAGE_BOSS_SKILLS:
             skill_key = STAGE_BOSS_SKILLS[stage_id]
-            db.execute('''
-                INSERT OR REPLACE INTO UNLOCKED_BOSS_SKILLS (USER_ID, SKILL_KEY, STAGE_ID, IS_UNLOCKED)
-                VALUES (?, ?, ?, 1)
-            ''', (user_id, skill_key, stage_id))
+            db.execute('INSERT OR REPLACE INTO UNLOCKED_BOSS_SKILLS (USER_ID, SKILL_KEY, STAGE_ID, IS_UNLOCKED) VALUES (?, ?, ?, 1)', (user_id, skill_key, stage_id))
             unlocked_skill_key = skill_key
             
         db.commit()
-        
         updated_user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
         tot_gold = updated_user['SURVIVE_GOLD'] if hasattr(updated_user, 'keys') else updated_user[0]
         
-        return {
-            "success": True,
-            "total_gold": int(tot_gold or 0),
-            "unlocked_skill": unlocked_skill_key
-        }
+        return {"success": True, "total_gold": int(tot_gold or 0), "unlocked_skill": unlocked_skill_key}
     except Exception as e:
         print(f"API ERROR (/api/survive/save_result): {e}")
         return {"error": f"결과 저장 중 오류가 발생했습니다: {e}", "success": False}, 500
