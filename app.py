@@ -713,7 +713,7 @@ def api_admin_ai_logs(code):
 
 
 # ==========================================
-# NCS SURVIVE 전용 API (명시적 컬럼 조회로 DB 파싱 완벽 보장)
+# NCS SURVIVE 전용 API (콘솔 로그 및 디버깅 예외 강화)
 # ==========================================
 
 @app.route('/api/survive/user_data', methods=['GET'])
@@ -722,6 +722,7 @@ def api_survive_user_data():
         return {"error": "로그인이 필요합니다.", "success": False}, 401
     
     user_id = session['user_id']
+    print(f"[DEBUG /api/survive/user_data] 요청 유저 ID: {user_id}")
     
     try:
         db = get_db()
@@ -735,26 +736,35 @@ def api_survive_user_data():
             else:
                 survive_gold = user_row[0]
         
-        # 2. 영구 강화 데이터 명시적 8개 컬럼 순서 지정 SELECT (파싱 불일치 원천 차단)
+        # 2. 영구 강화 데이터 SQL COALESCE 적용 및 100% 안전 추출
         cols = ['ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV']
-        upgrades_row = db.execute(f'SELECT {", ".join(cols)} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+        select_clause = ", ".join([f"COALESCE({c}, 0) AS {c}" for c in cols])
+        
+        upgrades_row = db.execute(f'SELECT {select_clause} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
         if not upgrades_row:
+            print(f"[DEBUG] 유저 {user_id}의 GAME_UPGRADES 데이터 없음. 새로 생성합니다.")
             try:
                 db.execute('''
                     INSERT INTO GAME_UPGRADES (USER_ID, ATTACK_SPEED_LV, MOVE_SPEED_LV, ATTACK_POWER_LV, MAX_HP_LV, MAGNET_RANGE_LV, DEFENSE_LV, EXP_BONUS_LV, CLONE_LV)
                     VALUES (?, 0, 0, 0, 0, 0, 0, 0, 0)
                 ''', (user_id,))
                 db.commit()
-            except Exception: pass
-            upgrades_row = db.execute(f'SELECT {", ".join(cols)} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+            except Exception as e_ins:
+                print(f"[ERROR DB INSERT] GAME_UPGRADES 생성이 실패했습니다: {e_ins}")
+            upgrades_row = db.execute(f'SELECT {select_clause} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
         upgrades_dict = {}
         if upgrades_row:
             if hasattr(upgrades_row, 'keys'):
+                keys_list = [str(k).upper() for k in upgrades_row.keys()]
                 for col in cols:
-                    val = upgrades_row.get(col) if col in upgrades_row.keys() else upgrades_row.get(col.lower(), 0)
-                    upgrades_dict[col] = int(val or 0)
+                    if col in upgrades_row.keys():
+                        upgrades_dict[col] = int(upgrades_row[col] or 0)
+                    elif col.lower() in upgrades_row.keys():
+                        upgrades_dict[col] = int(upgrades_row[col.lower()] or 0)
+                    else:
+                        upgrades_dict[col] = 0
             elif isinstance(upgrades_row, (list, tuple)):
                 for idx, col in enumerate(cols):
                     if idx < len(upgrades_row):
@@ -770,12 +780,13 @@ def api_survive_user_data():
                         unlocked_list.append({"skill_key": s['SKILL_KEY'], "stage_id": s['STAGE_ID']})
                     else:
                         unlocked_list.append({"skill_key": s[0], "stage_id": s[1]})
-        except Exception: pass
+        except Exception as e_sk:
+            print(f"[ERROR DB SKILLS] 해금 스킬 조회 중 오류: {e_sk}")
 
         def get_lv(key):
             return int(upgrades_dict.get(key, 0) or 0)
 
-        return {
+        res_data = {
             "success": True,
             "survive_gold": int(survive_gold or 0),
             "upgrades": {
@@ -790,10 +801,16 @@ def api_survive_user_data():
             },
             "unlocked_boss_skills": unlocked_list
         }
+        print(f"[DEBUG SUCCESS /api/survive/user_data] 반환 데이터: {res_data}")
+        return res_data
+
     except Exception as e:
-        print(f"API ERROR (/api/survive/user_data): {e}")
+        print(f"❌ [CRITICAL ERROR /api/survive/user_data]: {e}")
+        import traceback
+        traceback.print_exc()
         return {
-            "success": True,
+            "success": False,
+            "error": f"서버 내부 데이터 조회 오류: {str(e)}",
             "survive_gold": 0,
             "upgrades": {
                 "attack_speed_lv": 0, "move_speed_lv": 0, "attack_power_lv": 0,
@@ -811,10 +828,11 @@ def api_survive_upgrade():
     user_id = session['user_id']
     data = request.json or {}
     stat_type = str(data.get('stat_type', '')).upper()
+    print(f"[DEBUG /api/survive/upgrade] 유저: {user_id}, 요청 항목: {stat_type}")
     
     allowed_stats = ['ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'ATTACK_POWER_LV', 'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV']
     if stat_type not in allowed_stats:
-        return {"error": "올바르지 않은 강화 항목입니다.", "success": False}, 400
+        return {"error": f"올바르지 않은 강화 항목입니다. ({stat_type})", "success": False}, 400
         
     try:
         db = get_db()
@@ -822,10 +840,10 @@ def api_survive_upgrade():
         current_gold = user['SURVIVE_GOLD'] if hasattr(user, 'keys') and 'SURVIVE_GOLD' in user.keys() else user[0]
         current_gold = int(current_gold or 0)
         
-        upgrades = db.execute(f'SELECT {stat_type} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+        upgrades = db.execute(f'SELECT COALESCE({stat_type}, 0) FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         current_lv = 0
         if upgrades:
-            current_lv = upgrades[stat_type] if hasattr(upgrades, 'keys') and stat_type in upgrades.keys() else upgrades[0]
+            current_lv = upgrades[0] if not hasattr(upgrades, 'keys') else (upgrades[stat_type] if stat_type in upgrades.keys() else upgrades[0])
         current_lv = int(current_lv or 0)
 
         cost = 3500 if stat_type == 'CLONE_LV' else (100 + (current_lv * 150))
@@ -836,23 +854,27 @@ def api_survive_upgrade():
             return {"error": f"골드가 부족합니다. (필요: {cost}G, 보유: {current_gold}G)", "success": False}, 400
             
         db.execute('UPDATE USERS SET SURVIVE_GOLD = SURVIVE_GOLD - ? WHERE ID = ?', (cost, user_id))
-        db.execute(f'UPDATE GAME_UPGRADES SET {stat_type} = {stat_type} + 1, UPDATED_AT = CURRENT_TIMESTAMP WHERE USER_ID = ?', (user_id,))
+        db.execute(f'UPDATE GAME_UPGRADES SET {stat_type} = COALESCE({stat_type}, 0) + 1, UPDATED_AT = CURRENT_TIMESTAMP WHERE USER_ID = ?', (user_id,))
         db.commit()
         
         updated_user = db.execute('SELECT SURVIVE_GOLD FROM USERS WHERE ID = ?', (user_id,)).fetchone()
-        updated_upgrades = db.execute(f'SELECT {stat_type} FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
+        updated_upgrades = db.execute(f'SELECT COALESCE({stat_type}, 0) FROM GAME_UPGRADES WHERE USER_ID = ?', (user_id,)).fetchone()
         
         new_gold = updated_user['SURVIVE_GOLD'] if hasattr(updated_user, 'keys') else updated_user[0]
-        new_level = updated_upgrades[stat_type] if hasattr(updated_upgrades, 'keys') else updated_upgrades[0]
+        new_level = updated_upgrades[0] if not hasattr(updated_upgrades, 'keys') else (updated_upgrades[stat_type] if stat_type in updated_upgrades.keys() else updated_upgrades[0])
 
-        return {
+        res_dict = {
             "success": True,
             "new_gold": int(new_gold or 0),
             "new_level": int(new_level or (current_lv + 1))
         }
+        print(f"[DEBUG SUCCESS /api/survive/upgrade] 강화 완료: {res_dict}")
+        return res_dict
     except Exception as e:
-        print(f"API ERROR (/api/survive/upgrade): {e}")
-        return {"error": f"강화 처리 중 오류가 발생했습니다: {e}", "success": False}, 500
+        print(f"❌ [CRITICAL ERROR /api/survive/upgrade]: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"error": f"강화 처리 중 오류가 발생했습니다: {str(e)}", "success": False}, 500
 
 
 @app.route('/api/survive/save_result', methods=['POST'])
