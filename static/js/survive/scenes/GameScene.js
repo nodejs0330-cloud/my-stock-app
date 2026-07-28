@@ -62,6 +62,8 @@ class GameScene extends Phaser.Scene {
         this.pendingLevelUps = isTestMode ? 15 : 0;
         this.isGameLoaded = false;
         this.lastNamedSpawnTime = 0;
+        this.lastBossPos = { x: 0, y: 0 };
+        this.bossStuckStartTime = 0;
 
         // 보스 장애물 2초 끼임 감지 타이머 변수
         this.bossStuckStartTime = 0;
@@ -165,6 +167,46 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.meatItems, this.collectMeat, null, this);
         this.physics.add.overlap(this.player, this.rareBoxItems, this.collectRareBox, null, this);
         this.physics.add.overlap(this.player, this.fieldMagnetItems, this.collectFieldMagnet, null, this);
+
+        this.physics.add.overlap(this.bossProjectiles, this.obstacles, (fish, obs) => {
+        fish.destroy(); // 투사체 소멸
+        this.hitAndCheckObstacleBreak(obs); // 장애물 피격 카운트 가산
+        }, null, this);
+
+    hitAndCheckObstacleBreak(obs) {
+    if (!obs || !obs.active || obs.isDestroying) return;
+
+    obs.bossHitCount = (obs.bossHitCount || 0) + 1;
+    
+    // 피격 충격 연출 (살짝 좌우로 튀는 느낌)
+    this.tweens.add({ targets: obs, x: obs.x + 4, duration: 40, yoyo: true });
+
+    // 3회 이상 피격/충돌 시 파괴
+    if (obs.bossHitCount >= 3) {
+        obs.isDestroying = true;
+        playRandomSFX(this, 'hit_impact', 0.6);
+
+        // "흔들, 흔들" 2회 왕복 연출 후 페이드아웃하며 삭제
+        let startX = obs.x;
+        this.tweens.add({
+            targets: obs,
+            x: startX + 10,
+            duration: 75,
+            yoyo: true,
+            repeat: 3, // 총 4번 왕복 = '흔들, 흔들' 2회
+            onComplete: () => {
+                this.tweens.add({
+                    targets: obs,
+                    alpha: 0,
+                    scaleX: 0.5,
+                    scaleY: 0.5,
+                    duration: 180,
+                    onComplete: () => { obs.destroy(); }
+                });
+            }
+        });
+    }
+}
 
         this.setupUI();
 
@@ -985,6 +1027,9 @@ class GameScene extends Phaser.Scene {
 
         this.lastBossDashTime = this.time.now;
         this.lastBossMinionTime = this.time.now;
+
+        this.lastBossPos = { x: this.boss.x, y: this.boss.y };
+        this.bossStuckStartTime = this.time.now;
     }
 
     updateBossAI(time) {
@@ -1008,6 +1053,28 @@ class GameScene extends Phaser.Scene {
         } else {
             this.boss.setTexture('duck2');
             this.boss.setFlipX(false);
+        }
+
+        // 🚨 [추가/수정] 보스 2초 이동 정지(끼임) 시 주변 장애물 즉시 3회 피격 적용 파괴
+        let movedDist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.lastBossPos.x, this.lastBossPos.y);
+
+        if (movedDist < 12) { // 이동 거리가 2초 동안 12px 미만인 경우 (구석 끼임)
+            if (!this.bossStuckStartTime) this.bossStuckStartTime = time;
+            else if (time - this.bossStuckStartTime >= 2000) { // 2초 지속 시
+                this.bossStuckStartTime = time; // 리셋
+
+                // 보스 반경 110px 내의 장애물에 피격 3회를 연속 가해 즉시 부숨
+                this.obstacles.getChildren().forEach(obs => {
+                    if (obs.active && Phaser.Math.Distance.Between(this.boss.x, this.boss.y, obs.x, obs.y) <= 110) {
+                        this.hitAndCheckObstacleBreak(obs);
+                        this.hitAndCheckObstacleBreak(obs);
+                        this.hitAndCheckObstacleBreak(obs);
+                    }
+                });
+            }
+        } else {
+            this.lastBossPos = { x: this.boss.x, y: this.boss.y };
+            this.bossStuckStartTime = time;
         }
 
         // ==========================================

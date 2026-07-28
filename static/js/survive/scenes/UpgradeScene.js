@@ -5,13 +5,22 @@ class UpgradeScene extends Phaser.Scene {
         playBGM(this, 'survive_main');
         createMuteButton(this, 'MENU');
 
-        // 1. 메모리에 살아있는 최신 USER_GLOBAL_DATA 값으로 즉시 UI 렌더링 (0 초기화 차단)
+        // 1. 메모리에 저장된 데이터로 우선 렌더링
         this.renderUpgradeUI();
 
-        // 2. 백엔드에서 최신 데이터를 동기화하되, 렌더링을 덮어써서 0으로 초기화하지 않음
+        // 2. F12 개발자도구 콘솔 로그 연동 및 RAW 데이터 검증
         fetch('/api/survive/user_data')
             .then(res => res.json())
             .then(data => {
+                console.log("%c [DB EXECUTE LOG]", "background: #222; color: #bada55; font-size: 14px; font-weight: bold;");
+                if (data && data._debug_info) {
+                    console.log("📌 실행된 SQL 쿼리 목록:", data._debug_info.executed_sqls);
+                    console.log("📌 Raw DB Row 타입:", data._debug_info.raw_row_type);
+                    console.log("📌 Raw DB Row 데이터:", data._debug_info.raw_row_data);
+                    console.log("📌 파싱된 Upgrades Dict:", data._debug_info.parsed_upgrades_dict);
+                }
+                console.log("📌 클라이언트 응답 수신 upgrades:", data.upgrades);
+
                 if (data && data.success && data.upgrades) {
                     USER_GLOBAL_DATA.survive_gold = data.survive_gold || 0;
                     const keyMap = ['ATTACK_POWER_LV', 'ATTACK_SPEED_LV', 'MOVE_SPEED_LV', 'MAX_HP_LV', 'MAGNET_RANGE_LV', 'DEFENSE_LV', 'EXP_BONUS_LV', 'CLONE_LV'];
@@ -24,13 +33,12 @@ class UpgradeScene extends Phaser.Scene {
                         USER_GLOBAL_DATA.upgrades[upperKey] = val;
                     });
 
-                    if (this.goldTxt) {
-                        this.goldTxt.setText(`보유 골드: ${USER_GLOBAL_DATA.survive_gold} G`);
-                    }
+                    // 최신 데이터로 화면 재동기화
+                    this.renderUpgradeUI();
                 }
             })
             .catch(err => {
-                console.error("❌ [UpgradeScene Sync Error] 유저 데이터 동기화 예외:", err);
+                console.error("❌ [UpgradeScene Sync Error]:", err);
             });
     }
 
@@ -132,7 +140,6 @@ class UpgradeScene extends Phaser.Scene {
                     })
                     .then(res => res.json())
                     .then(resData => {
-                        console.log("[Upgrade Response]", resData);
                         if (resData && resData.success) {
                             USER_GLOBAL_DATA.survive_gold = resData.new_gold;
                             
@@ -141,7 +148,6 @@ class UpgradeScene extends Phaser.Scene {
                             USER_GLOBAL_DATA.upgrades[lKey] = resData.new_level;
                             USER_GLOBAL_DATA.upgrades[uKey] = resData.new_level;
                             
-                            // Partial UI Update (화면 깜빡임 완전 제거 및 동적 즉시 반영)
                             let nLv = resData.new_level;
                             descTxt.setText(`${item.desc} (Lv.${nLv})`);
                             
@@ -165,13 +171,11 @@ class UpgradeScene extends Phaser.Scene {
                                 buyBtn.setText(`강화 (${nCost}G)`).setInteractive();
                             }
                         } else {
-                            console.error("❌ [Upgrade Failed]", resData);
                             showToast(this, (resData && resData.error) || "강화 실패", 2000, '#ff3333');
                             buyBtn.setText(btnText).setInteractive();
                         }
                     })
                     .catch(err => {
-                        console.error("❌ [Upgrade Fetch Error]", err);
                         buyBtn.setText(btnText).setInteractive();
                     });
                 });
