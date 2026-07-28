@@ -760,18 +760,24 @@ def api_survive_user_data():
 
         if upgrades_row:
             row_dict = {}
-            if hasattr(upgrades_row, 'keys'):
-                for k in upgrades_row.keys():
-                    row_dict[str(k).upper()] = upgrades_row[k]
-                    row_dict[str(k).lower()] = upgrades_row[k]
-            elif isinstance(upgrades_row, (list, tuple)):
-                for idx, col in enumerate(cols):
-                    if idx < len(upgrades_row):
-                        row_dict[col.upper()] = upgrades_row[idx]
-                        row_dict[col.lower()] = upgrades_row[idx]
+            
+            # 1. dict() 변환 시도 (Standard SQLite / Dict Row)
+            try:
+                row_dict = {str(k).upper(): v for k, v in dict(upgrades_row).items()}
+            except Exception:
+                pass
 
+            # 2. dict 변환 실패 시 순서 기반 인덱스 추출 (libsql_client.result.Row 완벽 대응)
+            if not row_dict:
+                try:
+                    for idx, col in enumerate(cols):
+                        row_dict[col.upper()] = upgrades_row[idx]
+                except Exception:
+                    pass
+
+            # 3. 안전 수치 가산 및 대/소문자 동일 바인딩
             for col in cols:
-                val = row_dict.get(col.upper(), row_dict.get(col.lower(), 0))
+                val = row_dict.get(col.upper(), 0)
                 val = int(val) if val is not None else 0
                 upgrades_dict[col.upper()] = val
                 upgrades_dict[col.lower()] = val
