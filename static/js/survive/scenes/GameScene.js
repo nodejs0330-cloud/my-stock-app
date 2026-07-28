@@ -212,8 +212,8 @@ class GameScene extends Phaser.Scene {
         obs.bossHitCount = (obs.bossHitCount || 0) + 1;
         
         this.tweens.add({ targets: obs, x: obs.x + 4, duration: 40, yoyo: true });
-
-        if (obs.bossHitCount >= 3) {
+        //2회 이상 충돌/피격 시 부서지도록 조건 수정 (기존 3회 -> 2회)
+        if (obs.bossHitCount >= 2) {
             obs.isDestroying = true;
             playRandomSFX(this, 'hit_impact', 0.6);
 
@@ -291,7 +291,7 @@ class GameScene extends Phaser.Scene {
         createMuteButton(this, 'GAME');
 
         let exitX = isMobile ? 130 : 40;
-        let exitY = isMobile ? 210 : 130;
+        let exitY = isMobile ? 210 : 40;
 
         let exitBtn = this.add.text(exitX, exitY, '🏠', { 
             fontSize: '28px',
@@ -341,10 +341,10 @@ class GameScene extends Phaser.Scene {
         this.playerHpBar = this.add.rectangle(hudX, hpBarY, isMobile ? 120 : 200, 16, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
         let skill1X = isMobile ? this.scale.width - 140 : 55;
-        let skill1Y = isMobile ? 960 : 195;
+        let skill1Y = isMobile ? 1030 : 265;
         
         let skill2X = isMobile ? this.scale.width - 140 : 55;
-        let skill2Y = isMobile ? 1030 : 265;
+        let skill2Y = isMobile ? 950 : 195;
         let boxSize = 56;
         let imgSize = 48;
 
@@ -1062,9 +1062,7 @@ class GameScene extends Phaser.Scene {
 
                 this.obstacles.getChildren().forEach(obs => {
                     if (obs.active && Phaser.Math.Distance.Between(this.boss.x, this.boss.y, obs.x, obs.y) <= 110) {
-                        this.hitAndCheckObstacleBreak(obs);
-                        this.hitAndCheckObstacleBreak(obs);
-                        this.hitAndCheckObstacleBreak(obs);
+                        this.hitAndCheckObstacleBreak(obs); // 1회 피격 즉시 파괴
                     }
                 });
             }
@@ -1328,6 +1326,11 @@ class GameScene extends Phaser.Scene {
         this.skillDmgStats[cat] = (this.skillDmgStats[cat] || 0) + realDmg;
         
         if (enemy.isBoss) {
+            // 광폭화 [바둥거리기] 발동 중일 때는 받는 피해 90% 감소 (10%만 반영)
+            if (enemy.isRaging) {
+                realDmg *= 0.10;
+            }
+
             if (!enemy.hasBeenHit) {
                 enemy.hasBeenHit = true;
                 this.triggerBossUltimateSkill(this.time.now);

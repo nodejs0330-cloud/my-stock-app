@@ -33,8 +33,9 @@ class UpgradeScene extends Phaser.Scene {
                         USER_GLOBAL_DATA.upgrades[upperKey] = val;
                     });
 
-                    // 최신 데이터로 화면 재동기화
-                    this.renderUpgradeUI();
+                    if (this.goldTxt) {
+                        this.goldTxt.setText(`보유 골드: ${USER_GLOBAL_DATA.survive_gold} G`);
+                    }
                 }
             })
             .catch(err => {
