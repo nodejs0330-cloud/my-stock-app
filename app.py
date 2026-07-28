@@ -756,19 +756,20 @@ def api_survive_user_data():
         
         upgrades_dict = {}
         if upgrades_row:
+            row_dict = {}
             if hasattr(upgrades_row, 'keys'):
-                keys_list = [str(k).upper() for k in upgrades_row.keys()]
-                for col in cols:
-                    if col in upgrades_row.keys():
-                        upgrades_dict[col] = int(upgrades_row[col] or 0)
-                    elif col.lower() in upgrades_row.keys():
-                        upgrades_dict[col] = int(upgrades_row[col.lower()] or 0)
-                    else:
-                        upgrades_dict[col] = 0
+                for k in upgrades_row.keys():
+                    row_dict[str(k).upper()] = upgrades_row[k]
             elif isinstance(upgrades_row, (list, tuple)):
                 for idx, col in enumerate(cols):
                     if idx < len(upgrades_row):
-                        upgrades_dict[col] = int(upgrades_row[idx] or 0)
+                        row_dict[col.upper()] = upgrades_row[idx]
+
+            for col in cols:
+                val = row_dict.get(col.upper(), 0)
+                val = int(val) if val is not None else 0
+                upgrades_dict[col.upper()] = val
+                upgrades_dict[col.lower()] = val
 
         # 3. 해금 스킬 조회
         unlocked_list = []
@@ -784,7 +785,7 @@ def api_survive_user_data():
             print(f"[ERROR DB SKILLS] 해금 스킬 조회 중 오류: {e_sk}")
 
         def get_lv(key):
-            return int(upgrades_dict.get(key, 0) or 0)
+            return int(upgrades_dict.get(key.upper(), 0) or 0)
 
         res_data = {
             "success": True,
