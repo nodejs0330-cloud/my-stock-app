@@ -28,13 +28,7 @@ class GameScene extends Phaser.Scene {
         };
 
         this.skillDmgStats = {
-            '기본 수리검': 0,
-            '화둔': 0,
-            '수둔': 0,
-            '뇌둔': 0,
-            '풍둔': 0,
-            '기폭찰': 0,
-            '수리검 난무': 0
+            '기본 수리검': 0, '화둔': 0, '수둔': 0, '뇌둔': 0, '풍둔': 0, '기폭찰': 0, '수리검 난무': 0
         };
 
         this.lastAttackTime = 0;
@@ -45,7 +39,13 @@ class GameScene extends Phaser.Scene {
         this.isLevelUpOpen = false;
 
         this.boss = null;
-        this.bossProjectiles = this.physics.add.group();
+        
+        // 보스 투사체 그룹 풀링 설정 (maxSize 지정)
+        this.bossProjectiles = this.physics.add.group({
+            maxSize: 300,
+            runChildUpdate: false
+        });
+        
         this.isBossSpawned = false;
         this.stopNormalSpawns = false;
         this.killedEnemiesCount = 0;
@@ -64,7 +64,6 @@ class GameScene extends Phaser.Scene {
         this.lastNamedSpawnTime = 0;
         this.lastBossPos = { x: 0, y: 0 };
         
-        // 보스 장애물 2초 끼임 감지 타이머 변수 (중복 제거)
         this.bossStuckStartTime = 0;
         this.bossStuckObstacles = new Set();
     }
@@ -148,7 +147,13 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
         this.enemies = this.physics.add.group();
-        this.projectiles = this.physics.add.group();
+        
+        // 플레이어 투사체 그룹 풀링 설정 (maxSize 지정)
+        this.projectiles = this.physics.add.group({
+            maxSize: 300,
+            runChildUpdate: false
+        });
+
         this.expItems = this.physics.add.group();
         this.goldItems = this.physics.add.group();
         this.meatItems = this.physics.add.group();
@@ -168,8 +173,8 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.fieldMagnetItems, this.collectFieldMagnet, null, this);
 
         this.physics.add.overlap(this.bossProjectiles, this.obstacles, (fish, obs) => {
-            fish.destroy(); // 투사체 소멸
-            this.hitAndCheckObstacleBreak(obs); // 장애물 피격 카운트 가산
+            this.recycleBossProjectile(fish); // 파괴 대신 풀에 회수
+            this.hitAndCheckObstacleBreak(obs);
         }, null, this);
 
         this.setupUI();
@@ -203,16 +208,66 @@ class GameScene extends Phaser.Scene {
         });
 
         this.showStageLoadingOverlay();
-    } // <-- create() 함수 완전 종료
+    }
 
-    // 별도의 클래스 메서드로 정상 분리
+    // ==========================================
+    // ⚡ [오브젝트 풀링 핵심 메서드 추가]
+    // ==========================================
+    spawnProjectile(group, x, y, key, scale = 1.0) {
+        let p = group.get(x, y, key);
+        if (!p) return null;
+
+        p.setActive(true);
+        p.setVisible(true);
+        p.setDepth(9999);
+        p.setScale(scale);
+        p.setAlpha(1);
+        p.setFlipX(false);
+        p.setFlipY(false);
+        p.setRotation(0);
+
+        if (p.body) {
+            p.body.enable = true;
+            p.body.reset(x, y);
+        }
+
+        p.hitEnemies = [];
+        p.isHeroUltimate = false;
+        p.isBomb = false;
+        p.isWaterSkill = false;
+        p.isFireSkill = false;
+        p.skillCategory = '';
+        p.damage = 0;
+        p.pierce = 0;
+        p.knockback = 0;
+
+        return p;
+    }
+
+    recycleProjectile(projectile) {
+        if (!projectile || !projectile.active) return;
+        this.projectiles.killAndHide(projectile);
+        if (projectile.body) {
+            projectile.body.enable = false;
+            projectile.body.setVelocity(0, 0);
+        }
+    }
+
+    recycleBossProjectile(projectile) {
+        if (!projectile || !projectile.active) return;
+        this.bossProjectiles.killAndHide(projectile);
+        if (projectile.body) {
+            projectile.body.enable = false;
+            projectile.body.setVelocity(0, 0);
+        }
+    }
+
     hitAndCheckObstacleBreak(obs) {
         if (!obs || !obs.active || obs.isDestroying) return;
 
         obs.bossHitCount = (obs.bossHitCount || 0) + 1;
         
         this.tweens.add({ targets: obs, x: obs.x + 4, duration: 40, yoyo: true });
-        //2회 이상 충돌/피격 시 부서지도록 조건 수정 (기존 3회 -> 2회)
         if (obs.bossHitCount >= 2) {
             obs.isDestroying = true;
             playRandomSFX(this, 'hit_impact', 0.6);
@@ -430,6 +485,9 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    // ==========================================
+    // ⚡ [수정] 궁극기: spawnProjectile 적용
+    // ==========================================
     useHeroActiveSkill() {
         if (this.isDead || this.heroSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
@@ -473,7 +531,9 @@ class GameScene extends Phaser.Scene {
                         angle = (Math.PI * 2 / halfBullets) * i + (wave * 0.08);
                     }
 
-                    let suri = this.projectiles.create(this.player.x, this.player.y, 'suri').setScale(0.2).setDepth(9999);
+                    let suri = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, 'suri', 0.2);
+                    if (!suri) continue;
+
                     suri.rotation = angle + Math.PI / 2;
                     
                     let baseDmg = (this.playerStats.damage * 2 * 1.5) * (1 + (this.playerStats.posionLv * 0.10));
@@ -488,6 +548,9 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    // ==========================================
+    // ⚡ [수정] 플레이어 장착 보스 스킬: spawnProjectile 적용
+    // ==========================================
     useBossEquippedSkill() {
         if (this.isDead || !this.playerStats.hasEquippedBossSkill || this.bossEquippedSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
@@ -515,7 +578,10 @@ class GameScene extends Phaser.Scene {
                 let fx = px + Phaser.Math.Between(-300, 300);
                 let fy = py + Phaser.Math.Between(-300, 300);
 
-                let fish = this.projectiles.create(this.player.x, this.player.y, 'golden_fish').setDisplaySize(31, 23).setDepth(9999);
+                let fish = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, 'golden_fish', 1.0);
+                if (!fish) return;
+
+                fish.setDisplaySize(31, 23);
                 let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, fx, fy);
                 fish.rotation = angle + Math.PI;
                 fish.damage = this.playerStats.damage * (1 + (this.playerStats.posionLv * 0.10));
@@ -695,6 +761,9 @@ class GameScene extends Phaser.Scene {
         return closest;
     }
 
+    // ==========================================
+    // ⚡ [수정] 기본 수리검: spawnProjectile 적용
+    // ==========================================
     fireBasicSuri() {
         if (this.isDead) return;
         let target = this.getClosestEnemy();
@@ -716,7 +785,9 @@ class GameScene extends Phaser.Scene {
             
             this.time.delayedCall(delay, () => {
                 if (this.isDead) return;
-                let suri = this.projectiles.create(this.player.x, this.player.y, 'suri').setScale(0.18).setDepth(9999);
+                let suri = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, 'suri', 0.18);
+                if (!suri) return;
+
                 let angle = isBossTarget ? angleBase + Phaser.Math.FloatBetween(-0.08, 0.08) : angleBase + ((i - (count - 1) / 2) * 0.2);
 
                 suri.rotation = angle + Math.PI / 2;
@@ -957,7 +1028,7 @@ class GameScene extends Phaser.Scene {
 
                         this.bossProjectiles.getChildren().forEach(fish => {
                             if (fish.active && Phaser.Math.Distance.Between(wall.x, wall.y, fish.x, fish.y) <= 140) {
-                                fish.destroy();
+                                this.recycleBossProjectile(fish);
                             }
                         });
 
@@ -1052,7 +1123,6 @@ class GameScene extends Phaser.Scene {
             this.boss.setFlipX(false);
         }
 
-        // 보스 2초 이동 정지(끼임) 시 주변 장애물 즉시 3회 피격 적용 파괴
         let movedDist = Phaser.Math.Distance.Between(this.boss.x, this.boss.y, this.lastBossPos.x, this.lastBossPos.y);
 
         if (movedDist < 12) {
@@ -1062,7 +1132,7 @@ class GameScene extends Phaser.Scene {
 
                 this.obstacles.getChildren().forEach(obs => {
                     if (obs.active && Phaser.Math.Distance.Between(this.boss.x, this.boss.y, obs.x, obs.y) <= 110) {
-                        this.hitAndCheckObstacleBreak(obs); // 1회 피격 즉시 파괴
+                        this.hitAndCheckObstacleBreak(obs);
                     }
                 });
             }
@@ -1181,9 +1251,16 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    // ==========================================
+    // ⚡ [수정] 보스 붕어빵 투사체: spawnProjectile 적용
+    // ==========================================
     fireBossGoldenFish(tx, ty, dmg, spd, w = 45, h = 33) {
         if(!this.boss || !this.boss.active) return;
-        let fish = this.bossProjectiles.create(this.boss.x, this.boss.y, 'golden_fish').setDisplaySize(w, h).setDepth(9999);
+
+        let fish = this.spawnProjectile(this.bossProjectiles, this.boss.x, this.boss.y, 'golden_fish', 1.0);
+        if (!fish) return;
+
+        fish.setDisplaySize(w, h);
         
         let dx = tx - this.boss.x;
         let angle = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, tx, ty);
@@ -1200,8 +1277,11 @@ class GameScene extends Phaser.Scene {
         this.physics.velocityFromRotation(angle, spd, fish.body.velocity);
     }
 
+    // ==========================================
+    // ⚡ [수정] 보스 투사체 피격 시 recycleBossProjectile 처리
+    // ==========================================
     handleBossProjectileHit(player, fish) {
-        fish.destroy();
+        this.recycleBossProjectile(fish);
         let realDmg = Math.max(1, fish.damage - this.playerStats.defense);
         this.playerStats.hp -= realDmg;
         this.updateHpUI();
@@ -1310,6 +1390,9 @@ class GameScene extends Phaser.Scene {
         }
     }
 
+    // ==========================================
+    // ⚡ [수정] 플레이어 투사체 피격 시 풀링 회수(recycleProjectile)
+    // ==========================================
     handleProjectileHit(projectile, enemy) {
         if (projectile.hitEnemies) {
             if (projectile.hitEnemies.includes(enemy.id)) return;
@@ -1326,7 +1409,6 @@ class GameScene extends Phaser.Scene {
         this.skillDmgStats[cat] = (this.skillDmgStats[cat] || 0) + realDmg;
         
         if (enemy.isBoss) {
-            // 광폭화 [바둥거리기] 발동 중일 때는 받는 피해 90% 감소 (10%만 반영)
             if (enemy.isRaging) {
                 realDmg *= 0.10;
             }
@@ -1384,7 +1466,12 @@ class GameScene extends Phaser.Scene {
         }
 
         if (projectile.pierce <= 0) {
-            projectile.destroy();
+            // 풀에 속한 투사체면 회수, 아니면 destroy()
+            if (this.projectiles.contains(projectile)) {
+                this.recycleProjectile(projectile);
+            } else {
+                projectile.destroy();
+            }
         } else {
             projectile.pierce--;
         }
