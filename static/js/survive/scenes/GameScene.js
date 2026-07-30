@@ -391,10 +391,10 @@ class GameScene extends Phaser.Scene {
         this.playerHpBar = this.add.rectangle(hudX, hpBarY, isMobile ? 120 : 200, 16, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
         let skill1X = isMobile ? this.scale.width - 140 : 55;
-        let skill1Y = isMobile ? 1030 : 265;
+        let skill1Y = isMobile ? this.scale.height - 180 : 265; // 주인공 스킬 (하단에서 180px 위로)
         
         let skill2X = isMobile ? this.scale.width - 140 : 55;
-        let skill2Y = isMobile ? 950 : 195;
+        let skill2Y = isMobile ? this.scale.height - 260 : 195; // 보스 스킬 (주인공 스킬보다 80px 위에 배치)
         let boxSize = 56;
         let imgSize = 48;
 
