@@ -212,31 +212,37 @@ spawnProjectile(group, x, y, key, scale = 1.0) {
         let p = group.get(x, y, key);
         if (!p) return null;
 
+        // ⚡ [안전장치 1] 해당 객체에 걸린 트윈을 에러 없이 안전하게 제거
+        if (this.tweens) {
+            this.tweens.killTweensOf(p);
+        }
+
         p.setActive(true);
         p.setVisible(true);
         p.setDepth(9999);
 
-        // 이전 트윈 파괴
-        this.tweens.killTweensOf(p);
-
         p.setTexture(key);
+
+        // ⚡ [안전장치 2] Transform 원점 초기화
         p.setFlipX(false);
         p.setFlipY(false);
         p.setRotation(0);
-
-        p.scaleX = 1.0;
-        p.scaleY = 1.0;
         p.setScale(scale);
         p.clearTint();
         p.setAlpha(1);
 
+        // ⚡ [안전장치 3] 물리 바디 완벽 리셋 (속도 잔재 제거)
         if (p.body) {
             p.body.enable = true;
             p.body.reset(x, y);
-            p.body.setVelocity(0, 0); // ⚡ [추가] 물리 속도(x, y) 원점 0으로 확실히 리셋
+            p.body.setVelocity(0, 0);
+            p.body.setAngularVelocity(0); // 회전 물리속도 초기화
             p.body.setSize(p.width, p.height);
             p.body.setOffset(0, 0);
         }
+
+        // ⚡ [안전장치 4] 타이머 중복 회수 방지용 고유 발사 스탬프
+        p.spawnTimeMark = Date.now() + Math.random();
 
         p.hitEnemies = [];
         p.isHeroUltimate = false;
@@ -253,15 +259,18 @@ spawnProjectile(group, x, y, key, scale = 1.0) {
 
     recycleProjectile(projectile) {
         if (!projectile || !projectile.active) return;
-        
-        // ⚡ 회수 시 트윈 제거
-        this.tweens.killTweensOf(projectile);
 
-        this.projectiles.killAndHide(projectile);
+        // ⚡ [핵심] 회수하는 순간 해당 투사체의 트윈을 즉시 종료시켜 에러 방지
+        if (this.tweens) {
+            this.tweens.killTweensOf(projectile);
+        }
+
         if (projectile.body) {
             projectile.body.enable = false;
             projectile.body.setVelocity(0, 0);
         }
+
+        this.projectiles.killAndHide(projectile);
     }
 
     recycleBossProjectile(projectile) {
@@ -1012,7 +1021,7 @@ updateActiveSkills(time) {
     }
 
     // --- 풍둔 (수정된 코드) ---
-    if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
+if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
         playRandomSFX(this, 'skill_wind', 0.6);
         let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
         let windKey = this.textures.exists('rasenshuriken') ? 'rasenshuriken' : 'suri';
@@ -1035,28 +1044,23 @@ updateActiveSkills(time) {
             wind.knockback = 17;
             wind.hitEnemies = [];
 
-            // ⚡ [수정 1] 무한 회전 애니메이션 적용 (속도 일정하게 고속 회전)
+            let currentMark = wind.spawnTimeMark; // 현재 발사 타임스탬프 기록
+
+            // ⚡ 트윈 안전 추가
             this.tweens.add({ 
                 targets: wind, 
-                rotation: '+=6.28318', // 360도(2*PI) 무한 회전
-                duration: 400,          // 0.4초마다 1바퀴
+                rotation: '+=6.28318', 
+                duration: 400, 
                 repeat: -1 
             });
 
-            // ⚡ [수정 2] 물리 바디 속도 완벽 재설정 (항력/마찰 영향 제거)
-            if (wind.body) {
-                wind.body.reset(this.player.x, this.player.y);
-                wind.body.setDamping(false);
-                wind.body.setDrag(0, 0);
-                wind.body.setFriction(0, 0);
-            }
-            
-            // 이동 속도 250으로 확실하게 고정 설정
             this.physics.velocityFromRotation(angle, 250, wind.body.velocity);
 
-            // 3초 후 회수
+            // ⚡ [안전장치] 타이머 실행 시 동일한 투사체일 때만 회수
             this.time.delayedCall(3000, () => { 
-                if (wind && wind.active) this.recycleProjectile(wind); 
+                if (wind && wind.active && wind.spawnTimeMark === currentMark) {
+                    this.recycleProjectile(wind); 
+                }
             });
         }
         this.lastSkillTimes.wind = time;
@@ -1074,14 +1078,17 @@ updateActiveSkills(time) {
 
         for (let i = 0; i < count; i++) {
             let angle = baseAngle + ((i - (count - 1) / 2) * 0.2);
-            
-            // 🎯 scale 1.0으로 깨끗하게 꺼낸 후 크기 고정
             let bombSuri = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, bombKey, 1.0);
             if (!bombSuri) continue;
 
-            bombSuri.setDisplaySize(40, 40); // 기본 수리검급 크기로 명확 고정
+            bombSuri.setDisplaySize(40, 40);
 
-            this.tweens.add({ targets: bombSuri, rotation: '+=12.56', duration: 1000, repeat: -1 });
+            this.tweens.add({ 
+                targets: bombSuri, 
+                rotation: '+=6.28318', 
+                duration: 500, 
+                repeat: -1 
+            });
 
             bombSuri.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
             bombSuri.skillCategory = '기폭찰';
@@ -1552,10 +1559,8 @@ updateActiveSkills(time) {
         }
 
         if (projectile.pierce <= 0) {
-            if (this.projectiles.contains(projectile)) {
+            if (projectile.active) {
                 this.recycleProjectile(projectile);
-            } else {
-                projectile.destroy();
             }
         } else {
             projectile.pierce--;
