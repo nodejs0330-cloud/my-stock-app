@@ -216,27 +216,26 @@ spawnProjectile(group, x, y, key, scale = 1.0) {
         p.setVisible(true);
         p.setDepth(9999);
 
-        // 1. 텍스처 갱신
-        p.setTexture(key);
+        // 이전 트윈 파괴
+        this.tweens.killTweensOf(p);
 
-        // 2. ⚡ [핵심] 상하좌우 반전(Flip) 및 회전(Rotation) 완벽 원점 초기화
+        p.setTexture(key);
         p.setFlipX(false);
         p.setFlipY(false);
         p.setRotation(0);
 
-        // 3. Scale 및 Tint 오염 리셋
         p.scaleX = 1.0;
         p.scaleY = 1.0;
         p.setScale(scale);
         p.clearTint();
         p.setAlpha(1);
 
-        // 4. 물리 바디 및 충돌 박스 리셋
         if (p.body) {
             p.body.enable = true;
             p.body.reset(x, y);
+            p.body.setVelocity(0, 0); // ⚡ [추가] 물리 속도(x, y) 원점 0으로 확실히 리셋
             p.body.setSize(p.width, p.height);
-            p.body.setOffset(0, 0); // 회전으로 꼬였을 수 있는 오프셋 원점 복구
+            p.body.setOffset(0, 0);
         }
 
         p.hitEnemies = [];
@@ -254,6 +253,10 @@ spawnProjectile(group, x, y, key, scale = 1.0) {
 
     recycleProjectile(projectile) {
         if (!projectile || !projectile.active) return;
+        
+        // ⚡ 회수 시 트윈 제거
+        this.tweens.killTweensOf(projectile);
+
         this.projectiles.killAndHide(projectile);
         if (projectile.body) {
             projectile.body.enable = false;
@@ -1008,7 +1011,7 @@ updateActiveSkills(time) {
         }
     }
 
-    // --- 풍둔 (null 예외 안전장치 추가) ---
+    // --- 풍둔 (수정된 코드) ---
     if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
         playRandomSFX(this, 'skill_wind', 0.6);
         let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
@@ -1022,7 +1025,6 @@ updateActiveSkills(time) {
             let angle = baseAngle + ((i - (count - 1) / 2) * 0.3);
             let wind = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, windKey, 1.0);
             
-            // 🛡️ [null 예외 방지]
             if (!wind) continue;
 
             wind.setDisplaySize(120, 120);
@@ -1033,9 +1035,29 @@ updateActiveSkills(time) {
             wind.knockback = 17;
             wind.hitEnemies = [];
 
-            this.tweens.add({ targets: wind, rotation: wind.rotation + Math.PI * 10, duration: 2500 });
+            // ⚡ [수정 1] 무한 회전 애니메이션 적용 (속도 일정하게 고속 회전)
+            this.tweens.add({ 
+                targets: wind, 
+                rotation: '+=6.28318', // 360도(2*PI) 무한 회전
+                duration: 400,          // 0.4초마다 1바퀴
+                repeat: -1 
+            });
+
+            // ⚡ [수정 2] 물리 바디 속도 완벽 재설정 (항력/마찰 영향 제거)
+            if (wind.body) {
+                wind.body.reset(this.player.x, this.player.y);
+                wind.body.setDamping(false);
+                wind.body.setDrag(0, 0);
+                wind.body.setFriction(0, 0);
+            }
+            
+            // 이동 속도 250으로 확실하게 고정 설정
             this.physics.velocityFromRotation(angle, 250, wind.body.velocity);
-            this.time.delayedCall(3000, () => { if(wind.active) this.recycleProjectile(wind); });
+
+            // 3초 후 회수
+            this.time.delayedCall(3000, () => { 
+                if (wind && wind.active) this.recycleProjectile(wind); 
+            });
         }
         this.lastSkillTimes.wind = time;
     }
