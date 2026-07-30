@@ -40,7 +40,6 @@ class GameScene extends Phaser.Scene {
 
         this.boss = null;
         
-        // 보스 투사체 그룹 풀링 설정 (maxSize 지정)
         this.bossProjectiles = this.physics.add.group({
             maxSize: 300,
             runChildUpdate: false
@@ -148,7 +147,6 @@ class GameScene extends Phaser.Scene {
 
         this.enemies = this.physics.add.group();
         
-        // 플레이어 투사체 그룹 풀링 설정 (maxSize 지정)
         this.projectiles = this.physics.add.group({
             maxSize: 300,
             runChildUpdate: false
@@ -173,7 +171,7 @@ class GameScene extends Phaser.Scene {
         this.physics.add.overlap(this.player, this.fieldMagnetItems, this.collectFieldMagnet, null, this);
 
         this.physics.add.overlap(this.bossProjectiles, this.obstacles, (fish, obs) => {
-            this.recycleBossProjectile(fish); // 파괴 대신 풀에 회수
+            this.recycleBossProjectile(fish);
             this.hitAndCheckObstacleBreak(obs);
         }, null, this);
 
@@ -210,9 +208,6 @@ class GameScene extends Phaser.Scene {
         this.showStageLoadingOverlay();
     }
 
-    // ==========================================
-    // ⚡ [오브젝트 풀링 핵심 메서드 추가]
-    // ==========================================
     spawnProjectile(group, x, y, key, scale = 1.0) {
         let p = group.get(x, y, key);
         if (!p) return null;
@@ -485,9 +480,6 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    // ==========================================
-    // ⚡ [수정] 궁극기: spawnProjectile 적용
-    // ==========================================
     useHeroActiveSkill() {
         if (this.isDead || this.heroSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
@@ -548,9 +540,6 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    // ==========================================
-    // ⚡ [수정] 플레이어 장착 보스 스킬: spawnProjectile 적용
-    // ==========================================
     useBossEquippedSkill() {
         if (this.isDead || !this.playerStats.hasEquippedBossSkill || this.bossEquippedSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
@@ -761,9 +750,6 @@ class GameScene extends Phaser.Scene {
         return closest;
     }
 
-    // ==========================================
-    // ⚡ [수정] 기본 수리검: spawnProjectile 적용
-    // ==========================================
     fireBasicSuri() {
         if (this.isDead) return;
         let target = this.getClosestEnemy();
@@ -836,6 +822,7 @@ class GameScene extends Phaser.Scene {
         let fireWindPierceBonus = pierceLv > 0 ? (0.20 + (pierceLv - 1) * 0.05) : 0.0;
         let waterBombPierceBonus = pierceLv > 0 ? (0.50 + (pierceLv - 1) * 0.05) : 0.0;
 
+        // --- 화둔 ---
         if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 1750) {
             playRandomSFX(this, 'skill_fire', 0.6);
             let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
@@ -886,6 +873,7 @@ class GameScene extends Phaser.Scene {
             this.lastSkillTimes.fire = time;
         }
 
+        // --- ⚡ [수정 완료] 수둔: spawnProjectile 적용 ---
         if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + (1600 - (this.playerStats.water * 100)) && target) {
             playRandomSFX(this, 'skill_water', 0.6);
             let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -897,7 +885,11 @@ class GameScene extends Phaser.Scene {
 
             for (let i = 0; i < count; i++) {
                 let angle = baseAngle + ((i - (count - 1) / 2) * 0.25);
-                let water = this.projectiles.create(this.player.x, this.player.y, waterKey).setDisplaySize(80, 80).setDepth(9999);
+                
+                let water = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, waterKey, 1.0);
+                if (!water) continue;
+
+                water.setDisplaySize(80, 80);
                 
                 let dx = target.x - this.player.x;
                 if (dx < 0) {
@@ -919,6 +911,7 @@ class GameScene extends Phaser.Scene {
             this.lastSkillTimes.water = time;
         }
 
+        // --- 뇌둔 ---
         if (this.playerStats.bolt > 0) {
             let boltCd = Math.max(2000, 4000 - (this.playerStats.bolt * 400));
             if (time > this.lastSkillTimes.bolt + boltCd) {
@@ -932,16 +925,16 @@ class GameScene extends Phaser.Scene {
                 let calculatedBoltDmg = this.calcSkillDamage(boltDmg, 0);
                 this.skillDmgStats['뇌둔'] += calculatedBoltDmg * boltCount;
 
-                for(let b=0; b<boltCount; b++) {
+                for(let b = 0; b < boltCount; b++) {
                     let rx = this.player.x + Phaser.Math.Between(-400, 400);
                     let ry = this.player.y + Phaser.Math.Between(-400, 400);
 
                     let boltSprite = this.physics.add.sprite(rx, ry, 'bolt').setDisplaySize(117, 103).setDepth(9999);
-                    boltSprite.damage = calculatedBoltDmg;
                     
-                    this.enemies.getChildren().forEach(e => {
-                        if(e.active && Phaser.Math.Distance.Between(rx, ry, e.x, e.y) <= 60) {
-                            this.damageEnemy(e, boltSprite.damage);
+                    let hitTargets = this.physics.overlapCircle(rx, ry, 60, null, this.enemies);
+                    hitTargets.forEach(body => {
+                        if (body && body.gameObject && body.gameObject.active) {
+                            this.damageEnemy(body.gameObject, calculatedBoltDmg);
                         }
                     });
 
@@ -951,6 +944,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // --- 풍둔 ---
         if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
             playRandomSFX(this, 'skill_wind', 0.6);
             let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
@@ -977,6 +971,7 @@ class GameScene extends Phaser.Scene {
             this.lastSkillTimes.wind = time;
         }
 
+        // --- 기폭찰 ---
         if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
             playRandomSFX(this, 'skill_bomb', 0.6);
             let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
@@ -1003,6 +998,7 @@ class GameScene extends Phaser.Scene {
             this.lastSkillTimes.bomb = time;
         }
 
+        // --- ⚡ [수정 완료] 토둔: FX 완전 클리어 방어 코드 적용 ---
         let earthLv = this.playerStats.earth;
         if (earthLv > 0) {
             let earthCooldown = Math.max(4000, 7000 - (earthLv * 600));
@@ -1015,7 +1011,8 @@ class GameScene extends Phaser.Scene {
                 let wall = this.physics.add.sprite(this.player.x, this.player.y, wallKey).setDisplaySize(280, 160).setDepth(9998);
                 
                 wall.clearTint();
-                if(wall.preFX) wall.preFX.addGlow(0x8B4513, 3, 0, false);
+                let glowFx = null;
+                if(wall.preFX) glowFx = wall.preFX.addGlow(0x8B4513, 3, 0, false);
 
                 wall.damage = 0;
                 wall.hitEnemies = [];
@@ -1049,7 +1046,9 @@ class GameScene extends Phaser.Scene {
                     delay: earthDuration - 300, 
                     duration: 300, 
                     onComplete: () => {
-                        if(wallOverlap) wallOverlap.destroy();
+                        if (wallOverlap) wallOverlap.destroy();
+                        if (glowFx) glowFx.destroy(); 
+                        if (wall.clearFX) wall.clearFX(); 
                         wall.destroy(); 
                     } 
                 });
@@ -1251,9 +1250,6 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    // ==========================================
-    // ⚡ [수정] 보스 붕어빵 투사체: spawnProjectile 적용
-    // ==========================================
     fireBossGoldenFish(tx, ty, dmg, spd, w = 45, h = 33) {
         if(!this.boss || !this.boss.active) return;
 
@@ -1277,9 +1273,6 @@ class GameScene extends Phaser.Scene {
         this.physics.velocityFromRotation(angle, spd, fish.body.velocity);
     }
 
-    // ==========================================
-    // ⚡ [수정] 보스 투사체 피격 시 recycleBossProjectile 처리
-    // ==========================================
     handleBossProjectileHit(player, fish) {
         this.recycleBossProjectile(fish);
         let realDmg = Math.max(1, fish.damage - this.playerStats.defense);
@@ -1390,9 +1383,6 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-    // ==========================================
-    // ⚡ [수정] 플레이어 투사체 피격 시 풀링 회수(recycleProjectile)
-    // ==========================================
     handleProjectileHit(projectile, enemy) {
         if (projectile.hitEnemies) {
             if (projectile.hitEnemies.includes(enemy.id)) return;
@@ -1466,7 +1456,6 @@ class GameScene extends Phaser.Scene {
         }
 
         if (projectile.pierce <= 0) {
-            // 풀에 속한 투사체면 회수, 아니면 destroy()
             if (this.projectiles.contains(projectile)) {
                 this.recycleProjectile(projectile);
             } else {
@@ -2102,7 +2091,11 @@ class GameScene extends Phaser.Scene {
         }
         else if (reward.id === 'hp') { this.playerStats.maxHp += 20; this.playerStats.hp += 20; }
         else if (reward.id === 'speed') { this.playerStats.speed += 12; }
-        else if (reward.id === 'magnet') { this.playerStats.magnetRange += 40; }
+        else if (reward.id === 'magnet') { 
+            let up = USER_GLOBAL_DATA.upgrades;
+            let baseMagnet = 150 + ((Number(up['magnet_range_lv'] || up['MAGNET_RANGE_LV']) || 0) * 30);
+            this.playerStats.magnetRange = baseMagnet + (this.playerStats.magnet * 40); 
+        }
         else if (reward.id === 'heal') { this.playerStats.hp = Math.min(this.playerStats.hp + 30, this.playerStats.maxHp); }
         
         this.updateHpUI();
