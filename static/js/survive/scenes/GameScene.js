@@ -911,7 +911,7 @@ class GameScene extends Phaser.Scene {
             this.lastSkillTimes.water = time;
         }
 
-        // --- 뇌둔 ---
+// --- 뇌둔 ---
         if (this.playerStats.bolt > 0) {
             let boltCd = Math.max(2000, 4000 - (this.playerStats.bolt * 400));
             if (time > this.lastSkillTimes.bolt + boltCd) {
@@ -931,14 +931,20 @@ class GameScene extends Phaser.Scene {
 
                     let boltSprite = this.physics.add.sprite(rx, ry, 'bolt').setDisplaySize(117, 103).setDepth(9999);
                     
-                    // ⚡ [수정] Phaser 3 표준 물리 원형 감지 메서드 적용
-                    let hitBodies = this.physics.world.overlapCirc(rx, ry, 60);
-                    hitBodies.forEach(body => {
-                        let enemy = body.gameObject;
-                        if (enemy && enemy.active && this.enemies.contains(enemy)) {
+                    // ⚡ [버전 무관 100% 호환] 반경 60px 가상 원형 판정 객체 생성
+                    let hitZone = this.add.zone(rx, ry, 120, 120);
+                    this.physics.add.existing(hitZone, true); // 정적 영역 설정
+                    if (hitZone.body) hitZone.body.setCircle(60);
+
+                    // 반경 60 이내의 적에게만 데미지 부여
+                    this.physics.overlap(hitZone, this.enemies, (zone, enemy) => {
+                        if (enemy && enemy.active) {
                             this.damageEnemy(enemy, calculatedBoltDmg);
                         }
-                    });
+                    }, null, this);
+
+                    // 판정용 zone 즉시 파괴 (메모리 정리)
+                    hitZone.destroy();
 
                     this.tweens.add({ targets: boltSprite, alpha: 0, duration: 300, onComplete: () => boltSprite.destroy() });
                 }
