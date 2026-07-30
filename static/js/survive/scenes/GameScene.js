@@ -784,7 +784,6 @@ class GameScene extends Phaser.Scene {
             }
         });
     }
-    }
 
     getClosestEnemy() {
         if (this.boss && this.boss.active) return this.boss;
