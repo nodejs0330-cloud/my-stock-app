@@ -931,10 +931,12 @@ class GameScene extends Phaser.Scene {
 
                     let boltSprite = this.physics.add.sprite(rx, ry, 'bolt').setDisplaySize(117, 103).setDepth(9999);
                     
-                    let hitTargets = this.physics.overlapCircle(rx, ry, 60, null, this.enemies);
-                    hitTargets.forEach(body => {
-                        if (body && body.gameObject && body.gameObject.active) {
-                            this.damageEnemy(body.gameObject, calculatedBoltDmg);
+                    // ⚡ [수정] Phaser 3 표준 물리 원형 감지 메서드 적용
+                    let hitBodies = this.physics.world.overlapCirc(rx, ry, 60);
+                    hitBodies.forEach(body => {
+                        let enemy = body.gameObject;
+                        if (enemy && enemy.active && this.enemies.contains(enemy)) {
+                            this.damageEnemy(enemy, calculatedBoltDmg);
                         }
                     });
 
