@@ -208,14 +208,20 @@ class GameScene extends Phaser.Scene {
         this.showStageLoadingOverlay();
     }
 
-    spawnProjectile(group, x, y, key, scale = 1.0) {
+spawnProjectile(group, x, y, key, scale = 1.0) {
         let p = group.get(x, y, key);
         if (!p) return null;
 
         p.setActive(true);
         p.setVisible(true);
         p.setDepth(9999);
+
+        // ⚡ [핵심 수정] 이전 대형 스킬이 오염시킨 텍스처 및 스케일 수치 완전 초기화
+        p.setTexture(key);
+        p.scaleX = 1.0;
+        p.scaleY = 1.0;
         p.setScale(scale);
+
         p.setAlpha(1);
         p.setFlipX(false);
         p.setFlipY(false);
@@ -224,6 +230,8 @@ class GameScene extends Phaser.Scene {
         if (p.body) {
             p.body.enable = true;
             p.body.reset(x, y);
+            // 물리 오버랩 바디 크기도 원래 텍스처 크기로 재설정
+            p.body.setSize(p.width, p.height);
         }
 
         p.hitEnemies = [];
@@ -1039,13 +1047,12 @@ updateActiveSkills(time) {
 
         for (let i = 0; i < count; i++) {
             let angle = baseAngle + ((i - (count - 1) / 2) * 0.2);
-            let bombSuri = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, bombKey, 1.0);
             
-            // 🛡️ [null 예외 방지]
+            // 🎯 scale 1.0으로 깨끗하게 꺼낸 후 크기 고정
+            let bombSuri = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, bombKey, 1.0);
             if (!bombSuri) continue;
 
-            // 🎯 초기 스펙 크기(40x40 기본 수리검급 크기)로 완전 고정
-            bombSuri.setDisplaySize(40, 40);
+            bombSuri.setDisplaySize(40, 40); // 기본 수리검급 크기로 명확 고정
 
             this.tweens.add({ targets: bombSuri, rotation: '+=12.56', duration: 1000, repeat: -1 });
 
