@@ -148,7 +148,7 @@ class GameScene extends Phaser.Scene {
         this.enemies = this.physics.add.group();
         
         this.projectiles = this.physics.add.group({
-            maxSize: 300,
+            maxSize: 600,
             runChildUpdate: false
         });
 
@@ -398,10 +398,10 @@ class GameScene extends Phaser.Scene {
 
         // 모바일: 줌 확대 시 외곽이 잘리므로 화면 중앙 쪽으로 위치 당김
         // PC: 기존 좌측 상단 위치 유지 (x: 55)
-        let skill1X = isMobile ? this.scale.width - 100 : 55;
+        let skill1X = isMobile ? this.scale.width - 140 : 55;
         let skill1Y = isMobile ? cy + 180 : 265; // [주인공 스킬] 중앙(cy) 기준 +180px 아래
 
-        let skill2X = isMobile ? this.scale.width - 100 : 55;
+        let skill2X = isMobile ? this.scale.width - 140 : 55;
         let skill2Y = isMobile ? cy + 100 : 195; // [보스 스킬] 주인공 스킬 바로 위 (+100px)
         let boxSize = 56;
         let imgSize = 48;
@@ -758,6 +758,32 @@ class GameScene extends Phaser.Scene {
         pullGroup(this.meatItems);
         pullGroup(this.rareBoxItems);
         pullGroup(this.fieldMagnetItems);
+
+        let cam = this.cameras.main;
+        let padX = cam.worldView.width * 0.5;  // 시야 가로 폭의 50% 여유
+        let padY = cam.worldView.height * 0.5; // 시야 세로 높이의 50% 여유
+
+        let bounds = new Phaser.Geom.Rectangle(
+            cam.worldView.x - padX, 
+            cam.worldView.y - padY, 
+            cam.worldView.width + (padX * 2), 
+            cam.worldView.height + (padY * 2)
+        );
+
+        // 플레이어 투사체 자동 회수
+        this.projectiles.getChildren().forEach(p => {
+            if (p.active && !Phaser.Geom.Rectangle.Contains(bounds, p.x, p.y)) {
+                this.recycleProjectile(p);
+            }
+        });
+
+        // 보스 투사체 자동 회수
+        this.bossProjectiles.getChildren().forEach(p => {
+            if (p.active && !Phaser.Geom.Rectangle.Contains(bounds, p.x, p.y)) {
+                this.recycleBossProjectile(p);
+            }
+        });
+    }
     }
 
     getClosestEnemy() {
@@ -834,258 +860,266 @@ class GameScene extends Phaser.Scene {
         return 10.0;
     }
 
-    updateActiveSkills(time) {
-        if (this.isDead) return;
+updateActiveSkills(time) {
+    if (this.isDead) return;
 
-        let target = this.getClosestEnemy();
-        let pierceLv = this.playerStats.pierce;
+    let target = this.getClosestEnemy();
+    let pierceLv = this.playerStats.pierce;
 
-        let fireWindPierceBonus = pierceLv > 0 ? (0.20 + (pierceLv - 1) * 0.05) : 0.0;
-        let waterBombPierceBonus = pierceLv > 0 ? (0.50 + (pierceLv - 1) * 0.05) : 0.0;
+    let fireWindPierceBonus = pierceLv > 0 ? (0.20 + (pierceLv - 1) * 0.05) : 0.0;
+    let waterBombPierceBonus = pierceLv > 0 ? (0.50 + (pierceLv - 1) * 0.05) : 0.0;
 
-        // --- 화둔 ---
-        if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 1750) {
-            playRandomSFX(this, 'skill_fire', 0.6);
-            let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
+    // --- 화둔 ---
+    if (this.playerStats.fire > 0 && time > this.lastSkillTimes.fire + 1750) {
+        playRandomSFX(this, 'skill_fire', 0.6);
+        let angle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : (this.player.texture.key === 'hero_3' ? Math.PI : 0);
+        
+        const createFireStream = (fireAngle) => {
+            let spawnDist = 55;
+            let posX = this.player.x + Math.cos(fireAngle) * spawnDist;
+            let posY = this.player.y + Math.sin(fireAngle) * spawnDist;
+
+            let fireLv = this.playerStats.fire;
+            let sizeMult = 1.68 + ((fireLv - 1) * 0.12);
+            let w = 140 * sizeMult;
+            let h = 85 * sizeMult;
+
+            let fire = this.physics.add.sprite(posX, posY, 'fire_stream')
+                .setDisplaySize(w, h)
+                .setRotation(fireAngle + Math.PI)
+                .setDepth(9999);
+
+            if (fire.body) {
+                fire.body.setSize(w * 0.85, h * 0.75);
+            }
+
+            let baseDmg = this.getSkillBaseDamage('fire', fireLv);
+            fire.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
+            fire.isFireSkill = true;
+            fire.skillCategory = '화둔';
+            fire.hitEnemies = [];
+
+            this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
+                if (!f.hitEnemies.includes(enemy.id)) {
+                    f.hitEnemies.push(enemy.id);
+                    let finalDmg = f.damage;
+                    if (enemy.isBoss || enemy.isNamed) finalDmg *= 1.30;
+                    this.skillDmgStats['화둔'] += finalDmg;
+                    this.damageEnemy(enemy, finalDmg);
+                    this.applyKnockback(enemy, fireAngle, 12);
+                }
+            });
+            this.tweens.add({ targets: fire, alpha: 0, duration: 450, onComplete: () => fire.destroy() });
+        };
+
+        createFireStream(angle);
+        if (this.playerStats.fire >= 3) {
+            createFireStream(angle + Math.PI);
+        }
+
+        this.lastSkillTimes.fire = time;
+    }
+
+    // --- 수둔 (null 예외 안전장치 추가) ---
+    if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + (1600 - (this.playerStats.water * 100)) && target) {
+        playRandomSFX(this, 'skill_water', 0.6);
+        let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+        let waterKey = this.textures.exists('water_dragon') ? 'water_dragon' : 'suri';
+        
+        let count = 2 + this.playerStats.water;
+        let waterLv = this.playerStats.water;
+        let baseDmg = this.getSkillBaseDamage('water', waterLv);
+
+        for (let i = 0; i < count; i++) {
+            let angle = baseAngle + ((i - (count - 1) / 2) * 0.25);
+            let water = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, waterKey, 1.0);
             
-            const createFireStream = (fireAngle) => {
-                let spawnDist = 55;
-                let posX = this.player.x + Math.cos(fireAngle) * spawnDist;
-                let posY = this.player.y + Math.sin(fireAngle) * spawnDist;
+            // 🛡️ [null 예외 방지] 풀이 가득 찼을 때 안전패스
+            if (!water) continue;
 
-                let fireLv = this.playerStats.fire;
-                let sizeMult = 1.68 + ((fireLv - 1) * 0.12);
-                let w = 140 * sizeMult;
-                let h = 85 * sizeMult;
-
-                let fire = this.physics.add.sprite(posX, posY, 'fire_stream')
-                    .setDisplaySize(w, h)
-                    .setRotation(fireAngle + Math.PI)
-                    .setDepth(9999);
-
-                if (fire.body) {
-                    fire.body.setSize(w * 0.85, h * 0.75);
-                }
-
-                let baseDmg = this.getSkillBaseDamage('fire', fireLv);
-                fire.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
-                fire.isFireSkill = true;
-                fire.skillCategory = '화둔';
-                fire.hitEnemies = [];
-
-                this.physics.add.overlap(fire, this.enemies, (f, enemy) => {
-                    if (!f.hitEnemies.includes(enemy.id)) {
-                        f.hitEnemies.push(enemy.id);
-                        let finalDmg = f.damage;
-                        if (enemy.isBoss || enemy.isNamed) finalDmg *= 1.30;
-                        this.skillDmgStats['화둔'] += finalDmg;
-                        this.damageEnemy(enemy, finalDmg);
-                        this.applyKnockback(enemy, fireAngle, 12);
-                    }
-                });
-                this.tweens.add({ targets: fire, alpha: 0, duration: 450, onComplete: () => fire.destroy() });
-            };
-
-            createFireStream(angle);
-            if (this.playerStats.fire >= 3) {
-                createFireStream(angle + Math.PI);
-            }
-
-            this.lastSkillTimes.fire = time;
-        }
-
-        // --- ⚡ [수정 완료] 수둔: spawnProjectile 적용 ---
-        if (this.playerStats.water > 0 && time > this.lastSkillTimes.water + (1600 - (this.playerStats.water * 100)) && target) {
-            playRandomSFX(this, 'skill_water', 0.6);
-            let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
-            let waterKey = this.textures.exists('water_dragon') ? 'water_dragon' : 'suri';
+            water.setDisplaySize(80, 80);
             
-            let count = 2 + this.playerStats.water;
-            let waterLv = this.playerStats.water;
-            let baseDmg = this.getSkillBaseDamage('water', waterLv);
-
-            for (let i = 0; i < count; i++) {
-                let angle = baseAngle + ((i - (count - 1) / 2) * 0.25);
-                
-                let water = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, waterKey, 1.0);
-                if (!water) continue;
-
-                water.setDisplaySize(80, 80);
-                
-                let dx = target.x - this.player.x;
-                if (dx < 0) {
-                    water.setFlipY(true);
-                    water.rotation = angle + Math.PI / 2;
-                } else {
-                    water.setFlipY(false);
-                    water.rotation = angle + Math.PI / 2;
-                }
-
-                water.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
-                water.isWaterSkill = true;
-                water.skillCategory = '수둔';
-                water.pierce = 0;
-                water.isBomb = false;
-                water.knockback = 10;
-                this.physics.velocityFromRotation(angle, 420, water.body.velocity);
+            let dx = target.x - this.player.x;
+            if (dx < 0) {
+                water.setFlipY(true);
+                water.rotation = angle + Math.PI / 2;
+            } else {
+                water.setFlipY(false);
+                water.rotation = angle + Math.PI / 2;
             }
-            this.lastSkillTimes.water = time;
+
+            water.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
+            water.isWaterSkill = true;
+            water.skillCategory = '수둔';
+            water.pierce = 0;
+            water.isBomb = false;
+            water.knockback = 10;
+            this.physics.velocityFromRotation(angle, 420, water.body.velocity);
         }
+        this.lastSkillTimes.water = time;
+    }
 
-// --- 뇌둔 ---
-        if (this.playerStats.bolt > 0) {
-            let boltCd = Math.max(2000, 4000 - (this.playerStats.bolt * 400));
-            if (time > this.lastSkillTimes.bolt + boltCd) {
-                let sNum = Phaser.Math.Between(1, 3);
-                if(!isSfxMuted && this.cache.audio.exists(`skill_bolt${sNum}`)) this.sound.play(`skill_bolt${sNum}`, { volume: 0.6 });
+    // --- 뇌둔 ---
+    if (this.playerStats.bolt > 0) {
+        let boltCd = Math.max(2000, 4000 - (this.playerStats.bolt * 400));
+        if (time > this.lastSkillTimes.bolt + boltCd) {
+            let sNum = Phaser.Math.Between(1, 3);
+            if(!isSfxMuted && this.cache.audio.exists(`skill_bolt${sNum}`)) this.sound.play(`skill_bolt${sNum}`, { volume: 0.6 });
 
-                let boltCount = 6 + (this.playerStats.bolt - 1) * 6;
-                let boltDmg = 27 + (this.playerStats.bolt * 13.5);
-                if (this.playerStats.bolt >= 6) boltDmg += (this.playerStats.bolt - 5) * (13.5 * 3);
+            let boltCount = 6 + (this.playerStats.bolt - 1) * 6;
+            let boltDmg = 27 + (this.playerStats.bolt * 13.5);
+            if (this.playerStats.bolt >= 6) boltDmg += (this.playerStats.bolt - 5) * (13.5 * 3);
 
-                let calculatedBoltDmg = this.calcSkillDamage(boltDmg, 0);
-                this.skillDmgStats['뇌둔'] += calculatedBoltDmg * boltCount;
+            let calculatedBoltDmg = this.calcSkillDamage(boltDmg, 0);
+            this.skillDmgStats['뇌둔'] += calculatedBoltDmg * boltCount;
 
-                for(let b = 0; b < boltCount; b++) {
-                    let rx = this.player.x + Phaser.Math.Between(-400, 400);
-                    let ry = this.player.y + Phaser.Math.Between(-400, 400);
+            for(let b = 0; b < boltCount; b++) {
+                let rx = this.player.x + Phaser.Math.Between(-400, 400);
+                let ry = this.player.y + Phaser.Math.Between(-400, 400);
 
-                    let boltSprite = this.physics.add.sprite(rx, ry, 'bolt').setDisplaySize(117, 103).setDepth(9999);
-                    
-                    // ⚡ [버전 무관 100% 호환] 반경 60px 가상 원형 판정 객체 생성
-                    let hitZone = this.add.zone(rx, ry, 120, 120);
-                    this.physics.add.existing(hitZone, true); // 정적 영역 설정
-                    if (hitZone.body) hitZone.body.setCircle(60);
-
-                    // 반경 60 이내의 적에게만 데미지 부여
-                    this.physics.overlap(hitZone, this.enemies, (zone, enemy) => {
-                        if (enemy && enemy.active) {
-                            this.damageEnemy(enemy, calculatedBoltDmg);
-                        }
-                    }, null, this);
-
-                    // 판정용 zone 즉시 파괴 (메모리 정리)
-                    hitZone.destroy();
-
-                    this.tweens.add({ targets: boltSprite, alpha: 0, duration: 300, onComplete: () => boltSprite.destroy() });
-                }
-                this.lastSkillTimes.bolt = time;
-            }
-        }
-
-        // --- 풍둔 ---
-        if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
-            playRandomSFX(this, 'skill_wind', 0.6);
-            let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
-            let windKey = this.textures.exists('rasenshuriken') ? 'rasenshuriken' : 'suri';
-
-            let count = 1 + (this.playerStats.clone);
-            let windLv = this.playerStats.wind;
-            let baseDmg = 10.5 + (windLv <= 2 ? windLv * 3.75 : 7.5 + (windLv - 2) * 4.3);
-
-            for (let i = 0; i < count; i++) {
-                let angle = baseAngle + ((i - (count - 1) / 2) * 0.3);
-                let wind = this.projectiles.create(this.player.x, this.player.y, windKey).setDisplaySize(120, 120).setDepth(9999);
-                wind.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
-                wind.skillCategory = '풍둔';
-                wind.pierce = 999;
-                wind.isBomb = false;
-                wind.knockback = 17;
-                wind.hitEnemies = [];
-
-                this.tweens.add({ targets: wind, rotation: wind.rotation + Math.PI * 10, duration: 2500 });
-                this.physics.velocityFromRotation(angle, 250, wind.body.velocity);
-                this.time.delayedCall(3000, () => { if(wind.active) wind.destroy(); });
-            }
-            this.lastSkillTimes.wind = time;
-        }
-
-        // --- 기폭찰 ---
-        if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
-            playRandomSFX(this, 'skill_bomb', 0.6);
-            let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
-            let bombKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri';
-
-            let count = 1 + (this.playerStats.clone);
-            let bombLv = this.playerStats.bomb;
-            let baseDmg = this.getSkillBaseDamage('bomb', bombLv);
-
-            for (let i = 0; i < count; i++) {
-                let angle = baseAngle + ((i - (count - 1) / 2) * 0.2);
-                let bombSuri = this.projectiles.create(this.player.x, this.player.y, bombKey).setDisplaySize(40, 40).setDepth(9999);
+                let boltSprite = this.physics.add.sprite(rx, ry, 'bolt').setDisplaySize(117, 103).setDepth(9999);
                 
-                this.tweens.add({ targets: bombSuri, rotation: '+=12.56', duration: 1000, repeat: -1 });
+                let hitZone = this.add.zone(rx, ry, 120, 120);
+                this.physics.add.existing(hitZone, true);
+                if (hitZone.body) hitZone.body.setCircle(60);
 
-                bombSuri.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
-                bombSuri.skillCategory = '기폭찰';
-                bombSuri.pierce = 0;
-                bombSuri.isBomb = true;
-                bombSuri.knockback = 10;
-                
-                this.physics.velocityFromRotation(angle, 450, bombSuri.body.velocity);
-            }
-            this.lastSkillTimes.bomb = time;
-        }
-
-        // --- ⚡ [수정 완료] 토둔: FX 완전 클리어 방어 코드 적용 ---
-        let earthLv = this.playerStats.earth;
-        if (earthLv > 0) {
-            let earthCooldown = Math.max(4000, 7000 - (earthLv * 600));
-            let earthDuration = 1200 + ((earthLv - 1) * 300);
-
-            if (time > this.lastSkillTimes.earth + earthCooldown) {
-                playRandomSFX(this, 'skill_bomb', 0.5);
-                
-                let wallKey = this.textures.exists('earth_wall') ? 'earth_wall' : 'suri_vfx';
-                let wall = this.physics.add.sprite(this.player.x, this.player.y, wallKey).setDisplaySize(280, 160).setDepth(9998);
-                
-                wall.clearTint();
-                let glowFx = null;
-                if(wall.preFX) glowFx = wall.preFX.addGlow(0x8B4513, 3, 0, false);
-
-                wall.damage = 0;
-                wall.hitEnemies = [];
-
-                let wallOverlap = this.time.addEvent({
-                    delay: 100,
-                    repeat: Math.floor(earthDuration / 100),
-                    callback: () => {
-                        if (!wall || !wall.active) return;
-
-                        this.bossProjectiles.getChildren().forEach(fish => {
-                            if (fish.active && Phaser.Math.Distance.Between(wall.x, wall.y, fish.x, fish.y) <= 140) {
-                                this.recycleBossProjectile(fish);
-                            }
-                        });
-
-                        this.enemies.getChildren().forEach(e => {
-                            if (!e.active) return;
-                            let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
-                            if (dist <= 140) {
-                                let pushAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
-                                this.applyKnockback(e, pushAngle, 42);
-                            }
-                        });
+                this.physics.overlap(hitZone, this.enemies, (zone, enemy) => {
+                    if (enemy && enemy.active) {
+                        this.damageEnemy(enemy, calculatedBoltDmg);
                     }
-                });
+                }, null, this);
 
-                this.tweens.add({ 
-                    targets: wall, 
-                    alpha: { from: 1, to: 0 }, 
-                    delay: earthDuration - 300, 
-                    duration: 300, 
-                    onComplete: () => {
-                        if (wallOverlap) wallOverlap.destroy();
-                        if (glowFx) glowFx.destroy(); 
-                        if (wall.clearFX) wall.clearFX(); 
-                        wall.destroy(); 
-                    } 
-                });
-
-                this.lastSkillTimes.earth = time;
+                hitZone.destroy();
+                this.tweens.add({ targets: boltSprite, alpha: 0, duration: 300, onComplete: () => boltSprite.destroy() });
             }
+            this.lastSkillTimes.bolt = time;
         }
     }
+
+    // --- 풍둔 (null 예외 안전장치 추가) ---
+    if (this.playerStats.wind > 0 && time > this.lastSkillTimes.wind + 4500) {
+        playRandomSFX(this, 'skill_wind', 0.6);
+        let baseAngle = target ? Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y) : Math.random() * Math.PI * 2;
+        let windKey = this.textures.exists('rasenshuriken') ? 'rasenshuriken' : 'suri';
+
+        let count = 1 + (this.playerStats.clone);
+        let windLv = this.playerStats.wind;
+        let baseDmg = 10.5 + (windLv <= 2 ? windLv * 3.75 : 7.5 + (windLv - 2) * 4.3);
+
+        for (let i = 0; i < count; i++) {
+            let angle = baseAngle + ((i - (count - 1) / 2) * 0.3);
+            let wind = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, windKey, 1.0);
+            
+            // 🛡️ [null 예외 방지]
+            if (!wind) continue;
+
+            wind.setDisplaySize(120, 120);
+            wind.damage = this.calcSkillDamage(baseDmg, fireWindPierceBonus);
+            wind.skillCategory = '풍둔';
+            wind.pierce = 999;
+            wind.isBomb = false;
+            wind.knockback = 17;
+            wind.hitEnemies = [];
+
+            this.tweens.add({ targets: wind, rotation: wind.rotation + Math.PI * 10, duration: 2500 });
+            this.physics.velocityFromRotation(angle, 250, wind.body.velocity);
+            this.time.delayedCall(3000, () => { if(wind.active) this.recycleProjectile(wind); });
+        }
+        this.lastSkillTimes.wind = time;
+    }
+
+    // --- 🎯 기폭찰 (크기 원복 및 null 예외 안전장치 추가) ---
+    if (this.playerStats.bomb > 0 && time > this.lastSkillTimes.bomb + 3200 && target) {
+        playRandomSFX(this, 'skill_bomb', 0.6);
+        let baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+        let bombKey = this.textures.exists('explosive_shuriken') ? 'explosive_shuriken' : 'suri';
+
+        let count = 1 + (this.playerStats.clone);
+        let bombLv = this.playerStats.bomb;
+        let baseDmg = this.getSkillBaseDamage('bomb', bombLv);
+
+        for (let i = 0; i < count; i++) {
+            let angle = baseAngle + ((i - (count - 1) / 2) * 0.2);
+            let bombSuri = this.spawnProjectile(this.projectiles, this.player.x, this.player.y, bombKey, 1.0);
+            
+            // 🛡️ [null 예외 방지]
+            if (!bombSuri) continue;
+
+            // 🎯 초기 스펙 크기(40x40 기본 수리검급 크기)로 완전 고정
+            bombSuri.setDisplaySize(40, 40);
+
+            this.tweens.add({ targets: bombSuri, rotation: '+=12.56', duration: 1000, repeat: -1 });
+
+            bombSuri.damage = this.calcSkillDamage(baseDmg, waterBombPierceBonus);
+            bombSuri.skillCategory = '기폭찰';
+            bombSuri.pierce = 0;
+            bombSuri.isBomb = true;
+            bombSuri.knockback = 10;
+            
+            this.physics.velocityFromRotation(angle, 450, bombSuri.body.velocity);
+        }
+        this.lastSkillTimes.bomb = time;
+    }
+
+    // --- 토둔 ---
+    let earthLv = this.playerStats.earth;
+    if (earthLv > 0) {
+        let earthCooldown = Math.max(4000, 7000 - (earthLv * 600));
+        let earthDuration = 1200 + ((earthLv - 1) * 300);
+
+        if (time > this.lastSkillTimes.earth + earthCooldown) {
+            playRandomSFX(this, 'skill_bomb', 0.5);
+            
+            let wallKey = this.textures.exists('earth_wall') ? 'earth_wall' : 'suri_vfx';
+            let wall = this.physics.add.sprite(this.player.x, this.player.y, wallKey).setDisplaySize(280, 160).setDepth(9998);
+            
+            wall.clearTint();
+            let glowFx = null;
+            if(wall.preFX) glowFx = wall.preFX.addGlow(0x8B4513, 3, 0, false);
+
+            wall.damage = 0;
+            wall.hitEnemies = [];
+
+            let wallOverlap = this.time.addEvent({
+                delay: 100,
+                repeat: Math.floor(earthDuration / 100),
+                callback: () => {
+                    if (!wall || !wall.active) return;
+
+                    this.bossProjectiles.getChildren().forEach(fish => {
+                        if (fish.active && Phaser.Math.Distance.Between(wall.x, wall.y, fish.x, fish.y) <= 140) {
+                            this.recycleBossProjectile(fish);
+                        }
+                    });
+
+                    this.enemies.getChildren().forEach(e => {
+                        if (!e.active) return;
+                        let dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y);
+                        if (dist <= 140) {
+                            let pushAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, e.x, e.y);
+                            this.applyKnockback(e, pushAngle, 42);
+                        }
+                    });
+                }
+            });
+
+            this.tweens.add({ 
+                targets: wall, 
+                alpha: { from: 1, to: 0 }, 
+                delay: earthDuration - 300, 
+                duration: 300, 
+                onComplete: () => {
+                    if (wallOverlap) wallOverlap.destroy();
+                    if (glowFx) glowFx.destroy(); 
+                    if (wall.clearFX) wall.clearFX(); 
+                    wall.destroy(); 
+                } 
+            });
+
+            this.lastSkillTimes.earth = time;
+        }
+    }
+}
 
     spawnBoss() {
         this.isBossSpawned = true;
