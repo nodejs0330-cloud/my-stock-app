@@ -390,11 +390,19 @@ class GameScene extends Phaser.Scene {
         this.playerHpBg = this.add.rectangle(hudX + (isMobile ? 60 : 100), hpBarY, isMobile ? 120 : 200, 16, 0x330000).setScrollFactor(0).setDepth(10000);
         this.playerHpBar = this.add.rectangle(hudX, hpBarY, isMobile ? 120 : 200, 16, 0xff2222).setOrigin(0, 0.5).setScrollFactor(0).setDepth(10001);
 
-        let skill1X = isMobile ? this.scale.width - 140 : 55;
-        let skill1Y = isMobile ? this.scale.height - 180 : 265; // 주인공 스킬 (하단에서 180px 위로)
-        
-        let skill2X = isMobile ? this.scale.width - 140 : 55;
-        let skill2Y = isMobile ? this.scale.height - 260 : 195; // 보스 스킬 (주인공 스킬보다 80px 위에 배치)
+        // -------------------------------------------------------------
+        // ⚡ [수정] 모바일 1.35배 카메라 줌 확대를 고려한 스킬 버튼 좌표
+        // -------------------------------------------------------------
+        let cx = this.scale.width / 2;
+        let cy = this.scale.height / 2;
+
+        // 모바일: 줌 확대 시 외곽이 잘리므로 화면 중앙 쪽으로 위치 당김
+        // PC: 기존 좌측 상단 위치 유지 (x: 55)
+        let skill1X = isMobile ? this.scale.width - 100 : 55;
+        let skill1Y = isMobile ? cy + 180 : 265; // [주인공 스킬] 중앙(cy) 기준 +180px 아래
+
+        let skill2X = isMobile ? this.scale.width - 100 : 55;
+        let skill2Y = isMobile ? cy + 100 : 195; // [보스 스킬] 주인공 스킬 바로 위 (+100px)
         let boxSize = 56;
         let imgSize = 48;
 
