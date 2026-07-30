@@ -488,7 +488,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
-    useHeroActiveSkill() {
+ useHeroActiveSkill() {
         if (this.isDead || this.heroSkillCooldown > 0 || this.isLevelUpOpen || !this.isGameLoaded) return;
 
         let cdMult = 1.0 - (this.playerStats.heroSkillLv * 0.10);
@@ -537,7 +537,20 @@ class GameScene extends Phaser.Scene {
                     suri.rotation = angle + Math.PI / 2;
                     
                     let baseDmg = (this.playerStats.damage * 2 * 1.5) * (1 + (this.playerStats.posionLv * 0.10));
-                    suri.damage = isBossTarget ? baseDmg * 0.20 : baseDmg;
+                    
+                    // ⚡ [데미지 분기 조건 적용]
+                    if (isBossTarget) {
+                        suri.damage = baseDmg * 0.20; // 보스: 20%
+                    } else {
+                        let targetEnemy = this.getClosestEnemy();
+                        // target이 있고, 보스도 아니고 네임드도 아닌 '일반 잡몹'인 경우 2배 적용
+                        if (targetEnemy && !targetEnemy.isBoss && !targetEnemy.isNamed) {
+                            suri.damage = baseDmg * 3; // 일반 잡몹: 3배 (250%)
+                        } else {
+                            suri.damage = baseDmg; // 네임드 슬라임 등: 기본 100%
+                        }
+                    }
+
                     suri.isHeroUltimate = true;
                     suri.pierce = 3 + this.playerStats.pierce;
                     suri.isBomb = false;
