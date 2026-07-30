@@ -216,22 +216,27 @@ spawnProjectile(group, x, y, key, scale = 1.0) {
         p.setVisible(true);
         p.setDepth(9999);
 
-        // ⚡ [핵심 수정] 이전 대형 스킬이 오염시킨 텍스처 및 스케일 수치 완전 초기화
+        // 1. 텍스처 갱신
         p.setTexture(key);
-        p.scaleX = 1.0;
-        p.scaleY = 1.0;
-        p.setScale(scale);
 
-        p.setAlpha(1);
+        // 2. ⚡ [핵심] 상하좌우 반전(Flip) 및 회전(Rotation) 완벽 원점 초기화
         p.setFlipX(false);
         p.setFlipY(false);
         p.setRotation(0);
 
+        // 3. Scale 및 Tint 오염 리셋
+        p.scaleX = 1.0;
+        p.scaleY = 1.0;
+        p.setScale(scale);
+        p.clearTint();
+        p.setAlpha(1);
+
+        // 4. 물리 바디 및 충돌 박스 리셋
         if (p.body) {
             p.body.enable = true;
             p.body.reset(x, y);
-            // 물리 오버랩 바디 크기도 원래 텍스처 크기로 재설정
             p.body.setSize(p.width, p.height);
+            p.body.setOffset(0, 0); // 회전으로 꼬였을 수 있는 오프셋 원점 복구
         }
 
         p.hitEnemies = [];
