@@ -1,44 +1,46 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="w-full max-w-md bg-gray-800 bg-opacity-90 rounded-2xl shadow-2xl p-8 backdrop-blur-md border border-gray-700 relative z-10 mx-4">
-    <div class="mb-8 text-center">
-        <h2 class="text-3xl font-bold text-white tracking-tight">회원가입</h2>
-        <p class="text-gray-400 mt-2 text-sm">가입 즉시 모의투자 자본금 <span class="text-yellow-400 font-bold">5,000만원</span>이 지급됩니다.</p>
+<div class="w-full max-w-sm bg-slate-900/90 rounded-2xl shadow-2xl p-6 backdrop-blur-2xl border border-white/10 relative z-10 mx-4 my-8">
+    <div class="mb-6 text-center">
+        <h2 class="text-2xl font-bold text-white tracking-tight">회원가입</h2>
+        <p class="text-slate-400 mt-1 text-xs">가입 즉시 모의투자 지원금 <span class="text-amber-300 font-semibold font-mono">5,000만원</span>이 지급됩니다.</p>
     </div>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <div class="mb-4 bg-red-500 text-white border border-red-600 px-4 py-3 rounded-lg text-sm font-bold text-center shadow-lg">
+        <div class="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 px-3 py-2 rounded-lg text-xs font-medium text-center">
           {{ messages[0] }}
         </div>
       {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('signup') }}" method="POST" class="space-y-5">
+    <form action="{{ url_for('signup') }}" method="POST" class="space-y-4">
         <div>
-            <label for="username" class="block text-sm font-medium text-gray-400">아이디</label>
-            <input type="text" id="username" name="username" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <label for="username" class="block text-xs font-medium text-slate-300 mb-1">아이디</label>
+            <input type="text" id="username" name="username" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="사용할 아이디 입력">
         </div>
         <div>
-            <label for="name" class="block text-sm font-medium text-gray-400">닉네임 (이름)</label>
-            <input type="text" id="name" name="name" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <label for="name" class="block text-xs font-medium text-slate-300 mb-1">닉네임 (이름)</label>
+            <input type="text" id="name" name="name" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="사용할 닉네임 입력">
         </div>
         <div>
-            <label for="password" class="block text-sm font-medium text-gray-400">비밀번호</label>
-            <input type="password" id="password" name="password" required class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-lg shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+            <label for="password" class="block text-xs font-medium text-slate-300 mb-1">비밀번호</label>
+            <input type="password" id="password" name="password" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="••••••••">
         </div>
         
-        <div class="pt-4">
-            <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-500 hover:to-teal-500 text-white font-bold py-3 px-4 rounded-lg focus:outline-none shadow-lg transform transition hover:-translate-y-0.5">
+        <div class="pt-2">
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg focus:outline-none shadow-md transition-all active:scale-[0.98] text-sm border border-emerald-400/20">
                 가입하고 지원금 받기
             </button>
         </div>
     </form>
-    <div class="mt-6 text-center">
-        <a href="{{ url_for('index') }}" class="text-sm text-gray-400 hover:text-white transition-colors">← 로그인 화면으로 돌아가기</a>
+    
+    <div class="mt-5 text-center">
+        <a href="{{ url_for('index') }}" class="text-xs text-slate-400 hover:text-white transition-colors">← 로그인 화면으로 돌아가기</a>
     </div>
 </div>
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const bgMode = "{{ bg_mode }}";
@@ -48,7 +50,6 @@
             document.body.style.backgroundSize = "cover";
             document.body.style.backgroundPosition = "center";
         } else {
-            // 'fixed' 일 경우 base.html에 지정된 기본 배경(로컬 이미지)이 나타나도록 처리
             document.body.style.backgroundImage = "";
         }
     });

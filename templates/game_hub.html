@@ -1,50 +1,55 @@
 {% extends 'base.html' %}
-{% block body_class %}bg-[#0b0f19]{% endblock %}
+{% block body_class %}bg-slate-950{% endblock %}
 
 {% block content %}
 <style>
-    @font-face { font-family: 'DungGeunMo'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); font-weight: normal; font-style: normal; }
+    @font-face { 
+        font-family: 'DungGeunMo'; 
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff'); 
+        font-weight: normal; 
+        font-style: normal; 
+    }
 
     .hub-wrapper {
         min-height: 80vh;
         padding: 40px 20px;
         color: #e2e8f0;
-        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-    }
-
-    .hub-header {
-        text-align: center;
-        margin-bottom: 50px;
     }
 
     .hub-title {
         font-family: 'DungGeunMo', sans-serif;
-        font-size: 3rem;
-        color: #f59e0b;
-        text-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
-        margin-bottom: 10px;
     }
 
-    .hub-subtitle {
-        font-size: 1.1rem;
-        color: #94a3b8;
-    }
-
-    /* 슬라이더 컨테이너 (모바일 네비게이션 버튼 포함용) */
     .slider-container {
         position: relative;
         max-width: 1100px;
         margin: 0 auto;
     }
 
-    /* 게임 카드 그리드 레이아웃 (PC 기본) */
     .game-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: 30px;
     }
 
-    /* 모바일 네비게이션 버튼 (PC에서는 숨김) */
+    /* 모듈별 호버 트랜지션 및 글로우 효과 복원 */
+    .game-card {
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .game-card:hover {
+        transform: translateY(-6px);
+    }
+
+    .card-img-box img {
+        image-rendering: pixelated;
+        transition: transform 0.3s ease;
+    }
+
+    .game-card:hover .card-img-box img {
+        transform: scale(1.08);
+    }
+
     .nav-btn {
         display: none;
         position: absolute;
@@ -52,19 +57,25 @@
         transform: translateY(-50%);
         z-index: 10;
         background: rgba(15, 23, 42, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         color: white;
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         cursor: pointer;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(8px);
+        transition: all 0.2s ease;
     }
-    .nav-btn.prev { left: -10px; }
-    .nav-btn.next { right: -10px; }
 
-    /* 모바일 환경 대응 (768px 이하) */
+    .nav-btn:hover {
+        background: rgba(30, 41, 59, 0.9);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .nav-btn.prev { left: -12px; }
+    .nav-btn.next { right: -12px; }
+
     @media (max-width: 768px) {
         .nav-btn {
             display: flex;
@@ -77,227 +88,96 @@
             overflow-x: auto;
             scroll-snap-type: x mandatory;
             scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch;
             gap: 16px;
-            padding: 10px 5px;
-            /* 스크롤바 숨기기 */
-            scrollbar-width: none; /* Firefox */
+            padding: 12px 4px;
+            scrollbar-width: none;
         }
         
         .game-grid::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
+            display: none;
         }
 
         .game-card {
-            flex: 0 0 88%; /* 모바일에서 한 카드가 화면 대부분을 차지 */
-            scroll-snap-align: center; /* 스와이프 시 카드가 중앙에 딱 걸리도록 지정 */
+            flex: 0 0 88%;
+            scroll-snap-align: center;
         }
-    }
 
-    /* 모던 다크 카드 디자인 */
-    .game-card {
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(71, 85, 105, 0.5);
-        border-radius: 16px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-        display: flex;
-        flex-direction: column;
-        cursor: pointer;
-        position: relative;
-    }
-
-    .game-card:hover {
-        transform: translateY(-5px);
-        border-color: #3b82f6;
-        box-shadow: 0 10px 30px -10px rgba(59, 130, 246, 0.5);
-    }
-
-    .game-card.accent:hover {
-        border-color: #f59e0b;
-        box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.5);
-    }
-
-    /* 카드 썸네일 영역 */
-    .card-img-box {
-        width: 100%;
-        height: 180px;
-        background: #0f172a;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        border-bottom: 1px solid rgba(71, 85, 105, 0.5);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .card-img-box img {
-        width: 100px;
-        height: 100px;
-        image-rendering: pixelated;
-        transition: transform 0.3s ease;
-        color: transparent;
-    }
-
-    .game-card:hover .card-img-box img {
-        transform: scale(1.1);
-    }
-
-    /* 카드 텍스트 및 버튼 영역 */
-    .card-content {
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-    }
-
-    .card-title {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin-bottom: 10px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .card-desc {
-        font-size: 0.95rem;
-        color: #cbd5e1;
-        line-height: 1.5;
-        margin-bottom: 20px;
-        flex: 1;
-    }
-
-    .card-tags {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 20px;
-    }
-
-    .tag {
-        font-size: 0.75rem;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: #334155;
-        color: #94a3b8;
-    }
-
-    .tag.accent-tag {
-        background: rgba(245, 158, 11, 0.2);
-        color: #fcd34d;
-        border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    /* 플레이 버튼 */
-    .play-btn {
-        width: 100%;
-        padding: 12px;
-        border-radius: 8px;
-        font-weight: 600;
-        text-align: center;
-        transition: all 0.2s ease;
-        border: none;
-    }
-
-    .btn-active {
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        color: white;
-        cursor: pointer;
-    }
-
-    .game-card.accent .btn-active {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-    }
-
-    .btn-locked {
-        background: #334155;
-        color: #94a3b8;
-        cursor: not-allowed;
-    }
-
-    /* 잠긴 게임 (Coming Soon) 처리 */
-    .game-card.locked {
-        cursor: not-allowed;
-    }
-    .game-card.locked:hover {
-        transform: none;
-        border-color: rgba(71, 85, 105, 0.5);
-        box-shadow: none;
-    }
-    .game-card.locked img,
-    .game-card.locked .card-img-box div {
-        filter: grayscale(100%) opacity(0.4);
+        .game-card:hover {
+            transform: none;
+        }
     }
 </style>
 
-<div class="hub-wrapper">
-    <div class="hub-header">
-        <h1 class="hub-title">NCS ARCADE</h1>
-        <p class="hub-subtitle">{{ username }}님, 플레이할 미니게임을 선택해 주세요!</p>
+<div class="hub-wrapper w-full">
+    <div class="text-center mb-12">
+        <h1 class="hub-title text-4xl md:text-5xl text-amber-400 tracking-wider mb-2 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]">NCS ARCADE</h1>
+        <p class="text-xs md:text-sm text-slate-400 font-sans">{{ username }}님, 플레이할 아케이드 게임을 선택해 주세요.</p>
     </div>
 
     <div class="slider-container">
-        <!-- 모바일 이동 버튼 -->
         <button class="nav-btn prev" onclick="scrollSlider(-1)">&#10094;</button>
         <button class="nav-btn next" onclick="scrollSlider(1)">&#10095;</button>
 
         <div class="game-grid" id="gameGrid">
             <!-- 1. 타워 디펜스 게임 -->
-            <div class="game-card accent" onclick="location.href='/game/tower'">
-                <div class="card-img-box">
-                    <img src="/static/img/tower/krx.png" alt="KRX Defense">
+            <div class="game-card bg-slate-900/90 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md shadow-xl flex flex-col cursor-pointer hover:border-amber-400/50 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.3)]" onclick="location.href='/game/tower'">
+                <div class="card-img-box w-full h-48 bg-slate-950 flex justify-center items-center border-b border-white/5 relative overflow-hidden">
+                    <img src="/static/img/tower/krx.png" alt="KRX Defense" class="w-24 h-24 object-contain">
                 </div>
-                <div class="card-content">
-                    <div class="card-title">🛡️ Stock Defense</div>
-                    <div class="card-tags">
-                        <span class="tag accent-tag">전략 디펜스(dev)</span>
-                        <span class="tag">난이도: 어려움</span>
+                <div class="p-6 flex flex-col flex-1 font-sans">
+                    <div class="text-lg font-bold text-white mb-2 tracking-tight">
+                        Stock Defense
                     </div>
-                    <div class="card-desc">
-                        몰려오는 개미투자자를 막아내고 한국거래소를 사수하라!<br>
+                    <div class="flex gap-2 mb-3">
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono">전략 디펜스(dev)</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">난이도: 어려움</span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-5 flex-1">
+                        몰려오는 개미투자자를 막아내고 한국거래소를 사수하라.<br>
                         우량주 합병과 무기 강화를 통한 극한의 생존 게임.
-                    </div>
-                    <button class="play-btn btn-active">게임 시작하기</button>
+                    </p>
+                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs transition-all shadow-md active:scale-[0.98]">게임 시작하기</button>
                 </div>
             </div>
 
-            <!-- 2. NCS SURVIVE (기본 포커스 target) -->
-            <div class="game-card" id="surviveCard" onclick="location.href='/game/survive'">    
-                <div class="card-img-box">
-                    <img src="/static/img/survive/main_mini.png" alt="NCS SURVIVE" style="width: 100%; height: 100%; object-fit: cover;">
+            <!-- 2. NCS SURVIVE -->
+            <div class="game-card bg-slate-900/90 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md shadow-xl flex flex-col cursor-pointer hover:border-indigo-400/50 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.3)]" id="surviveCard" onclick="location.href='/game/survive'">    
+                <div class="card-img-box w-full h-48 bg-slate-950 flex justify-center items-center border-b border-white/5 relative overflow-hidden">
+                    <img src="/static/img/survive/main_mini.png" alt="NCS SURVIVE" class="w-full h-full object-cover">
                 </div>
-                <div class="card-content">
-                    <div class="card-title">🗡️ NCS SURVIVE 0.8</div>
-                    <div class="card-tags">
-                        <span class="tag accent-tag">서바이벌</span>
-                        <span class="tag">난이도 : 극악</span>
+                <div class="p-6 flex flex-col flex-1 font-sans">
+                    <div class="text-lg font-bold text-white mb-2 tracking-tight">
+                        NCS SURVIVE 0.8
                     </div>
-                    <div class="card-desc">
-                        몰려오는 몬스터들을 물리치고 한계까지 살아남으세요!<br>
-                        무기를 진화시키고 강력한 보스를 처치해 스킬을 빼앗으세요!
+                    <div class="flex gap-2 mb-3">
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 font-mono">서바이벌</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">난이도: 극악</span>
                     </div>
-                    <button class="play-btn btn-active">게임 시작하기</button>
+                    <p class="text-xs text-slate-300 leading-relaxed mb-5 flex-1">
+                        몰려오는 몬스터들을 물리치고 한계까지 살아남으세요.<br>
+                        무기를 진화시키고 강력한 보스를 처치해 스킬을 빼앗으세요.
+                    </p>
+                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs transition-all shadow-md active:scale-[0.98]">게임 시작하기</button>
                 </div>
             </div>
 
-            <!-- 3. 시뮬레이터 -->
-            <div class="game-card locked">
-                <div class="card-img-box">
-                    <div style="font-size: 3rem; opacity: 0.5;"> ^^ </div>
+            <!-- 3. 시뮬레이터 (Coming Soon) -->
+            <div class="game-card bg-slate-900/40 rounded-2xl border border-white/5 overflow-hidden backdrop-blur-md flex flex-col cursor-not-allowed opacity-60">
+                <div class="card-img-box w-full h-48 bg-slate-950/40 flex justify-center items-center border-b border-white/5 font-mono text-slate-600 text-3xl">
+                    ^^
                 </div>
-                <div class="card-content">
-                    <div class="card-title">(Coming Soon)</div>
-                    <div class="card-tags">
-                        <span class="tag">방치형</span>
-                        <span class="tag">시뮬레이션</span>
+                <div class="p-6 flex flex-col flex-1 font-sans">
+                    <div class="text-lg font-bold text-slate-400 mb-2 tracking-tight">
+                        (Coming Soon)
                     </div>
-                    <div class="card-desc">
-                        칭찬양파/비난양파 유사과학인가 진짜인가 그 진실을 파해친다.
+                    <div class="flex gap-2 mb-3">
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-500 font-mono">방치형</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-500 font-mono">시뮬레이션</span>
                     </div>
-                    <button class="play-btn btn-locked">업데이트 예정</button>
+                    <p class="text-xs text-slate-500 leading-relaxed mb-5 flex-1">
+                        칭찬양파/비난양파 유사과학인가 진짜인가 그 진실을 파헤친다.
+                    </p>
+                    <button class="w-full py-3 rounded-lg bg-slate-800 text-slate-500 font-medium text-xs cursor-not-allowed">업데이트 예정</button>
                 </div>
             </div>
         </div>
@@ -305,7 +185,6 @@
 </div>
 
 <script>
-    // 페이지 로드 시 모바일 화면이면 2번째 카드(NCS SURVIVE)로 자동 이동
     window.addEventListener('DOMContentLoaded', () => {
         if (window.innerWidth <= 768) {
             const surviveCard = document.getElementById('surviveCard');
@@ -315,11 +194,13 @@
         }
     });
 
-    // 화살표 버튼 클릭 시 슬라이드 이동 함수
     function scrollSlider(direction) {
         const grid = document.getElementById('gameGrid');
-        const cardWidth = grid.querySelector('.game-card').offsetWidth + 16; // 카드 폭 + gap
-        grid.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+        const card = grid.querySelector('.game-card');
+        if (card) {
+            const cardWidth = card.offsetWidth + 16;
+            grid.scrollBy({ left: direction * cardWidth, behavior: 'smooth' });
+        }
     }
 </script>
 {% endblock %}

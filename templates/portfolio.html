@@ -1,26 +1,25 @@
 {% extends 'base.html' %}
 
-{% block body_class %}bg-[#0b101a]{% endblock %}
+{% block body_class %}bg-slate-950{% endblock %}
 {% block footer %}{% endblock %}
 
 {% block content %}
-<div class="w-full min-h-screen flex flex-col relative z-10 pb-20 md:pb-0">
-        <div class="max-w-5xl mx-auto w-full px-4 py-6 space-y-6 flex-grow">
+<div class="w-full min-h-[100dvh] flex flex-col relative z-10 pb-20 md:pb-6">
+    <div class="max-w-6xl mx-auto w-full px-4 py-6 space-y-6 flex-grow">
         <!-- 요약 영역 -->
-        <div class="bg-gray-800/50 rounded-2xl border border-gray-700/50 p-6 shadow-xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+        <div class="bg-slate-900/90 rounded-2xl border border-white/10 p-6 shadow-xl relative overflow-hidden backdrop-blur-md">
             <div class="relative z-10">
-                <p class="text-gray-400 text-sm mb-1">{{ user.NAME }}님의 총 자산</p>
-                <h2 class="text-3xl md:text-4xl font-black text-white tracking-tight">{{ "{:,.0f}".format(total_asset) }}<span class="text-lg text-gray-400 font-normal ml-1">원</span></h2>
+                <p class="text-slate-400 text-xs mb-1">{{ user.NAME }}님의 총 자산</p>
+                <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight font-mono">{{ "{:,.0f}".format(total_asset) }}<span class="text-base text-slate-400 font-normal font-sans ml-1">원</span></h2>
                 
-                <div class="grid grid-cols-2 gap-4 mt-6 border-t border-gray-700/50 pt-6">
+                <div class="grid grid-cols-2 gap-4 mt-6 border-t border-white/5 pt-5">
                     <div>
-                        <p class="text-xs text-gray-500 mb-1">보유 현금</p>
-                        <p class="text-lg font-bold text-gray-200">{{ "{:,.0f}".format(user.CASH_BALANCE) }}원</p>
+                        <p class="text-[10px] text-slate-500 mb-0.5">보유 현금</p>
+                        <p class="text-base font-bold text-slate-200 font-mono">{{ "{:,.0f}".format(user.CASH_BALANCE) }}원</p>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500 mb-1">주식 평가금액</p>
-                        <p class="text-lg font-bold text-gray-200">{{ "{:,.0f}".format(stock_value) }}원</p>
+                        <p class="text-[10px] text-slate-500 mb-0.5">주식 평가금액</p>
+                        <p class="text-base font-bold text-slate-200 font-mono">{{ "{:,.0f}".format(stock_value) }}원</p>
                     </div>
                 </div>
             </div>
@@ -29,54 +28,53 @@
         <!-- 보유 주식 목록 -->
         <div>
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-white">보유 종목 <span class="text-green-400 ml-1">{{ portfolio_data|length }}</span></h3>
-                <span class="text-[10px] text-gray-500">업데이트: {{ update_time }}</span>
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                    보유 종목 <span class="text-indigo-400 font-mono">{{ portfolio_data|length }}</span>
+                </h3>
+                <span class="text-[10px] text-slate-500 font-mono">업데이트: {{ update_time }}</span>
             </div>
 
             {% if portfolio_data|length == 0 %}
-            <div class="bg-gray-800/30 rounded-xl border border-gray-700/50 p-10 text-center flex flex-col items-center">
-                <span class="text-4xl mb-3 opacity-50">💼</span>
-                <p class="text-gray-400">보유 중인 주식이 없습니다.</p>
-                <a href="{{ url_for('trade') }}" class="mt-4 bg-blue-600/20 text-blue-400 border border-blue-600/50 hover:bg-blue-600/40 transition px-6 py-2 rounded-full text-sm font-bold">주식 거래하러 가기</a>
+            <div class="bg-slate-900/60 rounded-2xl border border-white/10 p-12 text-center flex flex-col items-center">
+                <svg class="w-10 h-10 text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                <p class="text-slate-400 text-xs">보유 중인 주식이 없습니다.</p>
+                <a href="{{ url_for('trade') }}" class="mt-4 bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30 transition px-5 py-2 rounded-lg text-xs font-medium">주식 거래하러 가기</a>
             </div>
             {% else %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {% for item in portfolio_data %}
-                <div class="bg-[#1a2234]/80 rounded-xl border border-gray-700/50 p-5 shadow-lg hover:border-gray-600 transition group relative overflow-hidden">
-                    <!-- 배경 장식 효과 -->
-                    <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-gradient-to-br {% if item.profit_rate > 0 %}from-red-500/5{% elif item.profit_rate < 0 %}from-blue-500/5{% else %}from-gray-500/5{% endif %} rounded-full blur-2xl pointer-events-none"></div>
-                    
+                <div class="bg-slate-900/90 rounded-2xl border border-white/10 p-5 shadow-xl hover:border-white/20 transition-all group relative overflow-hidden backdrop-blur-md">
                     <div class="flex justify-between items-start mb-4 relative z-10">
                         <div class="cursor-pointer" onclick="location.href='/trade?code={{ item.code }}'">
-                            <h4 class="text-lg font-bold text-white group-hover:text-blue-400 transition">{{ item.name }}</h4>
-                            <span class="text-xs text-gray-500">{{ item.code }}</span>
+                            <h4 class="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">{{ item.name }}</h4>
+                            <span class="text-[10px] text-slate-500 font-mono">{{ item.code }}</span>
                         </div>
                         
-                        <!-- AI 감정 버튼 (요청하신 디자인 반영: 아이콘 없음, 로고색상 테마) -->
-                        <button type="button" onclick="openAIAnalysis('{{ item.name }}', {{ item.avg_price }}, {{ item.curr_price }}, {{ item.qty }}, {{ item.profit_rate }})" class="bg-purple-900/40 text-purple-300 border border-purple-700/50 hover:bg-purple-800/60 hover:text-white transition-all px-3 py-1.5 rounded-lg text-xs font-bold shadow-md whitespace-nowrap active:scale-95">
+                        <button type="button" onclick="openAIAnalysis('{{ item.name }}', {{ item.avg_price }}, {{ item.curr_price }}, {{ item.qty }}, {{ item.profit_rate }})" class="bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all px-3 py-1.5 rounded-lg text-xs font-medium shadow-sm active:scale-95 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             AI 감정
                         </button>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-y-3 relative z-10">
+                    <div class="grid grid-cols-2 gap-y-3 relative z-10 text-xs font-mono">
                         <div>
-                            <p class="text-[10px] text-gray-500">매수 단가</p>
-                            <p class="text-sm font-medium text-gray-300">{{ "{:,.0f}".format(item.avg_price) }}원</p>
+                            <p class="text-[10px] text-slate-500 font-sans">매수 단가</p>
+                            <p class="font-medium text-slate-300">{{ "{:,.0f}".format(item.avg_price) }}원</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-[10px] text-gray-500">현재가</p>
-                            <p class="text-sm font-medium text-gray-300">{{ "{:,.0f}".format(item.curr_price) }}원</p>
+                            <p class="text-[10px] text-slate-500 font-sans">현재가</p>
+                            <p class="font-medium text-slate-300">{{ "{:,.0f}".format(item.curr_price) }}원</p>
                         </div>
                         <div>
-                            <p class="text-[10px] text-gray-500">보유 수량</p>
-                            <p class="text-sm font-medium text-gray-300">{{ "{:,.0f}".format(item.qty) }}주</p>
+                            <p class="text-[10px] text-slate-500 font-sans">보유 수량</p>
+                            <p class="font-medium text-slate-300">{{ "{:,.0f}".format(item.qty) }}주</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-[10px] text-gray-500">수익률 / 손익</p>
-                            <p class="text-sm font-bold {% if item.profit_rate > 0 %}text-red-500{% elif item.profit_rate < 0 %}text-blue-500{% else %}text-gray-400{% endif %}">
+                            <p class="text-[10px] text-slate-500 font-sans">수익률 / 손익</p>
+                            <p class="font-bold {% if item.profit_rate > 0 %}text-rose-400{% elif item.profit_rate < 0 %}text-blue-400{% else %}text-slate-400{% endif %}">
                                 {% if item.profit_rate > 0 %}+{% endif %}{{ "%.2f"|format(item.profit_rate) }}%
                             </p>
-                            <p class="text-[10px] {% if item.profit > 0 %}text-red-400{% elif item.profit < 0 %}text-blue-400{% else %}text-gray-500{% endif %}">
+                            <p class="text-[10px] {% if item.profit > 0 %}text-rose-400/80{% elif item.profit < 0 %}text-blue-400/80{% else %}text-slate-500{% endif %}">
                                 {% if item.profit > 0 %}+{% endif %}{{ "{:,.0f}".format(item.profit) }}원
                             </p>
                         </div>
@@ -90,27 +88,24 @@
 </div>
 
 <!-- AI 진단 모달 팝업 -->
-<div id="ai-analysis-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-opacity">
-    <div class="bg-[#121824] rounded-2xl border border-gray-700/80 w-full max-w-lg shadow-[0_0_40px_rgba(168,85,247,0.15)] relative overflow-hidden flex flex-col max-h-[85vh]">
-        <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900/80 relative z-10">
-            <!-- 팝업 제목에서도 아이콘 제거 및 깔끔하게 텍스트만 표시 -->
-            <h3 class="text-lg font-bold text-white flex items-center">
-                <span id="ai-stock-name" class="text-purple-400 mr-1">종목명</span> AI 감정
+<div id="ai-analysis-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex-col items-center justify-center p-4 transition-opacity">
+    <div class="bg-slate-900 rounded-2xl border border-white/10 w-full max-w-lg shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
+        <div class="p-4 border-b border-white/5 flex justify-between items-center bg-slate-950/50 relative z-10">
+            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                <span id="ai-stock-name" class="text-indigo-400">종목명</span> AI 감정
             </h3>
-            <button onclick="closeAIAnalysis()" class="text-gray-400 hover:text-white transition cursor-pointer z-50 p-1">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            <button onclick="closeAIAnalysis()" class="text-slate-400 hover:text-white transition cursor-pointer p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
         
-        <div id="ai-analysis-content" class="p-6 overflow-y-auto flex-grow relative z-10 text-sm leading-relaxed text-gray-200">
-            <!-- 로딩 애니메이션 -->
-            <div id="ai-loading" class="flex flex-col items-center justify-center py-10">
-                <div class="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p class="text-purple-400 font-bold animate-pulse">수석 펀드매니저가 포트폴리오를 분석 중입니다...</p>
-                <p class="text-xs text-gray-500 mt-2">최근 이슈와 수익률 데이터를 연산 중...</p>
+        <div id="ai-analysis-content" class="p-5 overflow-y-auto flex-grow relative z-10 text-xs leading-relaxed text-slate-200">
+            <div id="ai-loading" class="flex flex-col items-center justify-center py-8">
+                <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <p class="text-indigo-400 font-medium animate-pulse">포트폴리오 데이터를 분석 중입니다...</p>
+                <p class="text-[10px] text-slate-500 mt-1">최근 이슈 및 수익률 연산 진행 중</p>
             </div>
-            <!-- 결과 출력 영역 -->
-            <div id="ai-result" class="hidden space-y-4"></div>
+            <div id="ai-result" class="hidden space-y-3"></div>
         </div>
     </div>
 </div>
@@ -129,8 +124,7 @@
         loadingDiv.classList.remove('hidden');
         loadingDiv.classList.add('flex');
 
-        // AI에게 전달할 비공개 프롬프트 (자동 생성)
-        const prompt = `당신은 월스트리트 출신의 수석 펀드매니저입니다. 내 포트폴리오 종목 하나를 분석해 주셔야 합니다.\n[내 투자 정보]\n- 종목명: ${name}\n- 매수 단가 (평단가): ${avgPrice.toLocaleString()}원\n- 현재가: ${currPrice.toLocaleString()}원\n- 보유 수량: ${qty.toLocaleString()}주\n- 현재 수익률: ${profitRate.toFixed(2)}%\n\n이 데이터를 바탕으로 현재 상황을 진단하고, 앞으로의 투자 방향(홀딩, 추가 매수, 부분 매도, 전량 매도 등)을 전문가적 관점에서 300자 이내로 명쾌하게 조언해 주세요.`;
+        const prompt = `당신은 수석 펀드매니저입니다. 내 포트폴리오 종목 하나를 분석해 주셔야 합니다.\n[내 투자 정보]\n- 종목명: ${name}\n- 매수 단가 (평단가): ${avgPrice.toLocaleString()}원\n- 현재가: ${currPrice.toLocaleString()}원\n- 보유 수량: ${qty.toLocaleString()}주\n- 현재 수익률: ${profitRate.toFixed(2)}%\n\n이 데이터를 바탕으로 현재 상황을 진단하고, 앞으로의 투자 방향(홀딩, 추가 매수, 부분 매도, 전량 매도 등)을 전문가적 관점에서 300자 이내로 명쾌하게 조언해 주세요.`;
 
         fetch('/api/ai/chat', {
             method: 'POST',
@@ -147,18 +141,18 @@
             resultDiv.classList.remove('hidden');
             
             if(data.error) {
-                resultDiv.innerHTML = `<p class="text-red-400 font-bold">오류 발생: ${data.error}</p>`;
+                resultDiv.innerHTML = `<p class="text-rose-400 font-medium">오류 발생: ${data.error}</p>`;
             } else {
                 let formattedText = data.reply.replace(/\n/g, '<br>');
-                formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<span class="text-purple-300 font-bold">$1</span>');
-                resultDiv.innerHTML = `<div class="bg-gray-800/80 p-5 rounded-xl border border-gray-700 shadow-inner text-gray-300 tracking-wide">${formattedText}</div>`;
+                formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<span class="text-indigo-300 font-semibold">$1</span>');
+                resultDiv.innerHTML = `<div class="bg-slate-950/60 p-4 rounded-xl border border-white/5 text-slate-300">${formattedText}</div>`;
             }
         })
         .catch(err => {
             loadingDiv.classList.add('hidden');
             loadingDiv.classList.remove('flex');
             resultDiv.classList.remove('hidden');
-            resultDiv.innerHTML = `<p class="text-red-400 font-bold">서버 통신 중 오류가 발생했습니다.</p>`;
+            resultDiv.innerHTML = `<p class="text-rose-400 font-medium">서버 통신 중 오류가 발생했습니다.</p>`;
         });
     }
 
