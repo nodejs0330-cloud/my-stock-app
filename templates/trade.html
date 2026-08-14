@@ -1,100 +1,100 @@
 {% extends 'base.html' %}
-{% block body_class %}bg-slate-950{% endblock %}
+{% block body_class %}bg-[#f4f4f5]{% endblock %}
 {% block footer %}{% endblock %}
 
 {% block content %}
 <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
 
 <div class="w-full min-h-[100dvh] flex flex-col relative z-10 pb-20 md:pb-6">
-    <div class="w-full max-w-6xl mx-auto p-4 flex-grow grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
+    <div class="w-full max-w-6xl mx-auto p-4 flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         
-        <!-- 왼쪽 컨텐츠 (검색, 차트, 토론방) -->
+        <!-- 왼쪽 영역 (검색, 차트, 토론방) -->
         <div class="md:col-span-2 space-y-4">
             
-            <!-- 종목 검색창 -->
-            <div class="bg-slate-900/90 rounded-2xl border border-white/10 p-3.5 relative shadow-xl backdrop-blur-md z-30">
+            <!-- 검색창 -->
+            <div class="bg-white rounded-2xl border border-[#e4e4e7] p-3 relative shadow-sm z-30">
                 <div class="relative">
-                    <input type="text" id="search-input" placeholder="종목명 또는 코드 검색 (예: 삼성전자)" autocomplete="off" class="w-full bg-slate-950 border border-white/10 text-white text-sm rounded-xl py-2.5 pl-3.5 pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder-slate-500 transition-all">
-                    <button id="search-btn" class="absolute right-2 top-1.5 bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg transition-colors flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" id="search-input" placeholder="종목명 또는 코드 검색 (예: 삼성전자)" autocomplete="off" class="w-full bg-[#f4f4f5] border border-[#e4e4e7] text-[#09090b] text-xs rounded-xl py-2.5 pl-3.5 pr-10 focus:outline-none focus:ring-1 focus:ring-[#18181b] placeholder-[#a1a1aa] transition-all">
+                    <button id="search-btn" class="absolute right-1.5 top-1.5 bg-[#18181b] hover:bg-[#27272a] text-white p-2 rounded-lg transition-colors flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </button>
                 </div>
-                <ul id="search-results" class="absolute left-0 right-0 bg-slate-900 border border-white/10 rounded-xl mt-1 hidden max-h-60 overflow-y-auto shadow-2xl z-50"></ul>
+                <ul id="search-results" class="absolute left-0 right-0 bg-white border border-[#e4e4e7] rounded-xl mt-1 hidden max-h-60 overflow-y-auto shadow-xl z-50"></ul>
             </div>
 
-            <!-- 차트 패널 영역 -->
-            <div class="bg-slate-900/90 rounded-2xl border border-white/10 p-4 shadow-xl min-h-[420px] flex flex-col relative overflow-hidden backdrop-blur-md">
-                <div id="stock-loading-spinner" class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
-                    <div class="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent mb-2"></div>
-                    <p class="text-indigo-400 font-medium animate-pulse text-xs">시세 실시간 데이터 조회 중...</p>
+            <!-- 차트 패널 -->
+            <div class="bg-white rounded-2xl border border-[#e4e4e7] p-4 shadow-sm min-h-[420px] flex flex-col relative overflow-hidden">
+                <div id="stock-loading-spinner" class="absolute inset-0 bg-white/80 backdrop-blur-xs z-50 hidden flex-col items-center justify-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-2 border-[#18181b] border-t-transparent mb-2"></div>
+                    <p class="text-[#09090b] font-medium animate-pulse text-xs">시세 실시간 데이터 조회 중...</p>
                 </div>
 
-                <div id="stock-header" class="mb-4 hidden justify-between items-end border-b border-white/5 pb-3">
+                <div id="stock-header" class="mb-4 hidden justify-between items-end border-b border-[#e4e4e7] pb-3">
                     <div>
                         <div class="flex items-center gap-2">
-                            <h2 id="stock-name" class="text-xl font-bold text-white leading-none"></h2>
-                            <span id="stock-code" class="text-slate-400 text-xs font-mono"></span>
+                            <h2 id="stock-name" class="text-xl font-bold text-[#09090b] leading-none"></h2>
+                            <span id="stock-code" class="text-[#71717a] text-xs font-mono"></span>
                         </div>
-                        <span id="data-source-badge" class="mt-1 inline-block text-[10px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded border border-white/5 font-mono"></span>
+                        <span id="data-source-badge" class="mt-1 inline-block text-[10px] bg-[#f4f4f5] text-[#71717a] px-1.5 py-0.5 rounded border border-[#e4e4e7] font-mono"></span>
                     </div>
                     <div class="text-right">
-                        <div id="stock-price" class="text-2xl font-bold text-white tracking-tight"></div>
-                        <div id="stock-change" class="text-xs font-medium"></div>
+                        <div id="stock-price" class="text-2xl font-bold text-[#09090b] tracking-tight font-mono"></div>
+                        <div id="stock-change" class="text-xs font-medium font-mono"></div>
                     </div>
                 </div>
                 
                 <div id="chart-container" class="flex-grow w-full relative min-h-[300px]">
-                    <div id="chart-placeholder" class="absolute inset-0 flex items-center justify-center text-slate-500 text-xs">상단 검색창에서 종목을 선택해 주세요.</div>
+                    <div id="chart-placeholder" class="absolute inset-0 flex items-center justify-center text-[#71717a] text-xs">상단 검색창에서 종목을 선택해 주세요.</div>
                 </div>
             </div>
 
             <!-- 토론방 영역 -->
-            <div id="discussion-board" class="hidden bg-slate-900/90 rounded-2xl border border-white/10 p-4 shadow-xl backdrop-blur-md">
-                <h3 class="text-white font-bold text-sm mb-3 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
+            <div id="discussion-board" class="hidden bg-white rounded-2xl border border-[#e4e4e7] p-4 shadow-sm">
+                <h3 class="text-[#09090b] font-bold text-xs mb-3 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-[#09090b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
                     종목 토론방
                 </h3>
                 <div class="flex space-x-2 mb-3">
-                    <input type="text" id="comment-input" class="flex-grow bg-slate-950 border border-white/10 text-white text-xs rounded-lg py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="이 종목에 대한 의견을 남겨주세요.">
-                    <button id="comment-send" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 rounded-lg text-xs transition-colors">등록</button>
+                    <input type="text" id="comment-input" class="flex-grow bg-[#f4f4f5] border border-[#e4e4e7] text-[#09090b] text-xs rounded-lg py-2 px-3 focus:outline-none focus:ring-1 focus:ring-[#18181b]" placeholder="이 종목에 대한 의견을 남겨주세요.">
+                    <button id="comment-send" class="bg-[#18181b] hover:bg-[#27272a] text-white font-medium px-4 rounded-lg text-xs transition-colors">등록</button>
                 </div>
                 <div id="comment-list" class="space-y-2 max-h-60 overflow-y-auto pr-1 text-xs"></div>
             </div>
         </div>
 
-        <!-- 오른쪽 매수/매도 주문 패널 -->
+        <!-- 오른쪽 주문 패널 -->
         <div class="md:col-span-1 space-y-4 md:sticky md:top-20">
-            <div class="bg-slate-900/90 rounded-2xl border border-white/10 p-4 shadow-xl backdrop-blur-md">
+            <div class="bg-white rounded-2xl border border-[#e4e4e7] p-4 shadow-sm">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-white font-bold text-sm">주문하기</h3>
-                    <p class="text-xs text-slate-400">주문가능: <span id="user-cash" class="text-amber-300 font-bold font-mono">{{ "{:,.0f}".format(user.CASH_BALANCE) }}원</span></p>
+                    <h3 class="text-[#09090b] font-bold text-xs">주문하기</h3>
+                    <p class="text-xs text-[#71717a]">주문가능: <span id="user-cash" class="text-[#09090b] font-bold font-mono">{{ "{:,.0f}".format(user.CASH_BALANCE) }}원</span></p>
                 </div>
-                <div class="flex rounded-lg bg-slate-950 p-1 mb-4 border border-white/5">
-                    <button id="tab-buy" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-rose-500 text-white transition-all shadow-sm">매수</button>
-                    <button id="tab-sell" class="flex-1 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all">매도</button>
+                <div class="flex rounded-lg bg-[#f4f4f5] p-1 mb-4 border border-[#e4e4e7]">
+                    <button id="tab-buy" class="flex-1 py-1.5 text-xs font-bold rounded-md bg-[#18181b] text-white transition-all shadow-sm">매수</button>
+                    <button id="tab-sell" class="flex-1 py-1.5 text-xs font-bold rounded-md text-[#71717a] hover:text-[#09090b] transition-all">매도</button>
                 </div>
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="block text-slate-400 mb-1">단가 (현재가 기준)</label>
-                        <input type="text" id="order-price" readonly value="0" class="w-full bg-slate-950 border border-white/10 text-white text-right font-mono rounded-lg py-2 px-3 focus:outline-none">
+                        <label class="block text-[#71717a] mb-1">단가 (현재가 기준)</label>
+                        <input type="text" id="order-price" readonly value="0" class="w-full bg-[#f4f4f5] border border-[#e4e4e7] text-[#09090b] text-right font-mono rounded-lg py-2 px-3 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-slate-400 mb-1 flex justify-between">
-                            <span>수량</span><span id="holding-qty-text" class="text-indigo-400 font-mono hidden">보유: 0주</span>
+                        <label class="block text-[#71717a] mb-1 flex justify-between">
+                            <span>수량</span><span id="holding-qty-text" class="text-[#09090b] font-mono hidden">보유: 0주</span>
                         </label>
                         <div class="flex">
-                            <button id="qty-minus" class="bg-slate-800 text-white px-3 rounded-l-lg border border-white/10 hover:bg-slate-700 transition-colors">-</button>
-                            <input type="number" id="order-qty" value="1" min="1" class="w-full bg-slate-950 border-y border-white/10 text-white text-center font-mono py-2 focus:outline-none">
-                            <button id="qty-plus" class="bg-slate-800 text-white px-3 rounded-r-lg border border-white/10 hover:bg-slate-700 transition-colors">+</button>
+                            <button id="qty-minus" class="bg-[#f4f4f5] text-[#09090b] px-3 rounded-l-lg border border-[#e4e4e7] hover:bg-[#e4e4e7] transition-colors">-</button>
+                            <input type="number" id="order-qty" value="1" min="1" class="w-full bg-[#f4f4f5] border-y border-[#e4e4e7] text-[#09090b] text-center font-mono py-2 focus:outline-none">
+                            <button id="qty-plus" class="bg-[#f4f4f5] text-[#09090b] px-3 rounded-r-lg border border-[#e4e4e7] hover:bg-[#e4e4e7] transition-colors">+</button>
                         </div>
                     </div>
-                    <div class="pt-3 border-t border-white/5 flex justify-between items-center">
-                        <span class="text-slate-400">주문금액</span><span id="order-total" class="text-base font-bold text-white font-mono">0원</span>
+                    <div class="pt-3 border-t border-[#e4e4e7] flex justify-between items-center">
+                        <span class="text-[#71717a]">주문금액</span><span id="order-total" class="text-base font-bold text-[#09090b] font-mono">0원</span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-slate-500 text-[10px]" id="fee-label">예상 수수료 (0.015%)</span><span id="order-fee" class="text-slate-400 font-mono">0원</span>
+                        <span class="text-[#71717a] text-[10px]" id="fee-label">예상 수수료 (0.015%)</span><span id="order-fee" class="text-[#71717a] font-mono">0원</span>
                     </div>
-                    <button id="submit-order-btn" disabled class="w-full py-2.5 rounded-lg font-bold text-white bg-slate-800 text-xs cursor-not-allowed transition-all mt-2 border border-white/5">종목을 검색해주세요</button>
+                    <button id="submit-order-btn" disabled class="w-full py-2.5 rounded-xl font-bold text-white bg-[#a1a1aa] text-xs cursor-not-allowed transition-all mt-2 border border-[#a1a1aa]">종목을 검색해주세요</button>
                 </div>
             </div>
             
@@ -107,53 +107,55 @@
             </div>
         </div>
 
-        <!-- 최근 이슈 전용 섹션 -->
-        <div id="recent-issues-section" class="hidden md:col-span-2 bg-slate-900/90 rounded-2xl border border-white/10 p-4 shadow-xl backdrop-blur-md">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 mb-3 border-b border-white/5 gap-2">
-                <h3 class="text-white font-bold text-sm flex items-center gap-2">
-                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6m-6 4h6"/></svg>
+        <!-- 최근 이슈 섹션 -->
+        <div id="recent-issues-section" class="hidden md:col-span-2 bg-white rounded-2xl border border-[#e4e4e7] p-4 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-3 mb-3 border-b border-[#e4e4e7] gap-2">
+                <h3 class="text-[#09090b] font-bold text-xs flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-[#09090b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6m-6 4h6"/></svg>
                     최근 이슈
                 </h3>
-                <div class="flex items-center justify-between w-full sm:w-auto space-x-3 text-[11px] text-slate-400">
-                    <span>출처: <b id="news-source-text" class="text-slate-300">네이버 금융</b></span>
-                    <span id="news-updated-time" class="font-mono text-slate-500"></span>
+                <div class="flex items-center justify-between w-full sm:w-auto space-x-3 text-[10px] text-[#71717a]">
+                    <span>출처: <b id="news-source-text" class="text-[#09090b]">네이버 금융</b></span>
+                    <span id="news-updated-time" class="font-mono text-[#71717a]"></span>
                 </div>
             </div>
             <div id="news-list" class="space-y-2 min-h-[140px]"></div>
-            <div id="news-pagination" class="hidden flex justify-between items-center pt-3 mt-2 border-t border-white/5 text-xs text-slate-400 font-mono">
-                <button id="news-prev" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition border border-white/5">◀ 이전</button>
-                <span id="news-page-info" class="font-bold text-indigo-400">1 / 1</span>
-                <button id="news-next" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md disabled:opacity-30 disabled:cursor-not-allowed transition border border-white/5">다음 ▶</button>
+            <div id="news-pagination" class="hidden flex justify-between items-center pt-3 mt-2 border-t border-[#e4e4e7] text-xs text-[#71717a] font-mono">
+                <button id="news-prev" class="px-3 py-1 bg-[#f4f4f5] hover:bg-[#e4e4e7] text-[#09090b] rounded-md disabled:opacity-30 border border-[#e4e4e7] transition">◀ 이전</button>
+                <span id="news-page-info" class="font-bold text-[#09090b]">1 / 1</span>
+                <button id="news-next" class="px-3 py-1 bg-[#f4f4f5] hover:bg-[#e4e4e7] text-[#09090b] rounded-md disabled:opacity-30 border border-[#e4e4e7] transition">다음 ▶</button>
             </div>
         </div>
 
-        <!-- AI 종목 분석 섹션 -->
-        <div id="ai-analysis-section" class="hidden md:col-span-2 bg-slate-900/90 rounded-2xl border border-indigo-500/30 p-4 shadow-xl relative overflow-hidden backdrop-blur-md">
-            <h3 class="text-white font-bold text-sm flex items-center mb-3 gap-2">
-                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <!-- AI 분석 섹션 -->
+        <div id="ai-analysis-section" class="hidden md:col-span-2 bg-white rounded-2xl border border-[#e4e4e7] p-4 shadow-sm relative overflow-hidden">
+            <h3 class="text-[#09090b] font-bold text-xs flex items-center mb-3 gap-1.5">
+                <svg class="w-4 h-4 text-[#09090b]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                 AI 종목 분석
             </h3>
-            <div id="ai-analysis-content" class="text-xs text-slate-300 leading-relaxed min-h-[70px]"></div>
-            <div class="text-[10px] text-slate-500 text-right mt-2 pt-2 border-t border-white/5 font-mono" id="ai-model-info"></div>
+            <div id="ai-analysis-content" class="text-xs text-[#09090b] leading-relaxed min-h-[70px]"></div>
+            <div class="text-[10px] text-[#71717a] text-right mt-2 pt-2 border-t border-[#e4e4e7] font-mono" id="ai-model-info"></div>
         </div>
 
     </div>
 </div>
 
 <script>
+// --- [에러 방어] 차트 라이브러리 무해한 ResizeObserver 에러 무시 ---
 window.addEventListener('error', function(e) {
     if (e.message === 'ResizeObserver loop limit exceeded') {
         e.stopImmediatePropagation();
     }
 });
 
+// 타이핑 애니메이션 효과
 function typeWriter(element, text, speed = 15) {
     return new Promise(resolve => {
         let i = 0;
         element.innerHTML = '';
         const interval = setInterval(() => {
             let currentText = text.substring(0, i);
-            element.innerHTML = currentText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-semibold">$1</b>');
+            element.innerHTML = currentText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b class="text-[#09090b] font-bold">$1</b>');
             i++;
             if (i > text.length) {
                 clearInterval(interval);
@@ -164,6 +166,7 @@ function typeWriter(element, text, speed = 15) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- 1. 변수 초기화 ---
     const isAdmin = ("{{ session.get('username') }}" === "admin");
     
     const searchInput = document.getElementById('search-input');
@@ -205,23 +208,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const NEWS_PER_PAGE = 3;
     let searchSelectedIndex = -1;
     
+    // 내 보유 주식 데이터 파싱
     const myStocksData = {};
     document.querySelectorAll('.my-stock-data').forEach(item => {
         myStocksData[item.dataset.code] = parseInt(item.dataset.qty) || 0;
     });
 
+    // --- 2. 차트 초기화 함수 ---
     function initChart() {
         if (chart || !chartContainer) return;
         
         chart = LightweightCharts.createChart(chartContainer, {
-            layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#94a3b8' },
-            grid: { vertLines: { color: 'rgba(255,255,255,0.05)' }, horzLines: { color: 'rgba(255,255,255,0.05)' } },
-            rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' }, 
-            timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true },
+            layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#71717a' },
+            grid: { vertLines: { color: '#f4f4f5' }, horzLines: { color: '#f4f4f5' } },
+            rightPriceScale: { borderColor: '#e4e4e7' }, 
+            timeScale: { borderColor: '#e4e4e7', timeVisible: true },
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
         });
         candlestickSeries = chart.addCandlestickSeries({ 
-            upColor: '#f43f5e', downColor: '#3b82f6', borderVisible: false, wickUpColor: '#f43f5e', wickDownColor: '#3b82f6' 
+            upColor: '#09090b', downColor: '#71717a', borderVisible: false, wickUpColor: '#09090b', wickDownColor: '#71717a' 
         });
         
         new ResizeObserver(e => { 
@@ -231,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).observe(chartContainer);
     }
 
+    // --- 3. 검색 관련 함수 (키보드 탐색 포함 완전 복원) ---
     let searchTimeout;
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -253,8 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data.results && data.results.length > 0) {
                         data.results.forEach(item => {
                             const li = document.createElement('li');
-                            li.className = 'px-3 py-2.5 hover:bg-slate-800 cursor-pointer text-white flex justify-between border-b border-white/5 last:border-0 text-xs search-result-item';
-                            li.innerHTML = `<span class="font-medium">${item.name}</span><span class="text-[10px] font-mono text-slate-500">${item.code}</span>`;
+                            li.className = 'px-3.5 py-2 hover:bg-[#f4f4f5] cursor-pointer text-[#09090b] flex justify-between border-b border-[#e4e4e7] last:border-0 text-xs search-result-item';
+                            li.innerHTML = `<span class="font-bold">${item.name}</span><span class="text-[10px] font-mono text-[#71717a]">${item.code}</span>`;
                             li.onclick = () => loadStockInfo(item.code);
                             searchResults.appendChild(li);
                         });
@@ -294,10 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateSearchHighlight(items) {
         items.forEach((item, idx) => {
             if (idx === searchSelectedIndex) {
-                item.classList.add('bg-slate-800');
+                item.classList.add('bg-[#f4f4f5]');
                 item.scrollIntoView({ block: 'nearest' });
             } else {
-                item.classList.remove('bg-slate-800');
+                item.classList.remove('bg-[#f4f4f5]');
             }
         });
     }
@@ -310,7 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(r => r.json())
                 .then(data => { 
                     if(data.results && data.results.length > 0) loadStockInfo(data.results[0].code); 
-                });
+                })
+                .catch(err => console.error("Search API Error:", err));
             }
         });
     }
@@ -323,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- 4. 메인 종목 조회 함수 ---
     function loadStockInfo(code) {
         if (searchResults) searchResults.classList.add('hidden');
         if (searchInput) searchInput.value = '';
@@ -354,14 +362,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (changeEl) {
                 if (data.change_price > 0) {
-                    changeEl.innerHTML = `<span class="text-rose-400 font-semibold">▲${data.change_price.toLocaleString()} (+${data.change_rate}%)</span>`;
-                    priceEl.className = 'text-2xl font-bold text-rose-400 font-mono tracking-tight';
+                    changeEl.innerHTML = `<span class="text-[#09090b] font-bold">▲${data.change_price.toLocaleString()} (+${data.change_rate}%)</span>`;
+                    priceEl.className = 'text-2xl font-bold text-[#09090b] tracking-tight font-mono';
                 } else if (data.change_price < 0) {
-                    changeEl.innerHTML = `<span class="text-blue-400 font-semibold">▼${Math.abs(data.change_price).toLocaleString()} (${data.change_rate}%)</span>`;
-                    priceEl.className = 'text-2xl font-bold text-blue-400 font-mono tracking-tight';
+                    changeEl.innerHTML = `<span class="text-[#71717a] font-bold">▼${Math.abs(data.change_price).toLocaleString()} (${data.change_rate}%)</span>`;
+                    priceEl.className = 'text-2xl font-bold text-[#71717a] tracking-tight font-mono';
                 } else {
-                    changeEl.innerHTML = `<span class="text-slate-400">- 0 (0.00%)</span>`;
-                    priceEl.className = 'text-2xl font-bold text-white font-mono tracking-tight';
+                    changeEl.innerHTML = `<span class="text-[#a1a1aa]">- 0 (0.00%)</span>`;
+                    priceEl.className = 'text-2xl font-bold text-[#09090b] tracking-tight font-mono';
                 }
             }
             
@@ -395,6 +403,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(err => {
             console.error("Stock Info Load Error:", err);
             alert("종목 정보를 불러오는 데 실패했습니다.");
+            if (chartPlaceholder) {
+                chartPlaceholder.innerHTML = '네트워크 통신 오류';
+                chartPlaceholder.classList.remove('hidden');
+            }
         })
         .finally(() => {
             if (stockLoadingSpinner) {
@@ -404,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- 5. AI 종목 분석 호출 ---
     function setupAIAnalysis(stockData) {
         const aiSection = document.getElementById('ai-analysis-section');
         const aiContent = document.getElementById('ai-analysis-content');
@@ -415,10 +428,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (aiModelInfo) aiModelInfo.innerText = "";
         
         aiContent.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-4 text-center">
-                <p class="text-slate-300 text-xs font-semibold mb-1">AI 종목 진단을 시작하시겠습니까?</p>
-                <p class="text-slate-500 text-[10px] mb-3">※ 실시간 수급 및 기술적 지표 데이터를 종합 분석합니다.</p>
-                <button id="btn-start-ai" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-1.5 px-6 rounded-lg transition-all text-xs border border-white/10 shadow-md">
+            <div class="flex flex-col items-center justify-center py-3 text-center">
+                <p class="text-[#09090b] text-xs font-bold mb-2">종목 진단 및 수급 전망을 분석할까요?</p>
+                <button id="btn-start-ai" class="bg-[#18181b] hover:bg-[#27272a] text-white font-medium py-1.5 px-6 rounded-xl transition-all text-xs border border-[#18181b]">
                     분석 시작
                 </button>
             </div>
@@ -431,9 +443,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function executeAIAnalysis(stockData, aiContent, aiModelInfo) {
         aiContent.innerHTML = `
-            <div class="flex items-center space-x-2 text-indigo-400 font-medium py-4">
-                <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-ping"></div>
-                <span class="text-xs">실시간 시장 데이터를 연산 분석 중입니다...</span>
+            <div class="flex items-center space-x-2 text-[#09090b] font-medium py-4">
+                <div class="w-1.5 h-1.5 bg-[#09090b] rounded-full animate-ping"></div>
+                <span class="text-xs">실시간 지표 종합 연산 중입니다...</span>
             </div>
         `;
         
@@ -450,16 +462,23 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(r => r.json())
         .then(async data => {
             if (data.error) {
-                aiContent.innerHTML = `<p class="text-rose-400 text-xs">${data.error}</p>`;
+                aiContent.innerHTML = `<p class="text-[#09090b] text-xs font-bold">${data.error}</p>`;
             } else if (data.analysis) {
-                aiContent.innerHTML = `<p id="typing-content" class="text-slate-300 text-xs leading-relaxed"></p>`;
+                aiContent.innerHTML = `<p id="typing-content" class="text-[#09090b] text-xs leading-relaxed"></p>`;
                 const typingContent = document.getElementById('typing-content');
                 if (data.model && aiModelInfo) aiModelInfo.innerText = `분석 모델: ${data.model}`;
                 await typeWriter(typingContent, data.analysis);
+            } else {
+                aiContent.innerHTML = `<p class="text-[#71717a] text-xs">알 수 없는 분석 오류 발생.</p>`;
             }
+        })
+        .catch(err => {
+            console.error("AI Analysis Fetch Error:", err);
+            aiContent.innerHTML = `<p class="text-[#71717a] text-xs">AI 전망을 가져오는 중 네트워크 오류가 발생했습니다.</p>`;
         });
     }
 
+    // --- 6. 실시간 뉴스 조회 ---
     function loadNews(code) {
         const section = document.getElementById('recent-issues-section');
         const listEl = document.getElementById('news-list');
@@ -467,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!section || !listEl) return;
         
-        listEl.innerHTML = '<div class="text-center py-6 text-slate-500 text-xs animate-pulse">실시간 이슈 데이터를 불러오는 중...</div>';
+        listEl.innerHTML = '<div class="text-center py-6 text-[#71717a] text-xs animate-pulse">실시간 이슈 데이터를 불러오는 중...</div>';
         section.classList.remove('hidden');
 
         fetch(`/api/news/${code}`)
@@ -483,12 +502,16 @@ document.addEventListener('DOMContentLoaded', () => {
             currentNewsPage = 1;
 
             if (allNewsData.length === 0) {
-                listEl.innerHTML = '<div class="text-center py-6 text-slate-500 text-xs">등록된 최근 이슈가 없습니다.</div>';
+                listEl.innerHTML = '<div class="text-center py-6 text-[#71717a] text-xs">등록된 최근 이슈가 없습니다.</div>';
                 if (pgContainer) pgContainer.classList.add('hidden');
             } else {
                 if (pgContainer) pgContainer.classList.remove('hidden');
                 renderNewsPage();
             }
+        })
+        .catch((err) => {
+            console.error("News Load Error:", err);
+            listEl.innerHTML = '<div class="text-center py-6 text-[#71717a] text-xs">네트워크 통신으로 인해 이슈를 불러오지 못했습니다.</div>';
         });
     }
 
@@ -505,14 +528,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalPages = Math.ceil(allNewsData.length / NEWS_PER_PAGE) || 1;
 
         listEl.innerHTML = pageItems.map(item => `
-            <a href="${item.link}" target="_blank" class="block bg-slate-950/60 hover:bg-slate-950 p-3 rounded-xl border border-white/5 transition group">
+            <a href="${item.link}" target="_blank" class="block bg-[#f4f4f5] hover:bg-[#e4e4e7] p-3 rounded-xl border border-[#e4e4e7] transition group">
                 <div class="flex justify-between items-start gap-2">
-                    <h4 class="text-xs font-semibold text-slate-200 group-hover:text-indigo-300 line-clamp-2 leading-snug">${item.title}</h4>
-                    <span class="text-[10px] text-slate-500 shrink-0 font-mono">${item.date}</span>
+                    <h4 class="text-xs font-bold text-[#09090b] group-hover:underline line-clamp-2 leading-snug">${item.title}</h4>
+                    <span class="text-[10px] text-[#71717a] shrink-0 font-mono">${item.date}</span>
                 </div>
                 <div class="mt-2 flex justify-between items-center text-[10px]">
-                    <span class="bg-slate-800 border border-white/10 px-1.5 py-0.5 rounded text-indigo-300 font-mono">${item.provider}</span>
-                    <span class="text-slate-500 group-hover:translate-x-0.5 transition-transform">원문 ↗</span>
+                    <span class="bg-white border border-[#e4e4e7] px-1.5 py-0.5 rounded text-[#09090b] font-mono font-semibold">${item.provider}</span>
+                    <span class="text-[#71717a] group-hover:translate-x-0.5 transition-transform">원문 ↗</span>
                 </div>
             </a>
         `).join('');
@@ -535,6 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- 7. 주문 패널 및 수수료/시간 제어 (수량 증감 및 특례 계산 복원) ---
     function updateOrderTotal() {
         if (!currentStock) return;
         
@@ -561,18 +585,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (qty > 0) {
                 if (currentTxType === 'SELL' && !isRegularMarket) {
                     submitBtn.disabled = true; 
-                    submitBtn.className = 'w-full py-2.5 rounded-lg font-bold text-white bg-slate-800 text-xs cursor-not-allowed transition-all mt-2 border border-white/5'; 
+                    submitBtn.className = 'w-full py-2.5 rounded-xl font-bold text-[#71717a] bg-[#e4e4e7] text-xs cursor-not-allowed transition-all mt-2 border border-[#e4e4e7]'; 
                     submitBtn.innerText = '야간/휴일 매도 불가';
                 } else {
                     submitBtn.disabled = false;
-                    submitBtn.className = currentTxType === 'BUY' 
-                        ? 'w-full py-2.5 rounded-lg font-bold text-white transition-all text-xs bg-rose-600 hover:bg-rose-500 shadow-md border border-rose-400/20' 
-                        : 'w-full py-2.5 rounded-lg font-bold text-white transition-all text-xs bg-blue-600 hover:bg-blue-500 shadow-md border border-blue-400/20';
+                    submitBtn.className = 'w-full py-2.5 rounded-xl font-bold text-white transition-all text-xs bg-[#18181b] hover:bg-[#27272a] shadow-sm border border-[#18181b]';
                     submitBtn.innerText = currentTxType === 'BUY' ? '매수 주문' : '매도 주문';
                 }
             } else {
                 submitBtn.disabled = true; 
-                submitBtn.className = 'w-full py-2.5 rounded-lg font-bold text-white bg-slate-800 text-xs cursor-not-allowed transition-all mt-2 border border-white/5'; 
+                submitBtn.className = 'w-full py-2.5 rounded-xl font-bold text-white bg-[#a1a1aa] text-xs cursor-not-allowed transition-all mt-2 border border-[#a1a1aa]'; 
                 submitBtn.innerText = '올바른 수량을 입력하세요';
             }
         }
@@ -582,12 +604,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentStock) return;
         
         if (currentTxType === 'BUY') {
-            if(tabBuy) tabBuy.className = 'flex-1 py-1.5 text-xs font-bold rounded-md bg-rose-500 text-white transition-all shadow-sm';
-            if(tabSell) tabSell.className = 'flex-1 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all';
+            if(tabBuy) tabBuy.className = 'flex-1 py-1.5 text-xs font-bold rounded-md bg-[#18181b] text-white transition-all shadow-sm';
+            if(tabSell) tabSell.className = 'flex-1 py-1.5 text-xs font-bold rounded-md text-[#71717a] hover:text-[#09090b] transition-all';
             if(holdingQtyText) holdingQtyText.classList.add('hidden');
         } else {
-            if(tabBuy) tabBuy.className = 'flex-1 py-1.5 text-xs font-bold rounded-md text-slate-400 hover:text-white transition-all';
-            if(tabSell) tabSell.className = 'flex-1 py-1.5 text-xs font-bold rounded-md bg-blue-500 text-white transition-all shadow-sm';
+            if(tabBuy) tabBuy.className = 'flex-1 py-1.5 text-xs font-bold rounded-md text-[#71717a] hover:text-[#09090b] transition-all';
+            if(tabSell) tabSell.className = 'flex-1 py-1.5 text-xs font-bold rounded-md bg-[#18181b] text-white transition-all shadow-sm';
             
             const myQty = myStocksData[currentStock.code] || 0;
             if(holdingQtyText) {
@@ -664,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(payload) 
             })
             .then(r => { 
-                if(r.status === 429) throw new Error("주문 처리 속도가 너무 빠릅니다. 잠시 후 다시 시도해주세요."); 
+                if(r.status === 429) throw new Error("주문이 너무 빠릅니다. 1.5초 후 다시 시도해주세요."); 
                 return r.json(); 
             })
             .then(data => {
@@ -683,9 +705,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- 8. 토론방 댓글 관리자(수정/삭제) 및 주주 태그 완전 복원 ---
     window.deleteComment = function(id) {
         if (!currentStock) return;
-        if(!confirm("이 댓글을 삭제하시겠습니까?")) return;
+        if(!confirm("이 댓글을 정말 삭제하시겠습니까?")) return;
         
         fetch('/api/admin/comment', { 
             method: 'POST', 
@@ -696,7 +719,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => { 
             if(data.success) loadComments(currentStock.code); 
             else alert(data.error); 
-        });
+        })
+        .catch(err => console.error("Del Err", err));
     };
     
     window.editComment = function(id, oldMsg) {
@@ -713,7 +737,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(data => { 
             if(data.success) loadComments(currentStock.code); 
             else alert(data.error); 
-        });
+        })
+        .catch(err => console.error("Edit Err", err));
     };
 
     function loadComments(code) {
@@ -725,33 +750,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!data.comments) return;
             
             commentList.innerHTML = data.comments.map(c => {
-                let badge = c.is_holder ? '<span class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1 rounded text-[9px] ml-1 font-mono">주주</span>' : '';
-                let color = c.return_rate > 0 ? 'text-rose-400' : 'text-blue-400';
+                let badge = c.is_holder ? '<span class="bg-[#18181b] text-white border border-[#18181b] px-1 rounded text-[9px] ml-1 font-mono">주주</span>' : '';
                 
                 let adminBtns = '';
                 if (isAdmin) {
                     const safeMsg = c.message.replace(/'/g, "\\'").replace(/"/g, "&quot;");
                     adminBtns = `
-                    <div class="mt-1.5 flex space-x-1.5 justify-end border-t border-white/5 pt-1.5">
-                        <button onclick="editComment(${c.id}, '${safeMsg}')" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-white transition">수정</button>
-                        <button onclick="deleteComment(${c.id})" class="text-[10px] bg-rose-950/50 hover:bg-rose-900 px-2 py-0.5 rounded text-rose-300 transition">삭제</button>
+                    <div class="mt-1.5 flex space-x-1.5 justify-end border-t border-[#e4e4e7] pt-1.5">
+                        <button onclick="editComment(${c.id}, '${safeMsg}')" class="text-[10px] bg-white border border-[#e4e4e7] hover:bg-[#f4f4f5] px-2 py-0.5 rounded text-[#09090b] transition">수정</button>
+                        <button onclick="deleteComment(${c.id})" class="text-[10px] bg-[#18181b] hover:bg-[#27272a] px-2 py-0.5 rounded text-white transition">삭제</button>
                     </div>`;
                 }
 
                 return `
-                <div class="bg-slate-950/60 p-2.5 rounded-lg border border-white/5">
+                <div class="bg-[#f4f4f5] p-2.5 rounded-xl border border-[#e4e4e7]">
                     <div class="flex justify-between items-center mb-1">
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-200 text-xs">${c.name}</span>${badge}
-                            <span class="ml-2 text-[10px] ${color} font-mono">${c.return_rate > 0 ? '+' : ''}${c.return_rate}%</span>
+                            <span class="font-bold text-[#09090b] text-xs">${c.name}</span>${badge}
+                            <span class="ml-2 text-[10px] text-[#71717a] font-mono">${c.return_rate > 0 ? '+' : ''}${c.return_rate}%</span>
                         </div>
-                        <span class="text-[10px] font-mono text-slate-500">${c.time}</span>
+                        <span class="text-[10px] font-mono text-[#71717a]">${c.time}</span>
                     </div>
-                    <p class="text-slate-300 text-xs break-words">${c.message}</p>
+                    <p class="text-[#09090b] text-xs break-words">${c.message}</p>
                     ${adminBtns}
                 </div>`;
-            }).join('') || '<p class="text-slate-500 text-xs text-center py-3">첫 의견을 남겨보세요!</p>';
-        });
+            }).join('') || '<p class="text-[#71717a] text-xs text-center py-2">등록된 의견이 없습니다.</p>';
+        })
+        .catch(err => console.error("Comment Load Error:", err));
     }
 
     if (commentSend && commentInput) {
@@ -771,10 +796,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     commentInput.value = ''; 
                     loadComments(currentStock.code); 
                 }
-            });
+            })
+            .catch(err => alert("댓글 등록 중 서버 통신에 실패했습니다."));
         });
     }
 
+    // 초기 진입 시 code 쿼리가 있다면 호출
     const urlParams = new URLSearchParams(window.location.search);
     const initCode = urlParams.get('code');
     if (initCode) loadStockInfo(initCode);

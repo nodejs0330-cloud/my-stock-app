@@ -1,35 +1,39 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div id="loading-overlay" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] hidden flex-col items-center justify-center transition-opacity">
-    <div class="animate-spin rounded-full h-12 w-12 border-2 border-indigo-500 border-t-transparent mb-4"></div>
-    <h2 class="text-white text-lg font-semibold tracking-tight">시스템 접속 중</h2>
-    <p class="text-slate-400 text-xs mt-1 font-mono">보안 네트워크를 구성하고 있습니다.</p>
+
+<!-- 로그인 스피너 -->
+<div id="loading-overlay" class="fixed inset-0 bg-black/40 backdrop-blur-xs z-[100] hidden flex-col items-center justify-center transition-opacity">
+    <div class="animate-spin rounded-full h-10 w-10 border-2 border-[#18181b] border-t-transparent mb-3"></div>
+    <h2 class="text-[#09090b] text-sm font-bold tracking-tight bg-white px-4 py-2 rounded-xl border border-[#e4e4e7] shadow-lg">시스템 접속 중...</h2>
 </div>
 
+<!-- 텍스트 영역 -->
 <div id="kitsch-text" class="absolute inset-0 flex flex-col items-center justify-center z-10 pointer-events-none transition-all duration-500">
-    <h1 class="text-3xl md:text-5xl font-extrabold text-white tracking-tight text-center leading-tight transition-all duration-500">
+    <h1 class="text-3xl md:text-5xl font-extrabold text-[#09090b] tracking-tight text-center leading-tight transition-all duration-500">
         {{ main_text | safe }}
     </h1>
     
-    <button id="show-login-btn" class="mt-8 pointer-events-auto bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base py-3 px-8 rounded-full shadow-lg shadow-primary/20 transform transition active:scale-95 border border-white/20">
+    <button id="show-login-btn" class="mt-8 pointer-events-auto bg-[#18181b] hover:bg-[#27272a] text-white font-semibold text-sm py-3 px-8 rounded-xl shadow-sm transform transition active:scale-95 border border-[#18181b]">
         로그인
     </button>
 </div>
 
-<div id="login-form-container" class="w-full max-w-sm bg-slate-900/90 rounded-2xl shadow-2xl p-6 backdrop-blur-2xl border border-white/10 relative z-20 mx-4 opacity-0 scale-95 pointer-events-none transition-all duration-300">
-    <button id="close-login-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white font-medium text-xl transition-colors">&times;</button>
+<!-- 로그인 폼 영역 -->
+<div id="login-form-container" class="w-full max-w-sm bg-white/95 rounded-2xl shadow-xl p-6 backdrop-blur-xl border border-[#e4e4e7] relative z-20 mx-4 opacity-0 scale-95 pointer-events-none transition-all duration-300">
+    
+    <button id="close-login-btn" class="absolute top-4 right-4 text-[#71717a] hover:text-[#09090b] font-medium text-xl transition-colors">&times;</button>
 
     <div class="flex justify-between items-center mb-6 pr-6">
         <div>
-            <h2 class="text-xl font-bold text-white tracking-tight">로그인</h2>
-            <p class="text-xs text-slate-400 mt-0.5">NCC STOCK 거래 플랫폼</p>
+            <h2 class="text-lg font-bold text-[#09090b] tracking-tight">로그인</h2>
+            <p class="text-[11px] text-[#71717a] mt-0.5">NCC STOCK 모의투자 플랫폼</p>
         </div>
         <div class="flex space-x-1">
-            <button id="bg-toggle-btn" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 py-1 px-2.5 rounded-md transition-colors border border-white/10">
+            <button id="bg-toggle-btn" class="text-[10px] bg-[#f4f4f5] hover:bg-[#e4e4e7] text-[#09090b] py-1 px-2.5 rounded-md transition-colors border border-[#e4e4e7]">
                 배경변경
             </button>
-            <button id="qr-toggle-btn" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-200 py-1 px-2.5 rounded-md transition-colors border border-white/10">
+            <button id="qr-toggle-btn" class="text-[10px] bg-[#f4f4f5] hover:bg-[#e4e4e7] text-[#09090b] py-1 px-2.5 rounded-md transition-colors border border-[#e4e4e7]">
                 QR 접속
             </button>
         </div>
@@ -37,7 +41,7 @@
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <div class="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 px-3 py-2 rounded-lg text-xs font-medium text-center">
+        <div class="mb-4 bg-[#f4f4f5] border border-[#e4e4e7] text-[#09090b] px-3 py-2 rounded-lg text-xs font-medium text-center">
           {{ messages[0] }}
         </div>
       {% endif %}
@@ -45,30 +49,31 @@
 
     <form id="login-form" action="{{ url_for('index') }}" method="POST" class="space-y-4">
         <div>
-            <label for="username" class="block text-xs font-medium text-slate-300 mb-1">아이디</label>
-            <input type="text" id="username" name="username" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="아이디 입력">
+            <label for="username" class="block text-xs font-medium text-[#71717a] mb-1">아이디</label>
+            <input type="text" id="username" name="username" required class="block w-full bg-[#f4f4f5] border border-[#e4e4e7] rounded-lg py-2 px-3 text-xs text-[#09090b] placeholder-[#a1a1aa] focus:outline-none focus:ring-1 focus:ring-[#18181b] transition-all" placeholder="아이디를 입력하세요">
         </div>
         <div>
-            <label for="password" class="block text-xs font-medium text-slate-300 mb-1">비밀번호</label>
-            <input type="password" id="password" name="password" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all" placeholder="••••••••">
+            <label for="password" class="block text-xs font-medium text-[#71717a] mb-1">비밀번호</label>
+            <input type="password" id="password" name="password" required class="block w-full bg-[#f4f4f5] border border-[#e4e4e7] rounded-lg py-2 px-3 text-xs text-[#09090b] placeholder-[#a1a1aa] focus:outline-none focus:ring-1 focus:ring-[#18181b] transition-all" placeholder="••••••••">
         </div>
         <div class="pt-2">
-            <button type="submit" id="submit-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 px-4 rounded-lg focus:outline-none shadow-md transition-all active:scale-[0.98] text-sm">
+            <button type="submit" id="submit-btn" class="w-full bg-[#18181b] hover:bg-[#27272a] text-white font-medium py-2.5 px-4 rounded-xl focus:outline-none shadow-sm transition-all active:scale-[0.98] text-xs">
                 접속하기
             </button>
         </div>
     </form>
     <div class="mt-5 text-center">
-        <p class="text-xs text-slate-400">계정이 없으신가요? <a href="{{ url_for('signup') }}" class="text-amber-400 hover:text-amber-300 font-semibold ml-1">회원가입 (5,000만원 지급)</a></p>
+        <p class="text-xs text-[#71717a]">계정이 없으신가요? <a href="{{ url_for('signup') }}" class="text-[#09090b] font-bold underline ml-1">회원가입 (5,000만원 지급)</a></p>
     </div>
 </div>
 
-<div id="qr-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center z-50 transition-opacity">
-    <div class="bg-slate-900 p-6 rounded-2xl shadow-2xl text-center relative max-w-xs w-full mx-4 border border-white/10">
-        <button id="qr-close-btn" class="absolute top-3 right-4 text-slate-400 hover:text-white font-medium text-xl transition-colors">&times;</button>
-        <h3 class="text-white font-bold text-base mb-4">모바일 접속 QR</h3>
-        <div id="qrcode" class="flex justify-center mb-3 p-3 bg-white rounded-xl inline-block mx-auto"></div>
-        <p class="text-[10px] text-slate-400 break-all font-mono bg-slate-950 p-2 rounded-lg border border-white/5" id="qr-url-text"></p>
+<!-- QR 모달 -->
+<div id="qr-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex items-center justify-center z-50 transition-opacity">
+    <div class="bg-white p-6 rounded-2xl shadow-xl text-center relative max-w-xs w-full mx-4 border border-[#e4e4e7]">
+        <button id="qr-close-btn" class="absolute top-3 right-4 text-[#71717a] hover:text-[#09090b] font-medium text-lg transition-colors">&times;</button>
+        <h3 class="text-[#09090b] font-bold text-sm mb-4">모바일 접속 QR</h3>
+        <div id="qrcode" class="flex justify-center mb-3 p-3 bg-white border border-[#e4e4e7] rounded-xl inline-block mx-auto shadow-inner"></div>
+        <p class="text-[10px] text-[#71717a] break-all font-mono bg-[#f4f4f5] p-2 rounded-lg border border-[#e4e4e7]" id="qr-url-text"></p>
     </div>
 </div>
 
@@ -84,17 +89,17 @@
             document.body.style.backgroundImage = "url('https://picsum.photos/1920/1080?random=" + new Date().getTime() + "')";
             document.body.style.backgroundSize = "cover";
             document.body.style.backgroundPosition = "center";
-            titleEl.className = "text-3xl md:text-5xl text-white tracking-tight text-center font-bold whitespace-pre-line";
+            titleEl.className = "text-3xl md:text-5xl text-[#09090b] tracking-tight text-center font-bold whitespace-pre-line";
             titleEl.innerText = textContent;
         } else {
             document.body.style.backgroundImage = "";
-            titleEl.className = "text-3xl md:text-5xl font-black text-amber-300 tracking-tight text-center whitespace-pre-line";
+            titleEl.className = "text-3xl md:text-5xl font-black text-[#09090b] tracking-tight text-center whitespace-pre-line";
             const lines = textContent.split('\n');
             if (lines.length > 1) {
                 const lastLine = lines.pop();
-                titleEl.innerHTML = lines.join('<br>') + `<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-emerald-400 text-5xl md:text-7xl mt-2 block font-extrabold">${lastLine}</span>`;
+                titleEl.innerHTML = lines.join('<br>') + `<br><span class="text-[#09090b] text-5xl md:text-7xl mt-2 block font-extrabold">${lastLine}</span>`;
             } else {
-                titleEl.innerHTML = `<span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-amber-300 to-emerald-400 text-5xl md:text-7xl block font-extrabold">${textContent}</span>`;
+                titleEl.innerHTML = `<span class="text-[#09090b] text-5xl md:text-7xl block font-extrabold">${textContent}</span>`;
             }
         }
     });

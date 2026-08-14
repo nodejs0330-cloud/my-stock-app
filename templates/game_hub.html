@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block body_class %}bg-slate-950{% endblock %}
+{% block body_class %}bg-[#f4f4f5]{% endblock %}
 
 {% block content %}
 <style>
@@ -13,7 +13,7 @@
     .hub-wrapper {
         min-height: 80vh;
         padding: 40px 20px;
-        color: #e2e8f0;
+        color: #09090b;
     }
 
     .hub-title {
@@ -29,16 +29,15 @@
     .game-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 30px;
+        gap: 24px;
     }
 
-    /* 모듈별 호버 트랜지션 및 글로우 효과 복원 */
     .game-card {
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.2s ease;
     }
 
     .game-card:hover {
-        transform: translateY(-6px);
+        transform: translateY(-4px);
     }
 
     .card-img-box img {
@@ -47,7 +46,7 @@
     }
 
     .game-card:hover .card-img-box img {
-        transform: scale(1.08);
+        transform: scale(1.05);
     }
 
     .nav-btn {
@@ -56,21 +55,25 @@
         top: 50%;
         transform: translateY(-50%);
         z-index: 10;
-        background: rgba(15, 23, 42, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        color: white;
-        width: 40px;
-        height: 40px;
+        background: #ffffff;
+        border: 1px solid #e4e4e7;
+        color: #09090b;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
-        font-size: 1.1rem;
+        font-size: 1rem;
         cursor: pointer;
-        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         transition: all 0.2s ease;
     }
-
     .nav-btn:hover {
-        background: rgba(30, 41, 59, 0.9);
-        border-color: rgba(255, 255, 255, 0.3);
+        background: #f4f4f5;
+        border-color: #18181b;
+        color: #09090b;
+    }
+
+    .nav-btn:active {
+        transform: translateY(-50%) scale(0.95);
     }
 
     .nav-btn.prev { left: -12px; }
@@ -109,9 +112,9 @@
 </style>
 
 <div class="hub-wrapper w-full">
-    <div class="text-center mb-12">
-        <h1 class="hub-title text-4xl md:text-5xl text-amber-400 tracking-wider mb-2 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]">NCS ARCADE</h1>
-        <p class="text-xs md:text-sm text-slate-400 font-sans">{{ username }}님, 플레이할 아케이드 게임을 선택해 주세요.</p>
+    <div class="text-center mb-10">
+        <h1 class="hub-title text-4xl md:text-5xl text-[#09090b] tracking-wider mb-2">NCS ARCADE</h1>
+        <p class="text-xs md:text-sm text-[#71717a] font-sans">{{ username }}님, 플레이할 게임을 선택해 주세요.</p>
     </div>
 
     <div class="slider-container">
@@ -120,64 +123,64 @@
 
         <div class="game-grid" id="gameGrid">
             <!-- 1. 타워 디펜스 게임 -->
-            <div class="game-card bg-slate-900/90 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md shadow-xl flex flex-col cursor-pointer hover:border-amber-400/50 hover:shadow-[0_10px_30px_-10px_rgba(245,158,11,0.3)]" onclick="location.href='/game/tower'">
-                <div class="card-img-box w-full h-48 bg-slate-950 flex justify-center items-center border-b border-white/5 relative overflow-hidden">
+            <div class="game-card bg-white rounded-2xl border border-[#e4e4e7] overflow-hidden shadow-sm flex flex-col cursor-pointer hover:border-[#09090b]" onclick="location.href='/game/tower'">
+                <div class="card-img-box w-full h-48 bg-[#f4f4f5] flex justify-center items-center border-b border-[#e4e4e7] relative overflow-hidden">
                     <img src="/static/img/tower/krx.png" alt="KRX Defense" class="w-24 h-24 object-contain">
                 </div>
                 <div class="p-6 flex flex-col flex-1 font-sans">
-                    <div class="text-lg font-bold text-white mb-2 tracking-tight">
+                    <div class="text-base font-bold text-[#09090b] mb-2">
                         Stock Defense
                     </div>
                     <div class="flex gap-2 mb-3">
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 font-mono">전략 디펜스(dev)</span>
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">난이도: 어려움</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-[#f4f4f5] text-[#09090b] border border-[#e4e4e7] font-mono">전략 디펜스(dev)</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-[#f4f4f5] text-[#71717a] border border-[#e4e4e7] font-mono">어려움</span>
                     </div>
-                    <p class="text-xs text-slate-300 leading-relaxed mb-5 flex-1">
+                    <p class="text-xs text-[#71717a] leading-relaxed mb-5 flex-1">
                         몰려오는 개미투자자를 막아내고 한국거래소를 사수하라.<br>
                         우량주 합병과 무기 강화를 통한 극한의 생존 게임.
                     </p>
-                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs transition-all shadow-md active:scale-[0.98]">게임 시작하기</button>
+                    <button class="w-full py-2.5 rounded-xl bg-[#18181b] hover:bg-[#27272a] text-white font-bold text-xs transition-colors shadow-xs">게임 시작하기</button>
                 </div>
             </div>
 
             <!-- 2. NCS SURVIVE -->
-            <div class="game-card bg-slate-900/90 rounded-2xl border border-white/10 overflow-hidden backdrop-blur-md shadow-xl flex flex-col cursor-pointer hover:border-indigo-400/50 hover:shadow-[0_10px_30px_-10px_rgba(99,102,241,0.3)]" id="surviveCard" onclick="location.href='/game/survive'">    
-                <div class="card-img-box w-full h-48 bg-slate-950 flex justify-center items-center border-b border-white/5 relative overflow-hidden">
+            <div class="game-card bg-white rounded-2xl border border-[#e4e4e7] overflow-hidden shadow-sm flex flex-col cursor-pointer hover:border-[#09090b]" id="surviveCard" onclick="location.href='/game/survive'">    
+                <div class="card-img-box w-full h-48 bg-[#f4f4f5] flex justify-center items-center border-b border-[#e4e4e7] relative overflow-hidden">
                     <img src="/static/img/survive/main_mini.png" alt="NCS SURVIVE" class="w-full h-full object-cover">
                 </div>
                 <div class="p-6 flex flex-col flex-1 font-sans">
-                    <div class="text-lg font-bold text-white mb-2 tracking-tight">
+                    <div class="text-base font-bold text-[#09090b] mb-2">
                         NCS SURVIVE 0.8
                     </div>
                     <div class="flex gap-2 mb-3">
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 font-mono">서바이벌</span>
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">난이도: 극악</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-[#f4f4f5] text-[#09090b] border border-[#e4e4e7] font-mono">서바이벌</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-[#f4f4f5] text-[#71717a] border border-[#e4e4e7] font-mono">극악</span>
                     </div>
-                    <p class="text-xs text-slate-300 leading-relaxed mb-5 flex-1">
+                    <p class="text-xs text-[#71717a] leading-relaxed mb-5 flex-1">
                         몰려오는 몬스터들을 물리치고 한계까지 살아남으세요.<br>
                         무기를 진화시키고 강력한 보스를 처치해 스킬을 빼앗으세요.
                     </p>
-                    <button class="w-full py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold text-xs transition-all shadow-md active:scale-[0.98]">게임 시작하기</button>
+                    <button class="w-full py-2.5 rounded-xl bg-[#18181b] hover:bg-[#27272a] text-white font-bold text-xs transition-colors shadow-xs">게임 시작하기</button>
                 </div>
             </div>
 
             <!-- 3. 시뮬레이터 (Coming Soon) -->
-            <div class="game-card bg-slate-900/40 rounded-2xl border border-white/5 overflow-hidden backdrop-blur-md flex flex-col cursor-not-allowed opacity-60">
-                <div class="card-img-box w-full h-48 bg-slate-950/40 flex justify-center items-center border-b border-white/5 font-mono text-slate-600 text-3xl">
+            <div class="game-card bg-[#f4f4f5] rounded-2xl border border-[#e4e4e7] overflow-hidden shadow-xs flex flex-col cursor-not-allowed opacity-60">
+                <div class="card-img-box w-full h-48 bg-[#e4e4e7]/50 flex justify-center items-center border-b border-[#e4e4e7] font-mono text-[#71717a] text-2xl">
                     ^^
                 </div>
                 <div class="p-6 flex flex-col flex-1 font-sans">
-                    <div class="text-lg font-bold text-slate-400 mb-2 tracking-tight">
+                    <div class="text-base font-bold text-[#71717a] mb-2">
                         (Coming Soon)
                     </div>
                     <div class="flex gap-2 mb-3">
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-500 font-mono">방치형</span>
-                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-500 font-mono">시뮬레이션</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-white text-[#71717a] border border-[#e4e4e7] font-mono">방치형</span>
+                        <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-white text-[#71717a] border border-[#e4e4e7] font-mono">시뮬레이션</span>
                     </div>
-                    <p class="text-xs text-slate-500 leading-relaxed mb-5 flex-1">
+                    <p class="text-xs text-[#71717a] leading-relaxed mb-5 flex-1">
                         칭찬양파/비난양파 유사과학인가 진짜인가 그 진실을 파헤친다.
                     </p>
-                    <button class="w-full py-3 rounded-lg bg-slate-800 text-slate-500 font-medium text-xs cursor-not-allowed">업데이트 예정</button>
+                    <button class="w-full py-2.5 rounded-xl bg-[#a1a1aa] text-white font-medium text-xs cursor-not-allowed">업데이트 예정</button>
                 </div>
             </div>
         </div>

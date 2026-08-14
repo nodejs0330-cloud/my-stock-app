@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="w-full max-w-sm bg-slate-900/90 rounded-2xl shadow-2xl p-6 backdrop-blur-2xl border border-white/10 relative z-10 mx-4 my-8">
+<div class="w-full max-w-sm bg-white/95 rounded-2xl shadow-xl p-6 backdrop-blur-xl border border-[#e4e4e7] relative z-10 mx-4 my-8">
     <div class="mb-6 text-center">
-        <h2 class="text-2xl font-bold text-white tracking-tight">회원가입</h2>
-        <p class="text-slate-400 mt-1 text-xs">가입 즉시 모의투자 지원금 <span class="text-amber-300 font-semibold font-mono">5,000만원</span>이 지급됩니다.</p>
+        <h2 class="text-xl font-bold text-[#09090b] tracking-tight">회원가입</h2>
+        <p class="text-[#71717a] mt-1 text-xs">가입 즉시 모의투자 지원금 <span class="text-[#09090b] font-bold font-mono">5,000만원</span>이 지급됩니다.</p>
     </div>
 
     {% with messages = get_flashed_messages() %}
       {% if messages %}
-        <div class="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 px-3 py-2 rounded-lg text-xs font-medium text-center">
+        <div class="mb-4 bg-[#f4f4f5] border border-[#e4e4e7] text-[#09090b] px-3 py-2 rounded-lg text-xs font-medium text-center">
           {{ messages[0] }}
         </div>
       {% endif %}
@@ -17,27 +17,27 @@
 
     <form action="{{ url_for('signup') }}" method="POST" class="space-y-4">
         <div>
-            <label for="username" class="block text-xs font-medium text-slate-300 mb-1">아이디</label>
-            <input type="text" id="username" name="username" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="사용할 아이디 입력">
+            <label for="username" class="block text-xs font-medium text-[#71717a] mb-1">아이디</label>
+            <input type="text" id="username" name="username" required class="block w-full bg-[#f4f4f5] border border-[#e4e4e7] rounded-lg py-2 px-3 text-xs text-[#09090b] placeholder-[#a1a1aa] focus:outline-none focus:ring-1 focus:ring-[#18181b] transition-all" placeholder="사용할 아이디 입력">
         </div>
         <div>
-            <label for="name" class="block text-xs font-medium text-slate-300 mb-1">닉네임 (이름)</label>
-            <input type="text" id="name" name="name" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="사용할 닉네임 입력">
+            <label for="name" class="block text-xs font-medium text-[#71717a] mb-1">닉네임 (이름)</label>
+            <input type="text" id="name" name="name" required class="block w-full bg-[#f4f4f5] border border-[#e4e4e7] rounded-lg py-2 px-3 text-xs text-[#09090b] placeholder-[#a1a1aa] focus:outline-none focus:ring-1 focus:ring-[#18181b] transition-all" placeholder="사용할 닉네임 입력">
         </div>
         <div>
-            <label for="password" class="block text-xs font-medium text-slate-300 mb-1">비밀번호</label>
-            <input type="password" id="password" name="password" required class="block w-full bg-slate-950/60 border border-white/10 rounded-lg py-2 px-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all" placeholder="••••••••">
+            <label for="password" class="block text-xs font-medium text-[#71717a] mb-1">비밀번호</label>
+            <input type="password" id="password" name="password" required class="block w-full bg-[#f4f4f5] border border-[#e4e4e7] rounded-lg py-2 px-3 text-xs text-[#09090b] placeholder-[#a1a1aa] focus:outline-none focus:ring-1 focus:ring-[#18181b] transition-all" placeholder="••••••••">
         </div>
         
         <div class="pt-2">
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2.5 px-4 rounded-lg focus:outline-none shadow-md transition-all active:scale-[0.98] text-sm border border-emerald-400/20">
+            <button type="submit" class="w-full bg-[#18181b] hover:bg-[#27272a] text-white font-medium py-2.5 px-4 rounded-xl focus:outline-none shadow-sm transition-all active:scale-[0.98] text-xs">
                 가입하고 지원금 받기
             </button>
         </div>
     </form>
     
     <div class="mt-5 text-center">
-        <a href="{{ url_for('index') }}" class="text-xs text-slate-400 hover:text-white transition-colors">← 로그인 화면으로 돌아가기</a>
+        <a href="{{ url_for('index') }}" class="text-xs text-[#71717a] hover:text-[#09090b] transition-colors">← 로그인 화면으로 돌아가기</a>
     </div>
 </div>
 
