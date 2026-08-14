@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block body_class %}bg-[#050810]{% endblock %}
+{% block body_class %}bg-slate-950{% endblock %}
 {% block footer %}{% endblock %}
 
 {% block content %}
@@ -7,82 +7,89 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     @keyframes glow-pulse {
-        0% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
-        50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.4); }
-        100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        0% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.15); }
+        50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.3); }
+        100% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.15); }
     }
     .glow-effect { animation: glow-pulse 4s infinite alternate; }
 </style>
 
-<div class="w-full h-screen flex flex-col relative z-10 overflow-hidden text-gray-100 font-sans">
+<div class="w-full h-[100dvh] flex flex-col relative z-10 overflow-hidden text-slate-100 font-sans">
     
-    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full mix-blend-screen filter blur-[100px] opacity-50 pointer-events-none"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full mix-blend-screen filter blur-[100px] opacity-50 pointer-events-none"></div>
+    <!-- 배경 은은한 시그니처 앰비언트 글로우 -->
+    <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full filter blur-[120px] pointer-events-none"></div>
+    <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full filter blur-[120px] pointer-events-none"></div>
 
-    <div class="flex-grow w-full max-w-4xl mx-auto flex flex-col relative pt-4 pb-[130px] md:pb-32 px-4 overflow-y-auto no-scrollbar" id="chat-container">
+    <div class="flex-grow w-full max-w-4xl mx-auto flex flex-col relative pt-2 pb-[140px] md:pb-32 px-4 overflow-y-auto no-scrollbar" id="chat-container">
         
+        <!-- 모델 선택 탭 스위처 -->
         <div class="flex justify-center mb-4 md:mb-8 sticky top-0 z-30 pt-2">
-            <div class="bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-full p-1 flex shadow-lg space-x-1 overflow-x-auto no-scrollbar">
-                <button id="btn-gemini-model" onclick="switchModel('gemini')" class="px-4 py-2 rounded-full text-[13px] font-bold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap">
-                    NCS 텍스트 비서 <span class="text-[10px] text-blue-300 ml-1 font-normal">Gemini 2.5</span>
+            <div class="bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-full p-1 flex shadow-xl space-x-1 overflow-x-auto no-scrollbar">
+                <button id="btn-gemini-model" onclick="switchModel('gemini')" class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap">
+                    NCS 텍스트 비서 <span class="text-[10px] text-indigo-300 ml-1 font-mono font-normal">Gemini 2.5</span>
                 </button>
-                <button id="btn-text-model" onclick="switchModel('text')" class="px-4 py-2 rounded-full text-[13px] font-medium transition-all text-gray-400 hover:text-white whitespace-nowrap">
-                    NCS 텍스트 비서 <span class="text-[10px] text-gray-500 ml-1">Llama-3.3</span>
+                <button id="btn-text-model" onclick="switchModel('text')" class="px-4 py-1.5 rounded-full text-xs font-medium transition-all text-slate-400 hover:text-white whitespace-nowrap">
+                    NCS 텍스트 비서 <span class="text-[10px] text-slate-500 ml-1 font-mono">Llama-3.3</span>
                 </button>
-                <button id="btn-image-model" onclick="switchModel('image')" class="px-4 py-2 rounded-full text-[13px] font-medium transition-all text-gray-400 hover:text-white whitespace-nowrap">
-                    NCS 상상 화가 <span class="text-[10px] text-gray-500 ml-1">Flux.1</span>
+                <button id="btn-image-model" onclick="switchModel('image')" class="px-4 py-1.5 rounded-full text-xs font-medium transition-all text-slate-400 hover:text-white whitespace-nowrap">
+                    NCS 상상 화가 <span class="text-[10px] text-slate-500 ml-1 font-mono">Flux.1</span>
                 </button>
             </div>
         </div>
 
-        <div id="welcome-message" class="flex flex-col items-center justify-center flex-grow mt-2 md:mt-10 transition-opacity duration-500 min-h-[300px]">
-            <!-- 중앙 상단 Gemini 스타일 SVG 로고 -->
-            <div class="mb-4 text-purple-400 flex justify-center">
-                <svg class="w-12 h-12 md:w-16 md:h-16 drop-shadow-[0_0_15px_rgba(168,85,247,0.6)] animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+        <!-- Gemini 스타일 메인 웰컴 영역 -->
+        <div id="welcome-message" class="flex flex-col items-center justify-center flex-grow mt-2 md:mt-8 transition-opacity duration-500 min-h-[300px]">
+            <!-- 중앙 시그니처 SVG 로고 -->
+            <div class="mb-5 text-indigo-400 flex justify-center">
+                <svg class="w-12 h-12 md:w-16 md:h-16 drop-shadow-[0_0_20px_rgba(129,140,248,0.5)] animate-pulse" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/>
                 </svg>
             </div>
             
-            <!-- 인사말 텍스트 (Gemini 스타일 적용) -->
-            <h1 class="text-3xl md:text-5xl font-semibold text-center tracking-tight mb-8 leading-tight">
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">{{ session.name }}님,</span><br>
-                <span id="dynamic-greeting" class="text-[#c4c7c5] mt-2 block text-2xl md:text-4xl">무엇을 도와드릴까요?</span>
+            <!-- 인사말 텍스트 -->
+            <h1 class="text-3xl md:text-5xl font-extrabold text-center tracking-tight mb-8 leading-tight">
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-300 to-rose-300">{{ session.name }}님,</span><br>
+                <span id="dynamic-greeting" class="text-slate-300 mt-2 block text-xl md:text-3xl font-bold">무엇을 도와드릴까요?</span>
             </h1>
             
-            <!-- 추천 질문 (항상 2열 유지) -->
-            <div class="grid grid-cols-2 gap-2 md:gap-3 w-full max-w-2xl px-1" id="suggested-queries">
-                <button onclick="setInputAndSend(`{{ rec_q1 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition flex flex-col">
-                    <span class="block text-xl mb-1 sm:mb-2">📉</span> 
-                    <span class="text-[11px] sm:text-sm text-gray-300 line-clamp-3 md:line-clamp-2 leading-snug">{{ rec_q1 }}</span>
+            <!-- 추천 질문 카드 (2열 고정) -->
+            <div class="grid grid-cols-2 gap-2.5 md:gap-3.5 w-full max-w-2xl px-1" id="suggested-queries">
+                <button onclick="setInputAndSend(`{{ rec_q1 }}`)" class="bg-slate-900/60 hover:bg-slate-900 border border-white/10 p-3.5 md:p-4 rounded-2xl text-left transition-all shadow-md group flex flex-col justify-between">
+                    <div class="mb-2 text-indigo-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0v-8m0 8l-8-8-4 4-6-6"/></svg>
+                    </div>
+                    <span class="text-xs text-slate-300 group-hover:text-white line-clamp-3 md:line-clamp-2 leading-relaxed">{{ rec_q1 }}</span>
                 </button>
-                <button onclick="setInputAndSend(`{{ rec_q2 }}`)" class="bg-gray-800/40 hover:bg-gray-800/80 border border-gray-700/50 p-3 md:p-4 rounded-2xl text-left transition flex flex-col">
-                    <span class="block text-xl mb-1 sm:mb-2">🧐</span> 
-                    <span class="text-[11px] sm:text-sm text-gray-300 line-clamp-3 md:line-clamp-2 leading-snug">{{ rec_q2 }}</span>
+                <button onclick="setInputAndSend(`{{ rec_q2 }}`)" class="bg-slate-900/60 hover:bg-slate-900 border border-white/10 p-3.5 md:p-4 rounded-2xl text-left transition-all shadow-md group flex flex-col justify-between">
+                    <div class="mb-2 text-indigo-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    </div>
+                    <span class="text-xs text-slate-300 group-hover:text-white line-clamp-3 md:line-clamp-2 leading-relaxed">{{ rec_q2 }}</span>
                 </button>
             </div>
         </div>
 
-        <div id="chat-messages" class="w-full space-y-6 hidden pb-10"></div>
+        <div id="chat-messages" class="w-full space-y-5 hidden pb-10"></div>
     </div>
 
-    <div class="fixed bottom-16 md:bottom-0 left-0 w-full bg-gradient-to-t from-[#050810] via-[#050810] to-transparent pt-10 pb-4 md:pb-8 z-50">
+    <!-- 하단 Floating 프로프티 입력 폼 -->
+    <div class="fixed bottom-16 md:bottom-0 left-0 w-full bg-gradient-to-t from-slate-950 via-slate-950 to-transparent pt-10 pb-4 md:pb-6 z-50">
         <div class="max-w-3xl mx-auto px-4 relative">
-            <div id="nvidia-warning" class="hidden text-[11px] text-yellow-500 font-bold bg-yellow-900/30 border border-yellow-700/50 rounded-lg p-2 mb-2 text-center animate-pulse">
-                ⚠️ 현재 NVIDIA 무료 서버 트래픽 혼잡으로 응답이 지연될 수 있습니다. 70초 이상 지연 시 빠른 모델(Gemini)로의 자동 전환을 안내합니다.
+            <div id="nvidia-warning" class="hidden text-[10px] text-amber-300 font-medium bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 mb-2 text-center animate-pulse">
+                ⚠️ 서버 트래픽 혼잡 시 응답이 지연될 수 있으며, 지연 지속 시 Gemini 모델로 전환됩니다.
             </div>
-            <div class="relative flex items-center bg-gray-800/50 backdrop-blur-2xl border border-gray-600/50 rounded-full shadow-[0_0_30px_rgba(0,0,0,0.5)] glow-effect p-1.5 focus-within:bg-gray-800/80 transition-colors">
-                <input type="text" id="ai-input" class="w-full bg-transparent text-white placeholder-gray-400 px-5 py-3.5 focus:outline-none text-base" placeholder="무엇이든 물어보세요..." autocomplete="off">
-                <button id="send-btn" onclick="sendMessage()" class="bg-white text-gray-900 hover:bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center transition-transform transform active:scale-95 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            <div class="relative flex items-center bg-slate-900/90 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl glow-effect p-1.5 focus-within:border-indigo-500/50 transition-all">
+                <input type="text" id="ai-input" class="w-full bg-transparent text-white placeholder-slate-500 px-4 py-3 focus:outline-none text-xs md:text-sm" placeholder="무엇이든 물어보세요..." autocomplete="off">
+                <button id="send-btn" onclick="sendMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 shrink-0 border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                 </button>
             </div>
-            <p class="text-[10px] text-gray-500 text-center mt-3 hidden md:block">NCS AI는 실수할 수 있습니다. 생성된 정보나 이미지를 중요한 투자 결정의 근거로 사용하지 마세요.</p>
+            <p class="text-[10px] text-slate-500 text-center mt-2.5 hidden md:block font-sans">NCS AI는 실수를 할 수 있습니다. 주요 투자 결정은 본인의 판단 하에 진행해 주세요.</p>
         </div>
     </div>
 </div>
 
 <script>
-    // --- 랜덤 인사말 로직 ---
     const greetings = [
         "오늘 어떤 통찰을 얻고 싶으신가요?",
         "어떤 영감이 필요하신가요?",
@@ -102,7 +109,6 @@
     const suggestedQueries = document.getElementById('suggested-queries');
     const nvidiaWarning = document.getElementById('nvidia-warning');
     
-    // --- 사용자 스크롤 추적 및 자동 스크롤 제어 ---
     let isUserScrolling = false;
     chatContainer.addEventListener('scroll', () => {
         const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 10;
@@ -124,32 +130,32 @@
         const btnText = document.getElementById('btn-text-model');
         const btnImage = document.getElementById('btn-image-model');
         
-        btnGemini.className = "px-4 py-2 rounded-full text-[13px] font-medium transition-all text-gray-400 hover:text-white whitespace-nowrap";
-        btnText.className = "px-4 py-2 rounded-full text-[13px] font-medium transition-all text-gray-400 hover:text-white whitespace-nowrap";
-        btnImage.className = "px-4 py-2 rounded-full text-[13px] font-medium transition-all text-gray-400 hover:text-white whitespace-nowrap";
+        btnGemini.className = "px-4 py-1.5 rounded-full text-xs font-medium transition-all text-slate-400 hover:text-white whitespace-nowrap";
+        btnText.className = "px-4 py-1.5 rounded-full text-xs font-medium transition-all text-slate-400 hover:text-white whitespace-nowrap";
+        btnImage.className = "px-4 py-1.5 rounded-full text-xs font-medium transition-all text-slate-400 hover:text-white whitespace-nowrap";
         
-        btnGemini.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-gray-500 ml-1">Gemini 2.5</span>';
-        btnText.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-gray-500 ml-1">Llama-3.3</span>';
-        btnImage.innerHTML = 'NCS 상상 화가 <span class="text-[10px] text-gray-500 ml-1">Flux.1</span>';
+        btnGemini.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-slate-500 ml-1 font-mono">Gemini 2.5</span>';
+        btnText.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-slate-500 ml-1 font-mono">Llama-3.3</span>';
+        btnImage.innerHTML = 'NCS 상상 화가 <span class="text-[10px] text-slate-500 ml-1 font-mono">Flux.1</span>';
         
         if (mode === 'gemini') {
-            btnGemini.className = "px-4 py-2 rounded-full text-[13px] font-bold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap";
-            btnGemini.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-blue-300 ml-1 font-normal">Gemini 2.5</span>';
+            btnGemini.className = "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap";
+            btnGemini.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-indigo-300 ml-1 font-mono font-normal">Gemini 2.5</span>';
             inputEl.placeholder = "무엇이든 물어보세요 (초고속 응답)...";
             suggestedQueries.classList.remove('hidden');
             nvidiaWarning.classList.add('hidden');
         } else if (mode === 'text') {
-            btnText.className = "px-4 py-2 rounded-full text-[13px] font-bold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap";
-            btnText.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-yellow-300 ml-1 font-normal">Llama-3.3</span>';
+            btnText.className = "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap";
+            btnText.innerHTML = 'NCS 텍스트 비서 <span class="text-[10px] text-amber-300 ml-1 font-mono font-normal">Llama-3.3</span>';
             inputEl.placeholder = "무엇이든 물어보세요...";
             suggestedQueries.classList.remove('hidden');
             nvidiaWarning.classList.remove('hidden');
         } else {
-            btnImage.className = "px-4 py-2 rounded-full text-[13px] font-bold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap";
-            btnImage.innerHTML = 'NCS 상상 화가 <span class="text-[10px] text-pink-300 ml-1 font-normal">Flux.1</span>';
-            inputEl.placeholder = "생성하고 싶은 이미지를 영어/한국어로 묘사해주세요...";
+            btnImage.className = "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-white/10 text-white shadow-sm whitespace-nowrap";
+            btnImage.innerHTML = 'NCS 상상 화가 <span class="text-[10px] text-rose-300 ml-1 font-mono font-normal">Flux.1</span>';
+            inputEl.placeholder = "생성할 이미지를 묘사해주세요...";
             suggestedQueries.classList.add('hidden');
-            nvidiaWarning.classList.remove('hidden'); // Flux 모델도 NVIDIA 무료 서버이므로 경고창 활성화
+            nvidiaWarning.classList.remove('hidden');
         }
     }
 
@@ -173,34 +179,34 @@
         
         const bubble = document.createElement('div');
         if (role === 'user') {
-            bubble.className = "bg-gray-800 text-white px-5 py-3.5 rounded-3xl rounded-tr-sm max-w-[85%] sm:max-w-xl text-[15px] leading-relaxed shadow-md";
+            bubble.className = "bg-slate-800 text-white px-4 py-3 rounded-2xl rounded-tr-sm max-w-[85%] sm:max-w-lg text-xs md:text-sm leading-relaxed shadow-md border border-white/5";
             bubble.textContent = content;
         } else {
-            bubble.className = "text-gray-200 px-2 py-2 w-full max-w-3xl text-[15px] leading-relaxed flex flex-col";
+            bubble.className = "text-slate-200 px-1 py-1 w-full max-w-3xl text-xs md:text-sm leading-relaxed flex flex-col";
             const iconHtml = `
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mb-3 shrink-0 shadow-lg">
-                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
+            <div class="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mb-2.5 shrink-0 shadow-md">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C12 6.627 17.373 12 24 12C17.373 12 12 17.373 12 24C12 17.373 6.627 12 0 12C6.627 12 12 6.627 12 0Z"/></svg>
             </div>`;
             
             let contentHtml = '';
             if (type === 'text') {
-                let formatted = content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-                contentHtml = `<div class="prose prose-invert max-w-none">${formatted}</div>`;
+                let formatted = content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-semibold">$1</b>');
+                contentHtml = `<div class="prose prose-invert max-w-none text-xs md:text-sm">${formatted}</div>`;
             } else if (type === 'typing') {
-                contentHtml = `<div class="prose prose-invert max-w-none text-content"></div>`;
+                contentHtml = `<div class="prose prose-invert max-w-none text-content text-xs md:text-sm"></div>`;
             } else if (type === 'image') {
                 contentHtml = `<img src="data:image/jpeg;base64,${content}" class="rounded-xl shadow-2xl max-w-full h-auto mt-2 border border-white/10" alt="Generated Image">`;
             } else if (type === 'loading') {
                 contentHtml = `
-                <div class="flex items-center justify-between w-full max-w-sm">
-                    <div class="flex items-center space-x-2 text-purple-400 font-medium animate-pulse mt-1">
-                        <div class="w-2 h-2 bg-purple-400 rounded-full"></div>
-                        <div class="w-2 h-2 bg-purple-400 rounded-full" style="animation-delay: 0.2s"></div>
-                        <div class="w-2 h-2 bg-purple-400 rounded-full" style="animation-delay: 0.4s"></div>
-                        <span class="ml-2 text-sm">생각 중...</span>
+                <div class="flex items-center justify-between w-full max-w-xs">
+                    <div class="flex items-center space-x-2 text-indigo-400 font-medium animate-pulse mt-0.5">
+                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full"></div>
+                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full" style="animation-delay: 0.2s"></div>
+                        <div class="w-1.5 h-1.5 bg-indigo-400 rounded-full" style="animation-delay: 0.4s"></div>
+                        <span class="ml-2 text-xs">생각 중...</span>
                     </div>
-                    <button onclick="cancelAIRequest()" class="ml-4 text-xs font-bold bg-red-900/50 hover:bg-red-800 text-red-300 border border-red-700/50 px-3 py-1.5 rounded transition">
-                        ■ 대화 중지
+                    <button onclick="cancelAIRequest()" class="ml-4 text-[10px] font-bold bg-rose-950/50 hover:bg-rose-900 text-rose-300 border border-rose-500/30 px-2.5 py-1 rounded-md transition">
+                        대화 중지
                     </button>
                 </div>`;
             }
@@ -223,7 +229,7 @@
             element.innerHTML = '';
             const interval = setInterval(() => {
                 let currentText = text.substring(0, i);
-                element.innerHTML = currentText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                element.innerHTML = currentText.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-semibold">$1</b>');
                 scrollToBottom();
                 i++;
                 if (i > text.length) {
@@ -317,7 +323,7 @@
             
             if (e.name === 'AbortError') {
                 if (!isSwitched) {
-                    appendMessage('assistant', "🚫 대화가 중지되었습니다.");
+                    appendMessage('assistant', "대화가 중지되었습니다.");
                     chatHistory.pop();
                 }
             } else {
