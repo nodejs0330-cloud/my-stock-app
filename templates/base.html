@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" class="dark">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        border: 'hsl(217.2 32.6% 17.5%)',
-                        background: 'hsl(222.2 84% 4.9%)',
-                        foreground: 'hsl(210 40.9% 98%)',
+                        border: '#e4e4e7',
+                        background: '#f4f4f5',
+                        foreground: '#09090b',
                         card: {
-                            DEFAULT: 'hsl(222.2 84% 6.5%)',
-                            foreground: 'hsl(210 40.9% 98%)',
+                            DEFAULT: '#ffffff',
+                            foreground: '#09090b',
                         },
                         muted: {
-                            DEFAULT: 'hsl(217.2 32.6% 17.5%)',
-                            foreground: 'hsl(215 20.2% 65.1%)',
+                            DEFAULT: '#f4f4f5',
+                            foreground: '#71717a',
                         }
                     }
                 }
@@ -30,36 +29,34 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
-<body id="body-bg" class="{% block body_class %}bg-default{% endblock %} text-foreground min-h-[100dvh] flex flex-col transition-all duration-300 font-sans antialiased selection:bg-indigo-500/30 selection:text-indigo-300">
+<body id="body-bg" class="bg-[#f4f4f5] text-[#09090b] min-h-[100dvh] flex flex-col font-sans antialiased selection:bg-[#18181b] selection:text-white">
     
-    <!-- 로그인/회원가입 페이지가 아닐 때만 공통 상단 헤더 출력 -->
     {% if request.endpoint not in ['index', 'signup'] %}
-    <header class="w-full bg-slate-950/80 backdrop-blur-md border-b border-white/10 sticky top-0 z-40">
+    <header class="w-full bg-white/80 backdrop-blur-md border-b border-[#e4e4e7] sticky top-0 z-40">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <a href="{{ url_for('dashboard') }}" class="text-xl font-extrabold text-white tracking-tight flex items-center gap-1.5">
-                    <span class="bg-gradient-to-r from-red-500 to-rose-600 text-transparent bg-clip-text">NCC</span>
-                    <span class="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300 border border-white/10 font-mono">STOCK</span>
+                <a href="{{ url_for('dashboard') }}" class="text-base font-bold text-[#09090b] tracking-tight flex items-center gap-1.5">
+                    <span class="bg-[#18181b] text-white px-2 py-0.5 rounded-md font-extrabold text-xs">NCC</span>
+                    <span class="text-xs font-bold text-[#71717a] font-mono">STOCK</span>
                 </a>
             </div>
             
-            <!-- [데스크탑용 상단 메뉴] -->
             <nav class="hidden md:flex space-x-1 items-center">
-                <a href="{{ url_for('dashboard') }}" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'dashboard' %}bg-white/10 text-white shadow-sm border border-white/10{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">홈</a>
-                <a href="{{ url_for('trade') }}" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'trade' %}bg-white/10 text-white shadow-sm border border-white/10{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">주문/차트</a>
-                <a href="{{ url_for('portfolio') }}" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'portfolio' %}bg-white/10 text-white shadow-sm border border-white/10{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">내 주식</a>
-                <a href="{{ url_for('ranking') }}" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'ranking' %}bg-white/10 text-white shadow-sm border border-white/10{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">랭킹</a>
-                <a href="{{ url_for('simulation') }}" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'simulation' %}bg-white/10 text-white shadow-sm border border-white/10{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">만약에</a>
-                <a href="{{ url_for('ai_page') }}" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'ai_page' %}bg-indigo-500/20 text-indigo-300 border border-indigo-500/30{% else %}text-slate-400 hover:text-indigo-300 hover:bg-indigo-500/10{% endif %}">NCS AI</a>
-                <a href="{{ url_for('game') }}" class="px-3.5 py-1.5 rounded-md text-sm font-medium transition-colors {% if request.endpoint == 'game' %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% else %}text-slate-400 hover:text-purple-300 hover:bg-purple-500/10{% endif %}">게임</a>
+                <a href="{{ url_for('dashboard') }}" class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {% if request.endpoint == 'dashboard' %}bg-[#18181b] text-white{% else %}text-[#71717a] hover:text-[#09090b] hover:bg-[#f4f4f5]{% endif %}">홈</a>
+                <a href="{{ url_for('trade') }}" class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {% if request.endpoint == 'trade' %}bg-[#18181b] text-white{% else %}text-[#71717a] hover:text-[#09090b] hover:bg-[#f4f4f5]{% endif %}">주문/차트</a>
+                <a href="{{ url_for('portfolio') }}" class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {% if request.endpoint == 'portfolio' %}bg-[#18181b] text-white{% else %}text-[#71717a] hover:text-[#09090b] hover:bg-[#f4f4f5]{% endif %}">내 주식</a>
+                <a href="{{ url_for('ranking') }}" class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {% if request.endpoint == 'ranking' %}bg-[#18181b] text-white{% else %}text-[#71717a] hover:text-[#09090b] hover:bg-[#f4f4f5]{% endif %}">랭킹</a>
+                <a href="{{ url_for('simulation') }}" class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {% if request.endpoint == 'simulation' %}bg-[#18181b] text-white{% else %}text-[#71717a] hover:text-[#09090b] hover:bg-[#f4f4f5]{% endif %}">만약에</a>
+                <a href="{{ url_for('ai_page') }}" class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {% if request.endpoint == 'ai_page' %}bg-[#18181b] text-white{% else %}text-[#71717a] hover:text-[#09090b] hover:bg-[#f4f4f5]{% endif %}">NCS AI</a>
+                <a href="{{ url_for('game') }}" class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors {% if request.endpoint == 'game' %}bg-[#18181b] text-white{% else %}text-[#71717a] hover:text-[#09090b] hover:bg-[#f4f4f5]{% endif %}">게임</a>
 
                 {% if session.get('username') == 'admin' %}
-                <a href="{{ url_for('admin') }}" class="px-3 py-1.5 rounded-md transition text-xs font-semibold border {% if request.endpoint == 'admin' %}bg-rose-500/20 text-rose-300 border-rose-500/40{% else %}bg-rose-950/30 text-rose-400 hover:text-white hover:bg-rose-900/50 border-rose-800/40{% endif %}">관리자</a>
+                <a href="{{ url_for('admin') }}" class="px-2.5 py-1 rounded-md transition text-xs font-semibold border border-[#e4e4e7] {% if request.endpoint == 'admin' %}bg-[#18181b] text-white{% else %}bg-white text-[#71717a] hover:text-[#09090b]{% endif %}">관리자</a>
                 {% endif %}
-                <div class="w-px h-4 bg-white/10 mx-2"></div>
-                <a href="{{ url_for('logout') }}" class="text-slate-400 hover:text-rose-400 text-xs font-medium transition-colors px-2 py-1">로그아웃</a>
+                <div class="w-px h-3.5 bg-[#e4e4e7] mx-1.5"></div>
+                <a href="{{ url_for('logout') }}" class="text-[#71717a] hover:text-[#09090b] text-xs font-medium transition-colors px-1.5 py-1">로그아웃</a>
             </nav>
-            <a href="{{ url_for('logout') }}" class="md:hidden text-slate-300 hover:text-white text-xs font-medium bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-md border border-white/10 backdrop-blur-sm transition-colors">로그아웃</a>
+            <a href="{{ url_for('logout') }}" class="md:hidden text-[#71717a] hover:text-[#09090b] text-xs font-medium bg-white px-2.5 py-1 rounded-md border border-[#e4e4e7] transition-colors">로그아웃</a>
         </div>
     </header>
     {% endif %}
@@ -69,50 +66,48 @@
     </main>
 
     {% block footer %}
-    <!-- 로그인/회원가입에서만 푸터 노출 -->
     {% if request.endpoint in ['index', 'signup'] %}
-    <footer class="w-full bg-slate-950/40 backdrop-blur-md text-slate-400 py-4 px-6 flex justify-center items-center relative z-10 border-t border-white/5">
-        <div class="text-xs font-mono tracking-tight text-slate-400">
+    <footer class="w-full bg-white/60 backdrop-blur-md text-[#71717a] py-3.5 px-6 flex justify-center items-center relative z-10 border-t border-[#e4e4e7]">
+        <div class="text-xs font-mono tracking-tight text-[#71717a]">
             <p>Email: joamoon7@ncc.re.kr</p>
         </div>
     </footer>
     {% endif %}
     {% endblock %}
 
-    <!-- [모바일용 하단 메뉴] 이모지 대신 인라인 SVG 적용 -->
     {% if request.endpoint not in ['index', 'signup'] %}
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-slate-950/90 backdrop-blur-xl border-t border-white/10 flex items-center justify-around h-16 z-50 px-2 pb-safe shadow-2xl">
-        <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'dashboard' %}text-white font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-[#e4e4e7] flex items-center justify-around h-14 z-50 px-2 pb-safe shadow-lg">
+        <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'dashboard' %}text-[#09090b] font-bold{% else %}text-[#71717a]{% endif %}">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             <span class="text-[10px]">홈</span>
         </a>
-        <a href="{{ url_for('trade') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'trade' %}text-white font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        <a href="{{ url_for('trade') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'trade' %}text-[#09090b] font-bold{% else %}text-[#71717a]{% endif %}">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
             <span class="text-[10px]">주문</span>
         </a>
-        <a href="{{ url_for('portfolio') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'portfolio' %}text-white font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        <a href="{{ url_for('portfolio') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'portfolio' %}text-[#09090b] font-bold{% else %}text-[#71717a]{% endif %}">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
             <span class="text-[10px]">내주식</span>
         </a>
-        <a href="{{ url_for('ranking') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'ranking' %}text-white font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+        <a href="{{ url_for('ranking') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'ranking' %}text-[#09090b] font-bold{% else %}text-[#71717a]{% endif %}">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
             <span class="text-[10px]">랭킹</span>
         </a>
-        <a href="{{ url_for('simulation') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'simulation' %}text-white font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <a href="{{ url_for('simulation') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'simulation' %}text-[#09090b] font-bold{% else %}text-[#71717a]{% endif %}">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span class="text-[10px]">만약에</span>
         </a>
-        <a href="{{ url_for('ai_page') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'ai_page' %}text-indigo-400 font-bold{% else %}text-slate-400 hover:text-indigo-300{% endif %}">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <a href="{{ url_for('ai_page') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'ai_page' %}text-[#09090b] font-bold{% else %}text-[#71717a]{% endif %}">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
             <span class="text-[10px]">AI</span>
         </a>
-        <a href="{{ url_for('game') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'game' %}text-purple-300 font-bold{% else %}text-slate-400 hover:text-slate-200{% endif %}">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <a href="{{ url_for('game') }}" class="flex flex-col items-center justify-center w-12 transition-colors {% if request.endpoint == 'game' %}text-[#09090b] font-bold{% else %}text-[#71717a]{% endif %}">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span class="text-[10px]">게임</span>
         </a>
         {% if session.get('username') == 'admin' %}
-        <a href="{{ url_for('admin') }}" class="flex flex-col items-center justify-center w-12 text-rose-400">
-            <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <a href="{{ url_for('admin') }}" class="flex flex-col items-center justify-center w-12 text-[#09090b]">
+            <svg class="w-4 h-4 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
             <span class="text-[10px] font-bold">관리자</span>
         </a>
         {% endif %}
@@ -120,8 +115,8 @@
     {% endif %}
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
-    {% if session.get('username') != 'admin' %}
+
+        {% if session.get('username') != 'admin' %}
     <script>
         document.addEventListener('contextmenu', event => event.preventDefault()); 
         document.addEventListener('dragstart', event => event.preventDefault()); 

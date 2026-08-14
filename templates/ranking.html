@@ -1,67 +1,71 @@
 {% extends 'base.html' %}
 
-{% block body_class %}bg-slate-950{% endblock %}
+{% block body_class %}bg-[#f4f4f5]{% endblock %}
 {% block footer %}{% endblock %}
 
 {% block content %}
 <div class="w-full min-h-[100dvh] flex flex-col relative z-10 pb-20 md:pb-6">
-    <div class="w-full max-w-6xl mx-auto p-4 flex-grow mt-2 space-y-5">
+    <div class="w-full max-w-4xl mx-auto p-4 flex-grow mt-2 space-y-4">
         
         <div class="text-center mb-6">
-            <h2 class="text-2xl font-bold text-white mb-1 tracking-tight flex items-center justify-center gap-2">
-                실시간 투자자 랭킹
-            </h2>
-            <p class="text-slate-400 text-xs">최고의 수익률을 기록 중인 NCC STOCK 투자자 목록입니다.</p>
+            <h2 class="text-2xl font-bold text-[#09090b] tracking-tight">실시간 투자자 랭킹</h2>
+            <p class="text-[#71717a] text-xs mt-1">NCC STOCK의 최고 수익률 리더보드입니다.</p>
         </div>
 
-        <div class="bg-slate-900/90 rounded-2xl border border-white/10 shadow-xl overflow-hidden backdrop-blur-md">
+        <div class="bg-white rounded-2xl border border-[#e4e4e7] shadow-sm overflow-hidden">
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs text-slate-300 min-w-[500px]">
-                    <thead class="bg-slate-950/60 text-slate-500 text-[10px] font-mono">
+                <table class="w-full text-left text-xs text-[#09090b]">
+                    <thead class="bg-[#f4f4f5] text-[#71717a] text-[11px] font-mono border-b border-[#e4e4e7]">
                         <tr>
-                            <th scope="col" class="px-4 py-3 text-center w-16">순위</th>
+                            <th scope="col" class="px-4 py-3 text-center w-20">순위</th>
                             <th scope="col" class="px-4 py-3">투자자</th>
                             <th scope="col" class="px-4 py-3 text-right">총 자산</th>
                             <th scope="col" class="px-4 py-3 text-right">수익률</th>
                             <th scope="col" class="px-4 py-3 text-right">주력종목</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-white/5 font-mono">
+                    <tbody class="divide-y divide-[#e4e4e7] font-mono">
                         {% if top_10_users %}
                             {% for u in top_10_users %}
-                            <tr class="hover:bg-slate-800/50 transition-colors cursor-pointer group" onclick="openRankingModal('{{ u.name }}', '{{ u.top_5_stocks | tojson | forceescape }}')">
+                            <tr class="hover:bg-[#f4f4f5] transition-colors cursor-pointer group" onclick="openRankingModal('{{ u.name }}', '{{ u.top_5_stocks | tojson | forceescape }}')">
                                 <td class="px-4 py-3.5 text-center">
                                     {% if loop.index == 1 %}
-                                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">1위</span>
+                                        <div class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#18181b] text-white shadow-sm mx-auto" title="1위">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+                                        </div>
                                     {% elif loop.index == 2 %}
-                                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-300/20 text-slate-200 border border-slate-300/30">2위</span>
+                                        <div class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#e4e4e7] text-[#09090b] font-bold border border-[#d4d4d8] mx-auto" title="2위">
+                                            2
+                                        </div>
                                     {% elif loop.index == 3 %}
-                                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-amber-700/20 text-amber-500 border border-amber-700/30">3위</span>
+                                        <div class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#f4f4f5] text-[#71717a] font-bold border border-[#e4e4e7] mx-auto" title="3위">
+                                            3
+                                        </div>
                                     {% else %}
-                                        <span class="text-slate-500 font-bold text-xs">{{ loop.index }}</span>
+                                        <span class="text-[#71717a] font-bold text-xs">{{ loop.index }}</span>
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3.5 font-sans">
-                                    <span class="font-semibold text-white text-xs group-hover:text-indigo-300 transition-colors">{{ u.name }}</span>
+                                    <span class="font-bold text-[#09090b] text-xs group-hover:underline">{{ u.name }}</span>
                                 </td>
-                                <td class="px-4 py-3.5 text-right font-bold text-white">{{ "{:,.0f}".format(u.total_asset) }}원</td>
+                                <td class="px-4 py-3.5 text-right font-bold text-[#09090b]">{{ "{:,.0f}".format(u.total_asset) }}원</td>
                                 <td class="px-4 py-3.5 text-right font-bold">
                                     {% if u.return_rate > 0 %}
-                                        <span class="text-rose-400">+{{ "{:.2f}".format(u.return_rate) }}%</span>
+                                        <span class="text-[#18181b]">+{{ "{:.2f}".format(u.return_rate) }}%</span>
                                     {% elif u.return_rate < 0 %}
-                                        <span class="text-blue-400">{{ "{:.2f}".format(u.return_rate) }}%</span>
+                                        <span class="text-[#71717a]">{{ "{:.2f}".format(u.return_rate) }}%</span>
                                     {% else %}
-                                        <span class="text-slate-500">0.00%</span>
+                                        <span class="text-[#a1a1aa]">0.00%</span>
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3.5 text-right font-sans">
-                                    <span class="text-slate-300 text-[10px] bg-slate-800 border border-white/5 px-2 py-1 rounded inline-block truncate max-w-[120px] sm:max-w-none">{{ u.best_stock }}</span>
+                                    <span class="text-[#09090b] text-[10px] bg-[#f4f4f5] border border-[#e4e4e7] px-2 py-1 rounded-md inline-block font-mono truncate max-w-[120px] sm:max-w-none">{{ u.best_stock }}</span>
                                 </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="5" class="px-4 py-12 text-center text-slate-500 font-sans">
+                                <td colspan="5" class="px-4 py-10 text-center text-[#71717a] font-sans">
                                     등록된 사용자가 없습니다.
                                 </td>
                             </tr>
@@ -69,26 +73,25 @@
                     </tbody>
                 </table>
             </div>
-            <div class="bg-slate-950/60 p-2.5 text-center border-t border-white/5">
-                <p class="text-[10px] text-slate-500 animate-pulse font-sans">투자자 목록을 클릭하여 상위 보유 종목 5개를 확인하세요.</p>
+            <div class="bg-[#f4f4f5] p-2.5 text-center border-t border-[#e4e4e7]">
+                <p class="text-[11px] text-[#71717a] font-sans">목록을 클릭하면 상위 보유 종목 5개를 확인하실 수 있습니다.</p>
             </div>
         </div>
     </div>
 
-    <!-- 투자자 주력종목 모달 팝업 -->
-    <div id="ranking-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden flex-col items-center justify-center z-[100] transition-opacity" onclick="closeRankingModal(event)">
-        <div class="bg-slate-900 p-5 rounded-2xl shadow-2xl relative w-full max-w-sm mx-4 border border-white/10" onclick="event.stopPropagation()">
-            <button onclick="closeRankingModal()" class="absolute top-3.5 right-4 text-slate-400 hover:text-white transition-colors">&times;</button>
-            <h3 class="text-white font-bold text-sm mb-1 flex items-center">
-                <span id="modal-user-name" class="text-indigo-400 mr-1">투자자</span>님의 주력종목
+    <!-- 모달 팝업 -->
+    <div id="ranking-modal" class="fixed inset-0 bg-black/40 backdrop-blur-xs hidden flex-col items-center justify-center z-[100] transition-opacity" onclick="closeRankingModal(event)">
+        <div class="bg-white p-5 rounded-2xl shadow-xl relative w-full max-w-sm mx-4 border border-[#e4e4e7]" onclick="event.stopPropagation()">
+            <button onclick="closeRankingModal()" class="absolute top-3.5 right-4 text-[#71717a] hover:text-[#09090b] transition-colors">&times;</button>
+            <h3 class="text-[#09090b] font-bold text-sm mb-1 flex items-center gap-1.5">
+                <span id="modal-user-name" class="font-extrabold">투자자</span>님의 주력종목
             </h3>
-            <p class="text-[10px] text-amber-300/80 mb-3 bg-amber-500/10 px-2 py-0.5 rounded inline-block border border-amber-500/20">상위 보유 종목 5개를 표시합니다.</p>
+            <p class="text-[11px] text-[#71717a] mb-3 bg-[#f4f4f5] px-2 py-0.5 rounded inline-block border border-[#e4e4e7]">상위 보유 종목 5개 리스트입니다.</p>
             
             <div id="modal-stock-list" class="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
-                <!-- Javascript injection area -->
             </div>
             
-            <button onclick="closeRankingModal()" class="w-full mt-5 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2 px-4 rounded-lg text-xs transition-colors border border-white/5">
+            <button onclick="closeRankingModal()" class="w-full mt-4 bg-[#18181b] hover:bg-[#27272a] text-white font-medium py-2 px-4 rounded-xl text-xs transition-colors">
                 닫기
             </button>
         </div>
@@ -105,23 +108,21 @@
         try { stocks = JSON.parse(stocksStr); } catch(e) { console.error(e); }
         
         if (!stocks || stocks.length === 0) {
-            listContainer.innerHTML = '<p class="text-slate-500 text-xs text-center py-4 font-sans">보유 중인 종목이 없습니다.</p>';
+            listContainer.innerHTML = '<p class="text-[#71717a] text-xs text-center py-4 font-sans">보유 중인 종목이 없습니다.</p>';
         } else {
             stocks.forEach((stock, idx) => {
                 const isProfit = stock.profit_rate > 0;
-                const isLoss = stock.profit_rate < 0;
-                const colorClass = isProfit ? 'text-rose-400' : (isLoss ? 'text-blue-400' : 'text-slate-400');
                 const sign = isProfit ? '+' : '';
                 
                 listContainer.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-950/60 p-2.5 rounded-lg border border-white/5 font-mono">
-                        <div class="flex items-center space-x-2.5 overflow-hidden font-sans">
-                            <span class="text-slate-500 font-bold text-[10px] shrink-0 w-3 text-center font-mono">${idx + 1}</span>
-                            <span class="font-semibold text-white text-xs truncate">${stock.name}</span>
+                    <div class="flex justify-between items-center bg-[#f4f4f5] p-2.5 rounded-xl border border-[#e4e4e7] font-mono">
+                        <div class="flex items-center space-x-2 overflow-hidden font-sans">
+                            <span class="text-[#71717a] font-bold text-[10px] shrink-0 w-3 text-center font-mono">${idx + 1}</span>
+                            <span class="font-bold text-[#09090b] text-xs truncate">${stock.name}</span>
                         </div>
                         <div class="text-right flex flex-col shrink-0 ml-2">
-                            <span class="font-bold ${colorClass} text-xs">${sign}${stock.profit_rate.toFixed(2)}%</span>
-                            <span class="text-[9px] text-slate-500">${Math.round(stock.profit).toLocaleString()}원</span>
+                            <span class="font-bold text-[#09090b] text-xs">${sign}${stock.profit_rate.toFixed(2)}%</span>
+                            <span class="text-[9px] text-[#71717a]">${Math.round(stock.profit).toLocaleString()}원</span>
                         </div>
                     </div>
                 `;
