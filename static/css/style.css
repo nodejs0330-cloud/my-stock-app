@@ -1,25 +1,32 @@
-/* 기본 배경: 준비하신 로컬 이미지 (new_ncc.jpg) */
-.bg-default {
-    background-image: url('../img/new_ncc.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-color: #0f2027; /* 이미지 로딩 전/실패 시 대체 색상 */
+/* static/css/style.css 하단에 추가 */
+
+/* 스크롤바 숨김 유틸리티 */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
-/* 외부 랜덤 배경 (JS에서 URL 주입) */
-.bg-external {
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-color: #0f2027;
+/* 커스텀 슬림 스크롤바 (다크모드용) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.6);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
-/* 준비하신 이미지 배경 클래스 */
-.bg-kitsch {
-    /* static/css 폴더에서 img 폴더로 접근하므로 상대경로 사용 */
-    background-image: url('../img/new_ncc.jpg');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
+/* 텍스트 드래그 선택 색상 */
+::selection {
+    background-color: rgba(99, 102, 241, 0.3);
+    color: #c7d2fe;
 }

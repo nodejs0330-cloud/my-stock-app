@@ -6,29 +6,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginFormContainer = document.getElementById('login-form-container');
     const kitschText = document.getElementById('kitsch-text');
 
-    if (showLoginBtn && loginFormContainer) {
+    if (showLoginBtn && loginFormContainer && kitschText) {
         // 로그인 버튼 클릭 시 폼 보여주기
         showLoginBtn.addEventListener('click', () => {
-            // 키치 텍스트 위로 올리고 흐리게 처리
             kitschText.classList.replace('justify-center', 'justify-start');
             kitschText.classList.add('mt-10', 'opacity-30', 'scale-75');
-            kitschText.querySelector('button').classList.add('hidden'); // 중앙 버튼 숨김
+            const centerBtn = kitschText.querySelector('button');
+            if (centerBtn) centerBtn.classList.add('hidden');
             
-            // 로그인 폼 부드럽게 등장
             loginFormContainer.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
             loginFormContainer.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
         });
+    }
 
+    if (closeLoginBtn && loginFormContainer && kitschText) {
         // X 버튼 클릭 시 폼 숨기기
         closeLoginBtn.addEventListener('click', () => {
-            // 로그인 폼 숨기기
             loginFormContainer.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
             loginFormContainer.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
             
-            // 키치 텍스트 원상복구
             kitschText.classList.replace('justify-start', 'justify-center');
             kitschText.classList.remove('mt-10', 'opacity-30', 'scale-75');
-            kitschText.querySelector('button').classList.remove('hidden');
+            const centerBtn = kitschText.querySelector('button');
+            if (centerBtn) centerBtn.classList.remove('hidden');
         });
     }
 
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let isExternalBg = false;
     
-    if (bgToggleBtn) {
+    if (bgToggleBtn && bodyBg) {
         bgToggleBtn.addEventListener('click', (e) => {
             e.preventDefault();
             isExternalBg = !isExternalBg;
@@ -49,15 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 bodyBg.classList.remove('bg-default');
                 bodyBg.classList.add('bg-external');
                 
-                bgToggleBtn.innerText = '🎨 원래 배경';
-                bgToggleBtn.classList.replace('bg-indigo-600/80', 'bg-pink-600/80');
+                bgToggleBtn.innerText = '원래 배경';
             } else {
                 bodyBg.style.backgroundImage = '';
                 bodyBg.classList.remove('bg-external');
                 bodyBg.classList.add('bg-default');
                 
-                bgToggleBtn.innerText = '🌌 외부 배경';
-                bgToggleBtn.classList.replace('bg-pink-600/80', 'bg-indigo-600/80');
+                bgToggleBtn.innerText = '외부 배경';
             }
         });
     }
@@ -73,28 +71,35 @@ document.addEventListener('DOMContentLoaded', () => {
         qrToggleBtn.addEventListener('click', (e) => {
             e.preventDefault();
             qrModal.classList.remove('hidden');
+            qrModal.classList.add('flex');
             
             const currentUrl = window.location.href;
-            qrUrlText.innerText = currentUrl;
-            qrcodeContainer.innerHTML = '';
+            if (qrUrlText) qrUrlText.innerText = currentUrl;
             
-            new QRCode(qrcodeContainer, {
-                text: currentUrl,
-                width: 180,
-                height: 180,
-                colorDark : "#111827",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
+            if (qrcodeContainer && typeof QRCode !== 'undefined') {
+                qrcodeContainer.innerHTML = '';
+                new QRCode(qrcodeContainer, {
+                    text: currentUrl,
+                    width: 160,
+                    height: 160,
+                    colorDark : "#0f172a",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            }
         });
 
-        qrCloseBtn.addEventListener('click', () => {
-            qrModal.classList.add('hidden');
-        });
+        if (qrCloseBtn) {
+            qrCloseBtn.addEventListener('click', () => {
+                qrModal.classList.add('hidden');
+                qrModal.classList.remove('flex');
+            });
+        }
         
         qrModal.addEventListener('click', (e) => {
             if (e.target === qrModal) {
                 qrModal.classList.add('hidden');
+                qrModal.classList.remove('flex');
             }
         });
     }
