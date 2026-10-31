@@ -10,6 +10,9 @@ from flask import Flask, render_template, request, session, redirect, url_for, g
 from werkzeug.security import generate_password_hash, check_password_hash
 from pykrx import stock
 
+
+TEST_MODE = True
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24) 
 DATABASE = 'database.db'
@@ -291,7 +294,17 @@ def dashboard():
     db = get_db()
     user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
     holdings = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
-    total_stock_value = sum((get_single_stock_price(h['STOCK_CODE']) or h['AVG_PRICE']) * h['QUANTITY'] for h in holdings)
+    if TEST_MODE:
+    total_stock_value = sum(
+        h['AVG_PRICE'] * h['QUANTITY']
+        for h in holdings
+    )
+    else:
+    total_stock_value = sum(
+        (get_single_stock_price(h['STOCK_CODE']) or h['AVG_PRICE'])
+        * h['QUANTITY']
+        for h in holdings
+    )
     total_asset = user['CASH_BALANCE'] + total_stock_value
     top_stocks, target_date_str, data_source = get_top_stocks("KOSPI")
     notice = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone()
