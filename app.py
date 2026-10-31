@@ -6,6 +6,18 @@ from datetime import datetime, timedelta
 import pytz
 import requests
 from bs4 import BeautifulSoup
+# ==========================================
+# Webshare 무료 프록시 설정 (클라우드 IP 차단 우회)
+# 반드시 pykrx, fdr 등 주식 라이브러리를 import 하기 전에 선언 순서 변경 금지 
+# ==========================================
+PROXY_URL = "http://aekbxxdo:jbj7h1rt0mnq@45.38.107.97:6014"
+
+os.environ['http_proxy'] = PROXY_URL
+os.environ['https_proxy'] = PROXY_URL
+os.environ['HTTP_PROXY'] = PROXY_URL
+os.environ['HTTPS_PROXY'] = PROXY_URL
+
+# ==========================================
 from flask import Flask, render_template, request, session, redirect, url_for, g, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from pykrx import stock
