@@ -59,24 +59,24 @@ def get_single_stock_price(code):
         return int(df.iloc[-1]['Close']) if not df.empty else None
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        # 1. pykrx 15초 제한 대기
+        # 1. pykrx 8초 제한 대기
         try:
             future1 = executor.submit(fetch_pykrx)
-            result = future1.result(timeout=15)
+            result = future1.result(timeout=8)
             if result is not None: return result
         except Exception: pass
 
-        # 2. fdr 15초 제한 대기
+        # 2. fdr 8초 제한 대기
         try:
             future2 = executor.submit(fetch_fdr)
-            result = future2.result(timeout=15)
+            result = future2.result(timeout=8)
             if result is not None: return result
         except Exception: pass
 
-        # 3. yfinance 15초 제한 대기
+        # 3. yfinance 8초 제한 대기
         try:
             future3 = executor.submit(fetch_yf)
-            result = future3.result(timeout=15)
+            result = future3.result(timeout=8)
             if result is not None: return result
         except Exception: pass
         
@@ -205,14 +205,14 @@ def get_top_stocks(market="KOSPI"):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         try:
-            # KRX 시도 (최대 15초 대기)
+            # KRX 시도 (최대 8초 대기)
             future1 = executor.submit(fetch_pykrx)
-            data, date_str, source = future1.result(timeout=15)
+            data, date_str, source = future1.result(timeout=8)
         except Exception:
             try:
-                # KRX 실패 또는 타임아웃 시 FDR 시도 (최대 15초 대기)
+                # KRX 실패 또는 타임아웃 시 FDR 시도 (최대 8초 대기)
                 future2 = executor.submit(fetch_fdr)
-                data, date_str, source = future2.result(timeout=15)
+                data, date_str, source = future2.result(timeout=8)
             except Exception:
                 # 둘 다 실패 시 빈 데이터 반환
                 data, date_str, source = {'gainers': [], 'losers': []}, now.strftime("%Y.%m.%d"), "데이터 불러오기 실패"
@@ -271,7 +271,7 @@ def init_tickers():
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             try:
                 future = executor.submit(fetch_fdr_tickers)
-                TICKER_CACHE = future.result(timeout=15)
+                TICKER_CACHE = future.result(timeout=8)
             except Exception:
                 pass
 
@@ -353,36 +353,16 @@ def dashboard():
         return redirect(url_for('index'))
 
     db = get_db()
-    user = db.execute(
-        'SELECT * FROM USERS WHERE ID = ?',
-        (session['user_id'],)
-    ).fetchone()
+    user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
+    holdings = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
 
-    holdings = db.execute(
-        'SELECT * FROM HOLDINGS WHERE USER_ID = ?',
-        (session['user_id'],)
-    ).fetchall()
-
-    if TEST_MODE:
-        # 테스트 모드: 외부 주가 API 호출 없이 평균 매입가 사용
-        total_stock_value = sum(
-            h['AVG_PRICE'] * h['QUANTITY']
-            for h in holdings
-        )
-    else:
-        # 일반 모드: 실제 외부 API 주가 조회
-        total_stock_value = sum(
-            (get_single_stock_price(h['STOCK_CODE']) or h['AVG_PRICE'])
-            * h['QUANTITY']
-            for h in holdings
-        )
-
+    # --- 수정된 부분: API 연쇄 호출 차단 ---
+    # 대시보드 진입 시 무한 로딩을 막기 위해 보유 주식 가치를 '평균 매입가' 기준으로만 단순 합산
+    total_stock_value = sum(h['AVG_PRICE'] * h['QUANTITY'] for h in holdings)
     total_asset = user['CASH_BALANCE'] + total_stock_value
 
     top_stocks, target_date_str, data_source = get_top_stocks("KOSPI")
-    notice = db.execute(
-        'SELECT * FROM ANNOUNCEMENT WHERE ID = 1'
-    ).fetchone()
+    notice = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone()
 
     return render_template(
         'dashboard.html',
@@ -393,6 +373,7 @@ def dashboard():
         notice=notice,
         source=data_source
     )
+
 @app.route('/trade')
 def trade():
     if 'user_id' not in session: return redirect(url_for('index'))
@@ -558,11 +539,11 @@ def api_stock_info(code):
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         try:
             future1 = executor.submit(fetch_pykrx)
-            chart_data, cp, pp, data_source = future1.result(timeout=15)
+            chart_data, cp, pp, data_source = future1.result(timeout=8)
         except Exception:
             try:
                 future2 = executor.submit(fetch_fdr)
-                chart_data, cp, pp, data_source = future2.result(timeout=15)
+                chart_data, cp, pp, data_source = future2.result(timeout=8)
             except Exception:
                 return {"error": "데이터를 찾을 수 없습니다."}, 404
 
