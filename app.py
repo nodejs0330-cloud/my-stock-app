@@ -12,7 +12,7 @@ from pykrx import stock
 import concurrent.futures
 
 
-# --- TEST_MODE = True ---
+TEST_MODE = False
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) 
