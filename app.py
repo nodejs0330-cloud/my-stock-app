@@ -290,26 +290,50 @@ def signup():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session: return redirect(url_for('index'))
-    db = get_db()
-    user = db.execute('SELECT * FROM USERS WHERE ID = ?', (session['user_id'],)).fetchone()
-    holdings = db.execute('SELECT * FROM HOLDINGS WHERE USER_ID = ?', (session['user_id'],)).fetchall()
-    if TEST_MODE:
-    total_stock_value = sum(
-        h['AVG_PRICE'] * h['QUANTITY']
-        for h in holdings
-    )
-    else:
-    total_stock_value = sum(
-        (get_single_stock_price(h['STOCK_CODE']) or h['AVG_PRICE'])
-        * h['QUANTITY']
-        for h in holdings
-    )
-    total_asset = user['CASH_BALANCE'] + total_stock_value
-    top_stocks, target_date_str, data_source = get_top_stocks("KOSPI")
-    notice = db.execute('SELECT * FROM ANNOUNCEMENT WHERE ID = 1').fetchone()
-    return render_template('dashboard.html', user=user, total_asset=total_asset, top_stocks=top_stocks, target_date=target_date_str, notice=notice, source=data_source)
+    if 'user_id' not in session:
+        return redirect(url_for('index'))
 
+    db = get_db()
+    user = db.execute(
+        'SELECT * FROM USERS WHERE ID = ?',
+        (session['user_id'],)
+    ).fetchone()
+
+    holdings = db.execute(
+        'SELECT * FROM HOLDINGS WHERE USER_ID = ?',
+        (session['user_id'],)
+    ).fetchall()
+
+    if TEST_MODE:
+        # 테스트 모드: 외부 주가 API 호출 없이 평균 매입가 사용
+        total_stock_value = sum(
+            h['AVG_PRICE'] * h['QUANTITY']
+            for h in holdings
+        )
+    else:
+        # 일반 모드: 실제 외부 API 주가 조회
+        total_stock_value = sum(
+            (get_single_stock_price(h['STOCK_CODE']) or h['AVG_PRICE'])
+            * h['QUANTITY']
+            for h in holdings
+        )
+
+    total_asset = user['CASH_BALANCE'] + total_stock_value
+
+    top_stocks, target_date_str, data_source = get_top_stocks("KOSPI")
+    notice = db.execute(
+        'SELECT * FROM ANNOUNCEMENT WHERE ID = 1'
+    ).fetchone()
+
+    return render_template(
+        'dashboard.html',
+        user=user,
+        total_asset=total_asset,
+        top_stocks=top_stocks,
+        target_date=target_date_str,
+        notice=notice,
+        source=data_source
+    )
 @app.route('/trade')
 def trade():
     if 'user_id' not in session: return redirect(url_for('index'))
