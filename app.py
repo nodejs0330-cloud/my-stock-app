@@ -9,9 +9,10 @@ from bs4 import BeautifulSoup
 from flask import Flask, render_template, request, session, redirect, url_for, g, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from pykrx import stock
+import concurrent.futures
 
 
-TEST_MODE = True
+# --- TEST_MODE = True ---
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) 
@@ -42,23 +43,43 @@ def get_single_stock_price(code):
     start_date = (now - timedelta(days=15)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
     
-    try:
+    def fetch_pykrx():
         df = stock.get_market_ohlcv(start_date.replace('-', ''), end_date.replace('-', ''), code)
-        if not df.empty: return int(df.iloc[-1]['종가'])
-    except Exception: pass
+        return int(df.iloc[-1]['종가']) if not df.empty else None
 
-    try:
+    def fetch_fdr():
         import FinanceDataReader as fdr
         df = fdr.DataReader(code, start_date, end_date)
-        if not df.empty: return int(df.iloc[-1]['Close'])
-    except Exception: pass
+        return int(df.iloc[-1]['Close']) if not df.empty else None
 
-    try:
+    def fetch_yf():
         import yfinance as yf
         yf_code = f"{code}.KS" if not str(code).startswith('0') else f"{code}.KQ"
         df = yf.download(yf_code, start_date=start_date, end_date=end_date, progress=False)
-        if not df.empty: return int(df.iloc[-1]['Close'])
-    except Exception: pass
+        return int(df.iloc[-1]['Close']) if not df.empty else None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        # 1. pykrx 15초 제한 대기
+        try:
+            future1 = executor.submit(fetch_pykrx)
+            result = future1.result(timeout=15)
+            if result is not None: return result
+        except Exception: pass
+
+        # 2. fdr 15초 제한 대기
+        try:
+            future2 = executor.submit(fetch_fdr)
+            result = future2.result(timeout=15)
+            if result is not None: return result
+        except Exception: pass
+
+        # 3. yfinance 15초 제한 대기
+        try:
+            future3 = executor.submit(fetch_yf)
+            result = future3.result(timeout=15)
+            if result is not None: return result
+        except Exception: pass
+        
     return None
 
 def get_stock_news_scraped(code):
@@ -129,23 +150,33 @@ TICKER_CACHE = {}
 def get_latest_business_day():
     now = datetime.now(KST)
     if now.hour < 16: now = now - timedelta(days=1)
-    for i in range(10):
-        target = (now - timedelta(days=i)).strftime("%Y%m%d")
-        try:
-            if stock.get_market_ticker_list(target, market="KOSPI"): return target
-        except Exception: continue
+    
+    def check_date(target_date):
+        return stock.get_market_ticker_list(target_date, market="KOSPI")
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        for i in range(10):
+            target = (now - timedelta(days=i)).strftime("%Y%m%d")
+            try:
+                future = executor.submit(check_date, target)
+                if future.result(timeout=15): 
+                    return target
+            except Exception: 
+                continue
+                
     return datetime.now(KST).strftime("%Y%m%d")
+
+import concurrent.futures
 
 def get_top_stocks(market="KOSPI"):
     global STOCK_CACHE
     now = datetime.now(KST)
     cache = STOCK_CACHE.get(market, {'time': None, 'data': None, 'date': None, 'source': ''})
-    if cache['time'] and (now.replace(tzinfo=None) - cache['time']).seconds < 600: return cache['data'], cache['date'], cache['source']
+    if cache['time'] and (now.replace(tzinfo=None) - cache['time']).seconds < 600: 
+        return cache['data'], cache['date'], cache['source']
     
-    result = {'gainers': [], 'losers': []}
-    target_date_str = ""
-    data_source = "KRX (pykrx)"
-    try:
+    def fetch_pykrx():
+        result = {'gainers': [], 'losers': []}
         target_date = get_latest_business_day()
         target_date_str = f"{target_date[:4]}.{target_date[4:6]}.{target_date[6:]}"
         df = stock.get_market_price_change_by_ticker(target_date, target_date)
@@ -153,21 +184,41 @@ def get_top_stocks(market="KOSPI"):
         df = df[df.index.isin(tickers)]
         top10_df = df.sort_values(by="등락률", ascending=False).head(10)
         bottom10_df = df.sort_values(by="등락률", ascending=True).head(10)
-        for ticker, row in top10_df.iterrows(): result['gainers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
-        for ticker, row in bottom10_df.iterrows(): result['losers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
-    except Exception:
-        data_source = "FinanceDataReader"
+        for ticker, row in top10_df.iterrows(): 
+            result['gainers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
+        for ticker, row in bottom10_df.iterrows(): 
+            result['losers'].append({'code': ticker, 'name': stock.get_market_ticker_name(ticker), 'price': int(row['종가']), 'change_rate': float(row['등락률'])})
+        return result, target_date_str, "KRX (pykrx)"
+
+    def fetch_fdr():
+        result = {'gainers': [], 'losers': []}
+        import FinanceDataReader as fdr
+        df_fdr = fdr.StockListing(market)
+        top10_df = df_fdr.sort_values(by="ChagesRatio", ascending=False).head(10)
+        bottom10_df = df_fdr.sort_values(by="ChagesRatio", ascending=True).head(10)
+        target_date_str = now.strftime("%Y.%m.%d")
+        for _, row in top10_df.iterrows(): 
+            result['gainers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
+        for _, row in bottom10_df.iterrows(): 
+            result['losers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
+        return result, target_date_str, "FinanceDataReader"
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         try:
-            import FinanceDataReader as fdr
-            df_fdr = fdr.StockListing(market)
-            top10_df = df_fdr.sort_values(by="ChagesRatio", ascending=False).head(10)
-            bottom10_df = df_fdr.sort_values(by="ChagesRatio", ascending=True).head(10)
-            target_date_str = now.strftime("%Y.%m.%d")
-            for _, row in top10_df.iterrows(): result['gainers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
-            for _, row in bottom10_df.iterrows(): result['losers'].append({'code': str(row['Code']), 'name': str(row['Name']), 'price': int(row['Close']), 'change_rate': float(row['ChagesRatio'])})
-        except Exception: data_source = "데이터 불러오기 실패"
-    STOCK_CACHE[market] = {'time': now.replace(tzinfo=None), 'data': result, 'date': target_date_str, 'source': data_source}
-    return result, target_date_str, data_source
+            # KRX 시도 (최대 15초 대기)
+            future1 = executor.submit(fetch_pykrx)
+            data, date_str, source = future1.result(timeout=15)
+        except Exception:
+            try:
+                # KRX 실패 또는 타임아웃 시 FDR 시도 (최대 15초 대기)
+                future2 = executor.submit(fetch_fdr)
+                data, date_str, source = future2.result(timeout=15)
+            except Exception:
+                # 둘 다 실패 시 빈 데이터 반환
+                data, date_str, source = {'gainers': [], 'losers': []}, now.strftime("%Y.%m.%d"), "데이터 불러오기 실패"
+
+    STOCK_CACHE[market] = {'time': now.replace(tzinfo=None), 'data': data, 'date': date_str, 'source': source}
+    return data, date_str, source
 
 def get_rankings():
     global RANKING_CACHE
@@ -210,11 +261,19 @@ def get_rankings():
 def init_tickers():
     global TICKER_CACHE
     if not TICKER_CACHE:
-        try:
+        def fetch_fdr_tickers():
             import FinanceDataReader as fdr
-            for _, row in fdr.StockListing('KRX').iterrows(): TICKER_CACHE[str(row['Code'])] = str(row['Name'])
-            for _, row in fdr.StockListing('ETF/KR').iterrows(): TICKER_CACHE[str(row.get('Symbol', row.get('Code')))] = str(row['Name'])
-        except Exception: pass
+            cache = {}
+            for _, row in fdr.StockListing('KRX').iterrows(): cache[str(row['Code'])] = str(row['Name'])
+            for _, row in fdr.StockListing('ETF/KR').iterrows(): cache[str(row.get('Symbol', row.get('Code')))] = str(row['Name'])
+            return cache
+            
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            try:
+                future = executor.submit(fetch_fdr_tickers)
+                TICKER_CACHE = future.result(timeout=15)
+            except Exception:
+                pass
 
 def check_ai_limit(user_id):
     db = get_db()
@@ -478,23 +537,38 @@ def api_stock_info(code):
     now = datetime.now(KST)
     start_date = (now - timedelta(days=45)).strftime("%Y-%m-%d")
     end_date = now.strftime("%Y-%m-%d")
-    chart_data, cp, pp, data_source = [], 0, 0, "KRX (pykrx)"
-    try:
+    
+    def fetch_pykrx():
+        chart_data = []
         df = stock.get_market_ohlcv(start_date.replace('-',''), end_date.replace('-',''), code)
         if df.empty: raise Exception()
         for index, row in df.iterrows(): chart_data.append({"time": index.strftime("%Y-%m-%d"), "open": int(row['시가']), "high": int(row['고가']), "low": int(row['저가']), "close": int(row['종가'])})
         cp, pp = int(df.iloc[-1]['종가']), int(df.iloc[-2]['종가'] if len(df) > 1 else df.iloc[-1]['종가'])
-    except Exception:
+        return chart_data, cp, pp, "KRX (pykrx)"
+
+    def fetch_fdr():
+        chart_data = []
+        import FinanceDataReader as fdr
+        df = fdr.DataReader(code, start_date, end_date)
+        if df.empty: raise Exception()
+        for index, row in df.iterrows(): chart_data.append({"time": index.strftime("%Y-%m-%d"), "open": int(row['Open']), "high": int(row['High']), "low": int(row['Low']), "close": int(row['Close'])})
+        cp, pp = int(df.iloc[-1]['Close']), int(df.iloc[-2]['Close'] if len(df) > 1 else df.iloc[-1]['Close'])
+        return chart_data, cp, pp, "FinanceDataReader"
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         try:
-            data_source = "FinanceDataReader"
-            import FinanceDataReader as fdr
-            df = fdr.DataReader(code, start_date, end_date)
-            for index, row in df.iterrows(): chart_data.append({"time": index.strftime("%Y-%m-%d"), "open": int(row['Open']), "high": int(row['High']), "low": int(row['Low']), "close": int(row['Close'])})
-            cp, pp = int(df.iloc[-1]['Close']), int(df.iloc[-2]['Close'] if len(df) > 1 else df.iloc[-1]['Close'])
-        except Exception: return {"error": "데이터를 찾을 수 없습니다."}, 404
+            future1 = executor.submit(fetch_pykrx)
+            chart_data, cp, pp, data_source = future1.result(timeout=15)
+        except Exception:
+            try:
+                future2 = executor.submit(fetch_fdr)
+                chart_data, cp, pp, data_source = future2.result(timeout=15)
+            except Exception:
+                return {"error": "데이터를 찾을 수 없습니다."}, 404
+
     change_rate = ((cp - pp) / pp) * 100 if pp > 0 else 0
     return {"code": code, "name": TICKER_CACHE.get(code, code), "current_price": cp, "change_price": cp - pp, "change_rate": round(change_rate, 2), "chart_data": chart_data, "source": data_source}
-
+    
 @app.route('/api/news/<code>')
 def api_news(code):
     return {"news": get_stock_news_scraped(code), "updated_at": datetime.now(KST).strftime("%Y.%m.%d %H:%M"), "source": "네이버 금융 실시간 뉴스"}
@@ -623,13 +697,25 @@ def api_simulation_run():
     data = request.json
     code, amount, months, mode = data.get('code'), int(data.get('amount')), int(data.get('months')), data.get('mode') 
     now = datetime.now()
-    try:
+    
+    start_str = (now - timedelta(days=months*30)).strftime("%Y-%m-%d")
+    end_str = now.strftime("%Y-%m-%d")
+
+    def fetch_simulation_data():
         import FinanceDataReader as fdr
-        df = fdr.DataReader(code, (now - timedelta(days=months*30)).strftime("%Y-%m-%d"), now.strftime("%Y-%m-%d"))
+        return fdr.DataReader(code, start_str, end_str)
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(fetch_simulation_data)
+            df = future.result(timeout=15)
+            
         if df.empty: return {"error": "과거 주가 데이터가 없습니다."}, 404
+        
         past_price, curr_price = int(df.iloc[0]['Close']), int(df.iloc[-1]['Close'])
         total_invested = amount if mode == 'lump' else amount * months
         stock_final = (total_invested // past_price) * curr_price + (total_invested % past_price)
+        
         if mode == 'lump':
             ksema_final = total_invested * ((1 + 0.05) ** (months / 12))
             ksema_lump_final = total_invested * ((1 + 0.03) ** (months / 12))
@@ -637,8 +723,13 @@ def api_simulation_run():
             r5, r3 = 0.05 / 12, 0.03 / 12
             ksema_final = amount * (((1 + r5)**months - 1) / r5) * (1 + r5)
             ksema_lump_final = amount * (((1 + r3)**months - 1) / r3) * (1 + r3)
+            
         return {"success": True, "invested": total_invested, "stock_name": TICKER_CACHE.get(code, code), "stock_final": int(stock_final), "stock_rate": round(((stock_final - total_invested) / total_invested) * 100, 1), "ksema_final": int(ksema_final), "ksema_lump_final": int(ksema_lump_final)}
-    except Exception as e: return {"error": f"시뮬레이션 처리 중 오류: {e}"}, 500
+        
+    except concurrent.futures.TimeoutError:
+        return {"error": "주가 데이터 서버 응답 지연으로 처리에 실패했습니다."}, 500
+    except Exception as e: 
+        return {"error": f"시뮬레이션 처리 중 오류: {e}"}, 500
 
 
 # ==========================================
