@@ -773,8 +773,28 @@ def api_ai_chat():
         try:
             res = requests.post(url, json=payload, proxies={"http": None, "https": None}, timeout=90)
             res.raise_for_status()
-            parts = res.json()['candidates'][0]['content']['parts']
+            res_json = res.json()
+            
+            candidate = res_json['candidates'][0]
+            parts = candidate['content']['parts']
             reply = "".join([p.get('text', '') for p in parts])
+            
+            # [추가] 검색 출처 링크(URL) 추출 및 하단 첨부
+            grounding_chunks = candidate.get('groundingMetadata', {}).get('groundingChunks', [])
+            sources = []
+            seen_urls = set()  # 중복 링크 제거용
+            
+            for chunk in grounding_chunks:
+                web = chunk.get('web', {})
+                uri = web.get('uri')
+                title = web.get('title', '참고 링크')
+                if uri and uri not in seen_urls:
+                    seen_urls.add(uri)
+                    sources.append(f"- [{title}]({uri})")
+            
+            if sources:
+                reply += "\n\n---\n**참고 출처**\n" + "\n".join(sources[:3])  # 최대 3개까지만 표시
+                
             return {"reply": reply, "model": "Gemini 2.5 Flash"}
         except Exception as e: 
             return {"error": f"Gemini API 오류: {str(e)}"}, 500
