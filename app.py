@@ -781,10 +781,25 @@ def api_ai_chat():
             parts = candidate['content']['parts']
             reply = "".join([p.get('text', '') for p in parts])
             
-            # [추가] 검색 출처 링크(URL) 추출 및 하단 첨부
+            # [수정] 출처 데이터를 별도 리스트(sources)로 분리 추출
             grounding_chunks = candidate.get('groundingMetadata', {}).get('groundingChunks', [])
             sources = []
-            seen_urls = set()  # 중복 링크 제거용
+            seen_urls = set()
+            
+            for chunk in grounding_chunks:
+                web = chunk.get('web', {})
+                uri = web.get('uri')
+                title = web.get('title', '').strip()
+                if uri and uri not in seen_urls:
+                    seen_urls.add(uri)
+                    # 제목이 너무 길면 15자 이내로 자르고, 없으면 '참고자료'로 표기
+                    short_title = (title[:15] + '..') if len(title) > 15 else (title or '참고자료')
+                    sources.append({"title": short_title, "url": uri})
+            
+            # reply 텍스트와 sources 배열을 분리해서 반환
+            return {"reply": reply, "sources": sources[:4], "model": "Gemini 2.5 Flash"}
+        except Exception as e: 
+            return {"error": f"Gemini API 오류: {str(e)}"}, 500
             
             for chunk in grounding_chunks:
                 web = chunk.get('web', {})
