@@ -758,22 +758,37 @@ def api_ai_chat():
         for m in messages:
             role = "user" if m["role"] == "user" else "model"
             contents.append({"role": role, "parts": [{"text": m["content"]}]})
-        payload = {"contents": contents}
-        try:
-            res = requests.post(url, json=payload, timeout=90)
-            res.raise_for_status()
-            reply = res.json()['candidates'][0]['content']['parts'][0]['text']
-            return {"reply": reply, "model": "Gemini 2.5 Flash"}
-        except Exception as e: return {"error": f"Gemini API 오류: {str(e)}"}, 500
+            
+        system_prompt = (
+            "당신은 유능한 AI 어시스턴트입니다. 주식 외 일반 질문에도 서론 없이 핵심만 "
+            "간결하고 구조화된 문장(글머리 기호 등)으로 답변하세요. "
+            "최신 정보가 필요하면 반드시 Google 검색을 활용해 기준 시점과 함께 답변하세요."
+        )
         
+        payload = {
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": contents,
+            "tools": [{"google_search": {}}]
+        }
+        try:
+            res = requests.post(url, json=payload, proxies={"http": None, "https": None}, timeout=90)
+            res.raise_for_status()
+            parts = res.json()['candidates'][0]['content']['parts']
+            reply = "".join([p.get('text', '') for p in parts])
+            return {"reply": reply, "model": "Gemini 2.5 Flash"}
+        except Exception as e: 
+            return {"error": f"Gemini API 오류: {str(e)}"}, 500
+            
     else:
         headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
-        payload = {"model": "meta/llama-3.3-70b-instruct", "messages": messages, "temperature": 0.5, "max_tokens": 1024}
+        sys_msg = {"role": "system", "content": "불필요한 서론 없이 핵심만 간결하고 구조화된 문장으로 답변하세요."}
+        payload = {"model": "meta/llama-3.3-70b-instruct", "messages": [sys_msg] + messages, "temperature": 0.5, "max_tokens": 1024}
         try:
-            res = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, timeout=90)
+            res = requests.post("https://integrate.api.nvidia.com/v1/chat/completions", headers=headers, json=payload, proxies={"http": None, "https": None}, timeout=90)
             res.raise_for_status()
             return {"reply": res.json()['choices'][0]['message']['content'], "model": "Llama-3.3-70B"}
-        except Exception as e: return {"error": f"NVIDIA 서버 통신 오류: {str(e)}"}, 500
+        except Exception as e: 
+            return {"error": f"NVIDIA 서버 통신 오류: {str(e)}"}, 500
 
 @app.route('/api/ai/image', methods=['POST'])
 def api_ai_image():
@@ -811,13 +826,24 @@ def api_ai_analyze_stock():
     prompt = f"당신은 NCS STOCK의 수석 주식 애널리스트입니다. 아래 실시간 종목 데이터를 바탕으로 한국어로 주식 전망을 600자 이내로 명쾌하고 논리적으로 요약해주세요.\n[데이터]\n종목명: {data.get('name')} ({data.get('code')})\n현재가: {data.get('price')}원\n등락률: {data.get('change_rate')}%\n[최근 이슈]\n{news_text}"
     
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    payload = {"contents": [{"role": "user", "parts": [{"text": prompt}]}]}
+    payload = {
+        "systemInstruction": {  # [추가]
+            "parts": [{"text": "당신은 수석 주식 애널리스트입니다. 서론 없이 핵심만 간결하게 요약하세요."}]
+        },
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "tools": [{"google_search": {}}]  # [추가] 최신 시장/뉴스 검색 보완
+    }
     try:
-        res = requests.post(url, json=payload, timeout=90)
+        res = requests.post(url, json=payload, proxies={"http": None, "https": None}, timeout=90) # [수정]
         res.raise_for_status()
-        reply = res.json()['candidates'][0]['content']['parts'][0]['text']
+        
+        # [수정] 텍스트 조각 병합
+        parts = res.json()['candidates'][0]['content']['parts']
+        reply = "".join([p.get('text', '') for p in parts])
+        
         return {"analysis": reply, "model": "Gemini 2.5 Flash"}
-    except Exception: return {"error": "현재 AI 서버가 혼잡하여 실시간 전망을 가져올 수 없습니다. 잠시 후 새로고침 해보세요."}, 500
+    except Exception: 
+        return {"error": "현재 AI 서버가 혼잡하여 실시간 전망을 가져올 수 없습니다. 잠시 후 새로고침 해보세요."}, 500
 
 @app.route('/api/admin/ai_logs/<code>')
 def api_admin_ai_logs(code):
